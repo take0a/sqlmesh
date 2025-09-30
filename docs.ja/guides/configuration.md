@@ -802,7 +802,7 @@ SELECT 5 AS col
 
 2番目の変更はメタデータの変更であるはず（したがってバックフィルは不要）ですが、比較対象が以前の開発状態ではなく本番環境であるため、破壊的変更として分類されます。これは意図的なものであり、変更が蓄積されるにつれて追加のバックフィルが発生する可能性があります。
 
-### ゲートウェイ
+### ゲートウェイ {#gateways}
 
 `gateways` 設定は、SQLMesh がデータウェアハウス、状態バックエンド、およびスケジューラに接続する方法を定義します。これらのオプションは、設定リファレンスページの [gateway](../reference/configuration.md#gateway) セクションにあります。
 
@@ -901,7 +901,7 @@ Snowflake 接続設定の例:
     )
     ```
 
-#### エンジン接続設定
+#### エンジン接続設定 {#engine-connection-configuration}
 
 このページでは、各実行エンジンの接続設定オプションについて説明します。
 
@@ -920,7 +920,7 @@ Snowflake 接続設定の例:
 * [Spark](../integrations/engines/spark.md)
 * [Trino](../integrations/engines/trino.md)
 
-#### 状態接続
+#### 状態接続 {#state-connection}
 
 データウェアハウス接続と異なる場合の状態バックエンド接続の設定。
 
@@ -941,7 +941,7 @@ Snowflake 接続設定の例:
 高速で信頼性の高いデータベース トランザクションを備えたその他の状態エンジン (推奨エンジンよりもテストが少ない):
 
 * [DuckDB](../integrations/engines/duckdb.md)
-    * With the caveat that it's a [single user](https://duckdb.org/docs/connect/concurrency.html#writing-to-duckdb-from-multiple-processes) database so will not scale to production usage
+    * ただし、これは [単一ユーザー](https://duckdb.org/docs/connect/concurrency.html#writing-to-duckdb-from-multiple-processes) データベースであるため、本番環境での使用には拡張できません。
 * [MySQL](../integrations/engines/mysql.md)
 * [MSSQL](../integrations/engines/mssql.md)
 
@@ -1096,7 +1096,7 @@ Postgres データベースの `custom_name` スキーマに状態情報を保�
     )
     ```
 
-### スケジューラ
+### スケジューラ {#scheduler}
 
 使用するスケジューラバックエンドを指定します。スケジューラバックエンドは、メタデータの保存と[プラン](../concepts/plans.md)の実行の両方に使用されます。デフォルトでは、スケジューラタイプは「builtin」に設定されており、メタデータの保存には既存のSQLエンジンが使用されます。
 
@@ -1140,7 +1140,7 @@ Postgres データベースの `custom_name` スキーマに状態情報を保�
 このスケジューラ タイプでは追加の構成オプションはサポートされていません。
 
 
-### ゲートウェイ/接続のデフォルト
+### ゲートウェイ/接続のデフォルト {#gatewayconnection-defaults}
 
 デフォルトのゲートウェイと接続キーは、ゲートウェイまたは接続が明示的に指定されていない場合の動作を指定します。これらのオプションは、設定リファレンスページの [ゲートウェイ/接続のデフォルト](../reference/configuration.md#gatewayconnection-defaults) セクションにあります。
 
@@ -1232,7 +1232,7 @@ Postgres のデフォルト接続、インメモリ DuckDB のデフォルトテ
     )
     ```
 
-### モデル
+### モデル {#models}
 
 #### モデルのデフォルト
 

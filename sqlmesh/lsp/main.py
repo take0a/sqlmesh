@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-"""A Language Server Protocol (LSP) server for SQL with SQLMesh integration, refactored without globals."""
+"""A Language Server Protocol (LSP) server for SQL with SQLMesh integration, refactored without globals.
+グローバルなしでリファクタリングされた、SQLMesh 統合を備えた SQL 用の言語サーバー プロトコル (LSP) サーバー。"""
 
 from itertools import chain
 import logging
@@ -94,21 +95,24 @@ from web.server.models import RowDiff, SchemaDiff, TableDiff
 
 class InitializationOptions(PydanticModel):
     """Initialization options for the SQLMesh Language Server, that
-    are passed from the client to the server."""
+    are passed from the client to the server.
+    クライアントからサーバーに渡される、SQLMesh 言語サーバーの初期化オプション。"""
 
     project_paths: t.Optional[t.List[str]] = None
 
 
 @dataclass
 class NoContext:
-    """State when no context has been attempted to load."""
+    """State when no context has been attempted to load.
+    コンテキストの読み込みが試行されていないときの状態。"""
 
     version_id: str = field(default_factory=lambda: str(uuid.uuid4()))
 
 
 @dataclass
 class ContextLoaded:
-    """State when context has been successfully loaded."""
+    """State when context has been successfully loaded.
+    コンテキストが正常にロードされたときの状態。"""
 
     lsp_context: LSPContext
     version_id: str = field(default_factory=lambda: str(uuid.uuid4()))
@@ -116,7 +120,8 @@ class ContextLoaded:
 
 @dataclass
 class ContextFailed:
-    """State when context failed to load with an error message."""
+    """State when context failed to load with an error message.
+    エラー メッセージとともにコンテキストの読み込みに失敗した状態。"""
 
     error: ContextFailedError
     context: t.Optional[Context] = None
@@ -130,6 +135,8 @@ class SQLMeshLanguageServer:
     # Specified folders take precedence over workspace folders or looking
     # for a config files. They are explicitly set by the user and optionally
     # pass in at init
+    # 指定されたフォルダは、ワークスペースフォルダや設定ファイルの検索よりも優先されます。
+    # これらはユーザーによって明示的に設定され、オプションでinit.iniに渡されます。
     specified_paths: t.Optional[t.List[Path]] = None
 
     def __init__(
@@ -180,7 +187,8 @@ class SQLMeshLanguageServer:
         ls: LanguageServer,
         params: ListWorkspaceTestsRequest,
     ) -> ListWorkspaceTestsResponse:
-        """List all tests in the current workspace."""
+        """List all tests in the current workspace.
+        現在のワークスペース内のすべてのテストを一覧表示します。"""
         try:
             context = self._context_get_or_load()
             tests = context.list_workspace_tests()
@@ -194,7 +202,8 @@ class SQLMeshLanguageServer:
         ls: LanguageServer,
         params: ListDocumentTestsRequest,
     ) -> ListDocumentTestsResponse:
-        """List tests for a specific document."""
+        """List tests for a specific document.
+        特定のドキュメントのテストの一覧を表示します。"""
         try:
             uri = URI(params.textDocument.uri)
             context = self._context_get_or_load(uri)
@@ -209,7 +218,8 @@ class SQLMeshLanguageServer:
         ls: LanguageServer,
         params: RunTestRequest,
     ) -> RunTestResponse:
-        """Run a specific test."""
+        """Run a specific test.
+        特定のテストを実行します。"""
         try:
             uri = URI(params.textDocument.uri)
             context = self._context_get_or_load(uri)
@@ -253,7 +263,8 @@ class SQLMeshLanguageServer:
     def _custom_format_project(
         self, ls: LanguageServer, params: FormatProjectRequest
     ) -> FormatProjectResponse:
-        """Format all models in the current project."""
+        """Format all models in the current project.
+        現在のプロジェクト内のすべてのモデルをフォーマットします。"""
         try:
             context = self._context_get_or_load()
             context.context.format()
@@ -265,7 +276,8 @@ class SQLMeshLanguageServer:
     def _custom_get_environments(
         self, ls: LanguageServer, params: GetEnvironmentsRequest
     ) -> GetEnvironmentsResponse:
-        """Get all environments in the current project."""
+        """Get all environments in the current project.
+        現在のプロジェクト内のすべての環境を取得します。"""
         try:
             context = self._context_get_or_load()
             environments = {}
@@ -294,7 +306,8 @@ class SQLMeshLanguageServer:
             )
 
     def _custom_get_models(self, ls: LanguageServer, params: GetModelsRequest) -> GetModelsResponse:
-        """Get all models available for table diff."""
+        """Get all models available for table diff.
+        テーブル diff に使用可能なすべてのモデルを取得します。"""
         try:
             context = self._context_get_or_load()
             models = [
@@ -428,7 +441,8 @@ class SQLMeshLanguageServer:
     def _custom_supported_methods(
         self, ls: LanguageServer, params: SupportedMethodsRequest
     ) -> SupportedMethodsResponse:
-        """Return all supported custom LSP methods."""
+        """Return all supported custom LSP methods.
+        サポートされているすべてのカスタム LSP メソッドを返します。"""
         return SupportedMethodsResponse(
             methods=[
                 CustomMethod(
@@ -441,7 +455,8 @@ class SQLMeshLanguageServer:
     def _reload_context_and_publish_diagnostics(
         self, ls: LanguageServer, uri: URI, document_uri: str
     ) -> None:
-        """Helper method to reload context and publish diagnostics."""
+        """Helper method to reload context and publish diagnostics.
+        コンテキストを再読み込みし、診断を公開するためのヘルパー メソッド"""
         if isinstance(self.context_state, NoContext):
             pass
         elif isinstance(self.context_state, ContextFailed):
@@ -487,6 +502,7 @@ class SQLMeshLanguageServer:
                 )
 
         # Send a workspace diagnostic refresh request to the client. This is used to notify the client that the diagnostics have changed.
+        # ワークスペース診断の更新リクエストをクライアントに送信します。これは、診断情報が変更されたことをクライアントに通知するために使用されます。
         ls.lsp.send_request(
             types.WORKSPACE_DIAGNOSTIC_REFRESH,
             WorkspaceDiagnosticRefreshRequest(
@@ -501,6 +517,7 @@ class SQLMeshLanguageServer:
         )
 
         # Only publish diagnostics if client doesn't support pull diagnostics
+        # クライアントがプル診断をサポートしていない場合にのみ診断を公開する
         if not self.client_supports_pull_diagnostics:
             if hasattr(self.context_state, "lsp_context"):
                 diagnostics = self.context_state.lsp_context.lint_model(uri)
@@ -510,7 +527,8 @@ class SQLMeshLanguageServer:
                 )
 
     def _register_features(self) -> None:
-        """Register LSP features on the internal LanguageServer instance."""
+        """Register LSP features on the internal LanguageServer instance.
+        内部 LanguageServer インスタンスに LSP 機能を登録します。"""
         for name, method in self._supported_custom_methods.items():
 
             def create_function_call(method_func: t.Callable) -> t.Callable:
@@ -565,7 +583,8 @@ class SQLMeshLanguageServer:
 
         @self.server.feature(types.INITIALIZE)
         def initialize(ls: LanguageServer, params: types.InitializeParams) -> None:
-            """Initialize the server when the client connects."""
+            """Initialize the server when the client connects.
+            クライアントが接続したときにサーバーを初期化します。"""
             try:
                 # Check the custom options
                 if params.initialization_options:
@@ -627,7 +646,8 @@ class SQLMeshLanguageServer:
         def formatting(
             ls: LanguageServer, params: types.DocumentFormattingParams
         ) -> t.List[types.TextEdit]:
-            """Format the document using SQLMesh `format_model_expressions`."""
+            """Format the document using SQLMesh `format_model_expressions`.
+            SQLMesh `format_model_expressions` を使用してドキュメントをフォーマットします。"""
             try:
                 uri = URI(params.text_document.uri)
                 context = self._context_get_or_load(uri)
@@ -671,7 +691,8 @@ class SQLMeshLanguageServer:
 
         @self.server.feature(types.TEXT_DOCUMENT_HOVER)
         def hover(ls: LanguageServer, params: types.HoverParams) -> t.Optional[types.Hover]:
-            """Provide hover information for an object."""
+            """Provide hover information for an object.
+            オブジェクトのホバー情報を提供します。"""
             try:
                 uri = URI(params.text_document.uri)
                 context = self._context_get_or_load(uri)
@@ -701,7 +722,8 @@ class SQLMeshLanguageServer:
         def inlay_hint(
             ls: LanguageServer, params: types.InlayHintParams
         ) -> t.List[types.InlayHint]:
-            """Implement type hints for sql columns as inlay hints"""
+            """Implement type hints for sql columns as inlay hints
+            SQL列の型ヒントをインレイヒントとして実装する"""
             try:
                 uri = URI(params.text_document.uri)
                 context = self._context_get_or_load(uri)
@@ -718,7 +740,8 @@ class SQLMeshLanguageServer:
         def goto_definition(
             ls: LanguageServer, params: types.DefinitionParams
         ) -> t.List[types.LocationLink]:
-            """Jump to an object's definition."""
+            """Jump to an object's definition.
+            オブジェクトの定義にジャンプします。"""
             try:
                 uri = URI(params.text_document.uri)
                 context = self._context_get_or_load(uri)
@@ -773,7 +796,8 @@ class SQLMeshLanguageServer:
         def find_references(
             ls: LanguageServer, params: types.ReferenceParams
         ) -> t.Optional[t.List[types.Location]]:
-            """Find all references of a symbol (supporting CTEs, models for now)"""
+            """Find all references of a symbol (supporting CTEs, models for now)
+            シンボルのすべての参照を検索します（現時点では CTE とモデルをサポートしています）"""
             try:
                 uri = URI(params.text_document.uri)
                 context = self._context_get_or_load(uri)
@@ -798,7 +822,8 @@ class SQLMeshLanguageServer:
         def prepare_rename_handler(
             ls: LanguageServer, params: types.PrepareRenameParams
         ) -> t.Optional[types.PrepareRenameResult]:
-            """Prepare for rename operation by checking if the symbol can be renamed."""
+            """Prepare for rename operation by checking if the symbol can be renamed.
+            シンボルの名前を変更できるかどうかを確認して、名前変更操作の準備をします。"""
             try:
                 uri = URI(params.text_document.uri)
                 context = self._context_get_or_load(uri)
@@ -812,7 +837,8 @@ class SQLMeshLanguageServer:
         def rename_handler(
             ls: LanguageServer, params: types.RenameParams
         ) -> t.Optional[types.WorkspaceEdit]:
-            """Perform rename operation on the symbol at the given position."""
+            """Perform rename operation on the symbol at the given position.
+            指定された位置のシンボルに対して名前変更操作を実行します。"""
             try:
                 uri = URI(params.text_document.uri)
                 context = self._context_get_or_load(uri)
@@ -826,7 +852,8 @@ class SQLMeshLanguageServer:
         def document_highlight_handler(
             ls: LanguageServer, params: types.DocumentHighlightParams
         ) -> t.Optional[t.List[types.DocumentHighlight]]:
-            """Highlight all occurrences of the symbol at the given position."""
+            """Highlight all occurrences of the symbol at the given position.
+            指定された位置にあるシンボルのすべての出現を強調表示します。"""
             try:
                 uri = URI(params.text_document.uri)
                 context = self._context_get_or_load(uri)
@@ -840,7 +867,8 @@ class SQLMeshLanguageServer:
         def diagnostic(
             ls: LanguageServer, params: types.DocumentDiagnosticParams
         ) -> types.DocumentDiagnosticReport:
-            """Handle diagnostic pull requests from the client."""
+            """Handle diagnostic pull requests from the client.
+            クライアントからの診断プル リクエストを処理します。"""
             try:
                 uri = URI(params.text_document.uri)
                 diagnostics, result_id = self._get_diagnostics_for_uri(uri)
@@ -871,7 +899,8 @@ class SQLMeshLanguageServer:
         def workspace_diagnostic(
             ls: LanguageServer, params: types.WorkspaceDiagnosticParams
         ) -> types.WorkspaceDiagnosticReport:
-            """Handle workspace-wide diagnostic pull requests from the client."""
+            """Handle workspace-wide diagnostic pull requests from the client.
+            クライアントからのワークスペース全体の診断プル リクエストを処理します。"""
             try:
                 context = self._context_get_or_load()
 
@@ -969,7 +998,8 @@ class SQLMeshLanguageServer:
         def completion(
             ls: LanguageServer, params: types.CompletionParams
         ) -> t.Optional[types.CompletionList]:
-            """Handle completion requests from the client."""
+            """Handle completion requests from the client.
+            クライアントからの完了要求を処理します。"""
             try:
                 uri = URI(params.text_document.uri)
                 context = self._context_get_or_load(uri)
@@ -1046,6 +1076,11 @@ class SQLMeshLanguageServer:
 
         Since we no longer track version numbers, we always return 0 as the result_id.
         This means pull diagnostics will always fetch fresh results.
+
+        特定のURIの診断情報を取得し、(diagnostics, result_id) を返します。
+
+        バージョン番号の追跡は終了したため、result_id としては常に 0 を返します。
+        つまり、プル診断では常に最新の結果が取得されます。
         """
         try:
             context = self._context_get_or_load(uri)
@@ -1085,6 +1120,8 @@ class SQLMeshLanguageServer:
         """
         Ensure that a context exists for the given document if applicable by searching
         for a config.py or config.yml file in the parent directories.
+        該当する場合は、親ディレクトリで config.py または config.yml ファイルを検索して、
+        指定されたドキュメントのコンテキストが存在することを確認します。
         """
         if document_uri is not None:
             document_path = document_uri.to_path()
@@ -1140,6 +1177,16 @@ class SQLMeshLanguageServer:
 
         Returns:
             A new LSPContext instance wrapping the created context, or None if creation fails
+
+        設定されたコンテキストクラスを使用して、新しい LSPContext インスタンスを作成します。
+
+        成功した場合、self.context_state を ContextLoaded に設定し、作成したコンテキストを返します。
+
+        引数:
+            paths: コンテキストコンストラクタに渡すパスのリスト
+
+        戻り値:
+            作成したコンテキストをラップする新しい LSPContext インスタンス。作成に失敗した場合は None を返します。
         """
         try:
             if isinstance(self.context_state, NoContext):

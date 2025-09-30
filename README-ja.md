@@ -191,6 +191,7 @@ SQLMesh オープンソースへの貢献方法については、[詳細はこ�
 
 
 # MEMO
+## 日本語訳
 
 このリポジトリで（機械）翻訳した日本語ドキュメントを見るには
 
@@ -203,3 +204,50 @@ uv run mkdocs serve -f mkdocs-ja.yml
 ```
 
 して、ブラウザで http://127.0.0.1:8000/ へ接続する
+
+## 開発環境
+
+`[project.optional-dependencies]` も sync したい場合は以下を実行する。
+バージョンの制約を掛けずに pyarrow を入れると死ぬので、`pyproject.toml` で >18 縛りにした。
+
+```bash
+uv sync --extra dev --extra lsp
+```
+
+## 状態DB
+
+VSCode 拡張の場合は、状態データベースを Duckdb にしないようにということなので、
+実質的に唯一の推奨エンジンである Postgres を入れた。
+
+```bash
+sudo dnf upgrade --releasever=2023.8.20250915
+sudo dnf install postgresql17-server
+sudo postgresql-setup --initdb
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+sudo passwd postgres
+su - postgres
+```
+
+postgres でいる間に、psql で postgres ユーザーにパスワードを付与して
+
+```psql
+postgres=# alter user postgres with encrypted password 'xxxxxxxx';
+```
+
+pg_hba.conf で peer 認証からデータベースユーザーのパスワード認証に変更すると、
+OS の postgres ユーザー以外も DB の postgres ユーザーを使えるようになる
+
+```/var/lib/pgsql/data/pg_hba.conf
+# TYPE  DATABASE        USER            ADDRESS                 METHOD
+local   all             all                                     md5
+```
+
+exit して、元のユーザーに戻って
+
+```bash
+sudo systemctl restart postgresql
+psql -U postgres
+```
+
+で接続できれば OK
