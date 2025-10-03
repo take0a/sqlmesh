@@ -1,54 +1,54 @@
 # Model configuration
 
-This page lists SQLMesh model configuration options and their parameters.
+このページでは、SQLMesh モデルの設定オプションとそのパラメータについて説明します。
 
-Learn more about specifying SQLMesh model properties in the [model concepts overview page](../concepts/models/overview.md#model-properties).
+SQLMesh モデルのプロパティの指定方法の詳細については、[モデルの概念の概要ページ](../concepts/models/overview.md#model-properties) をご覧ください。
 
 ## General model properties
 
-Configuration options for SQLMesh model properties. Supported by all model kinds other than [`SEED` models](#seed-models).
+SQLMeshモデルのプロパティの設定オプション。[`SEED`モデル](#seed-models)以外のすべてのモデルでサポートされています。
 
-| Option                | Description                                                                                                                                                                                                                                                                                                                                                 |       Type        | Required |
-|-----------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-----------------:|:--------:|
-| `name`                | The model name. Must include at least a qualifying schema (`<schema>.<model>`) and may include a catalog (`<catalog>.<schema>.<model>`). Can be omitted if [infer_names](#model-naming) is set to true.                                                                                                                                                     |        str        |    N     |
-| `project`             | The name of the project the model belongs to - used in multi-repo deployments                                                                                                                                                                                                                                                                               |        str        |    N     |
-| `kind`                | The model kind ([Additional Details](#model-kind-properties)). (Default: `VIEW`)                                                                                                                                                                                                                                                                            |    str \| dict    |    N     |
-| `audits`              | SQLMesh [audits](../concepts/audits.md) that should run against the model's output                                                                                                                                                                                                                                                                          |    array[str]     |    N     |
-| `dialect`             | The SQL dialect in which the model's query is written. All SQL dialects [supported by the SQLGlot library](https://github.com/tobymao/sqlglot/blob/main/sqlglot/dialects/dialect.py) are allowed.                                                                                                                                                           |        str        |    N     |
-| `owner`               | The owner of a model; may be used for notification purposes                                                                                                                                                                                                                                                                                                 |        str        |    N     |
-| `stamp`               | Arbitrary string used to indicate a model's version without changing the model name                                                                                                                                                                                                                                                                         |        str        |    N     |
-| `tags`                | Arbitrary strings used to organize or classify a model                                                                                                                                                                                                                                                                                                      |    array[str]     |    N     |
-| `cron`                | The cron expression specifying how often the model should be refreshed. (Default: `@daily`)                                                                                                                                                                                                                                                                 |        str        |    N     |
-| `interval_unit`       | The temporal granularity of the model's data intervals. Supported values: `year`, `month`, `day`, `hour`, `half_hour`, `quarter_hour`, `five_minute`. (Default: inferred from `cron`)                                                                                                                                                                       |        str        |    N     |
-| `start`               | The date/time that determines the earliest date interval that should be processed by a model. Can be a datetime string, epoch time in milliseconds, or a relative datetime such as `1 year ago`. (Default: `yesterday`)                                                                                                                                     |    str \| int     |    N     |
-| `end`                 | The date/time that determines the latest date interval that should be processed by a model. Can be a datetime string, epoch time in milliseconds, or a relative datetime such as `1 year ago`.                                                                                                                                                              |    str \| int     |    N     |
-| `description`         | Description of the model. Automatically registered in the SQL engine's table COMMENT field or equivalent (if supported by the engine).                                                                                                                                                                                                                      |        str        |    N     |
-| `column_descriptions` | A key-value mapping of column names to column comments that will be registered in the SQL engine's table COMMENT field (if supported by the engine). Specified as key-value pairs (`column_name = 'column comment'`). If present, [inline column comments](../concepts/models/overview.md#inline-column-comments) will not be registered in the SQL engine. |       dict        |    N     |
-| `grains`              | The column(s) whose combination uniquely identifies each row in the model                                                                                                                                                                                                                                                                                   | str \| array[str] |    N     |
-| `references`          | The model column(s) used to join to other models' grains                                                                                                                                                                                                                                                                                                    | str \| array[str] |    N     |
-| `depends_on`          | Models on which this model depends, in addition to the ones inferred from the model's query. (Default: dependencies inferred from model code)                                                                                                                                                                                                               |    array[str]     |    N     |
-| `table_format`        | The table format that should be used to manage the physical files (eg `iceberg`, `hive`, `delta`); only applicable to engines such as Spark and Athena                                                                                                                                                                                                      |        str        |    N     |
-| `storage_format`      | The storage format that should be used to store physical files (eg `parquet`, `orc`); only applicable to engines such as Spark and Athena                                                                                                                                                                                                                   |        str        |    N     |
-| `partitioned_by`      | The column(s) and/or column expressions used define a model's partitioning key. Required for the `INCREMENTAL_BY_PARTITION` model kind. Optional for all other model kinds; used to partition the model's physical table in engines that support partitioning.                                                                                              | str \| array[str] |    N     |
-| `clustered_by`        | The column(s) and/or column expressions used to cluster the model's physical table; only applicable to engines that support clustering                                                                                                                                                                                                                                                |        str        |    N     |
-| `columns`             | The column names and data types returned by the model. Disables [automatic inference of column names and types](../concepts/models/overview.md#conventions) from the SQL query.                                                                                                                                                                             |    array[str]     |    N     |
-| `physical_properties` | A key-value mapping of arbitrary properties specific to the target engine that are applied to the model table / view in the physical layer. Specified as key-value pairs (`key = value`). The view/table type (e.g. `TEMPORARY`, `TRANSIENT`) can be added with the `creatable_type` key.                                                                   |       dict        |    N     |
-| `virtual_properties`  | A key-value mapping of arbitrary properties specific to the target engine that are applied to the model view in the virtual layer. Specified as key-value pairs (`key = value`). The view type (e.g. `SECURE`) can be added with the `creatable_type` key.                                                                                                  |       dict        |    N     |
-| `session_properties`  | A key-value mapping of arbitrary properties specific to the target engine that are applied to the engine session. Specified as key-value pairs (`key = value`).                                                                                                                                                                                             |       dict        |    N     |
-| `allow_partials`      | Whether this model can process partial (incomplete) data intervals                                                                                                                                                                                                                                                                                          |       bool        |    N     |
-| `enabled`             | Whether the model is enabled. This attribute is `true` by default. Setting it to `false` causes SQLMesh to ignore this model when loading the project.                                                                                                                                                                                                      |       bool        |    N     |
-| `gateway`             | Specifies the gateway to use for the execution of this model. When not specified, the default gateway is used.                                                                                                                                                                                                       |       str        |    N     |
-| `optimize_query`             | Whether the model's query should be optimized. This attribute is `true` by default. Setting it to `false` causes SQLMesh to disable query canonicalization & simplification. This should be turned off only if the optimized query leads to errors such as surpassing text limit.                                                                                                                                                                                                      |       bool        |    N     |
-| `ignored_rules`             |  A list of linter rule names (or "ALL") to be ignored/excluded for this model                                                                                                                                                                                             |       str \| array[str]        |    N     |
-| `formatting`             | Whether the model will be formatted. All models are formatted by default. Setting this to `false` causes SQLMesh to ignore this model during `sqlmesh format`.                                                                                                                                                                                                      |       bool        |    N     |
+| オプション | 説明 | タイプ | 必須 |
+|-----------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-----------------:|:--------:|
+| `name` | モデル名。少なくとも修飾スキーマ (`<schema>.<model>`) を含める必要があり、カタログ (`<catalog>.<schema>.<model>`) を含めることができます。[infer_names](#model-naming) が true に設定されている場合は省略できます。| str | N |
+| `project` | モデルが属するプロジェクトの名前 - マルチリポジトリのデプロイメントで使用されます | str | N |
+| `kind` | モデルの種類 ([追加の詳細](#model-kind-properties))。(デフォルト: `VIEW`) | str \| dict | N |
+| `audits` |モデルの出力に対して実行する SQLMesh [監査](../concepts/audits.md) | 配列 [str] | N |
+| `dialect` | モデルのクエリが記述されている SQL 方言。[SQLGlot ライブラリでサポートされている](https://github.com/tobymao/sqlglot/blob/main/sqlglot/dialects/dialect.py) すべての SQL 方言が許可されます。 | str | N |
+| `owner` | モデルの所有者。通知の目的で使用できます | str | N |
+| `stamp` | モデル名を変更せずにモデルのバージョンを示すために使用される任意の文字列 | str | N |
+| `tags` | モデルを整理または分類するために使用される任意の文字列 | array[str] | N |
+| `cron` | モデルを更新する頻度を指定する cron 式。(デフォルト: `@daily`) | str | N |
+| `interval_unit` | モデルのデータ間隔の時間粒度。サポートされる値: `year`、`month`、`day`、`hour`、`half_hour`、`quarter_hour`、`five_minute`。(デフォルト: `cron` から推定) | str | N |
+| `start` | モデルによって処理される最も古い日付間隔を決定する日付/時刻。日付時刻文字列、ミリ秒単位のエポック時間、または `1 year ago` などの相対日付時刻を指定できます。(デフォルト: `yesterday`) | str \| int | N |
+| `end` | モデルで処理する最後の日付間隔を決定する日付/時刻。日付時刻文字列、ミリ秒単位のエポックタイム、または `1 year ago` などの相対日付時刻を指定できます。| str \| int | N |
+| `description` | モデルの説明。SQL エンジンのテーブル COMMENT フィールドまたは同等のフィールドに自動的に登録されます (エンジンでサポートされている場合)。| str | N |
+| `column_descriptions` | 列名と列コメントのキーと値のマッピング。SQL エンジンのテーブル COMMENT フィールドに登録されます (エンジンでサポートされている場合)。キーと値のペアとして指定します (`column_name = 'column comment'`)。存在する場合、[インライン列コメント](../concepts/models/overview.md#inline-column-comments) は SQL エンジンに登録されません。| dict | N |
+| `grains` |モデル内の各行を一意に識別する組み合わせの列 | str \| array[str] | N |
+| `references` | 他のモデルのグレインに結合するために使用されるモデル列 | str \| array[str] | N |
+| `depends_on` | このモデルが依存するモデル、およびモデルのクエリから推論されたモデル。(デフォルト: モデルコードから推論された依存関係) | array[str] | N |
+| `table_format` | 物理ファイルの管理に使用するテーブル形式 (例: `iceberg`、`hive`、`delta`)。Spark や Athena などのエンジンにのみ適用されます | str | N |
+| `storage_format` | 物理ファイルの保存に使用するストレージ形式 (例: `parquet`、`orc`)。Spark や Athena などのエンジンにのみ適用されます。 | str | N |
+| `partitioned_by` | モデルのパーティション キーを定義する列や列式。`INCREMENTAL_BY_PARTITION` モデルの種類では必須です。その他すべてのモデルの種類ではオプションです。パーティション分割をサポートするエンジンでモデルの物理テーブルをパーティション分割するために使用されます。 | str \| array[str] | N |
+| `clustered_by` | モデルの物理テーブルをクラスター化するために使用される列や列式。クラスタリングをサポートするエンジンにのみ適用されます。 | str | N |
+| `columns` | モデルによって返される列名とデータ型。 SQL クエリからの [列名と型の自動推論](../concepts/models/overview.md#conventions) を無効にします。 | array[str] | N |
+| `physical_properties` | 物理レイヤーのモデル テーブル/ビューに適用される、ターゲット エンジンに固有の任意のプロパティのキーと値のマッピング。キーと値のペア (`key = value`) として指定します。ビュー/テーブル タイプ (例: `TEMPORARY`、`TRANSIENT`) は、`creatable_type` キーを使用して追加できます。 | dict | N |
+| `virtual_properties` | 仮想レイヤーのモデル ビューに適用される、ターゲット エンジンに固有の任意のプロパティのキーと値のマッピング。キーと値のペア (`key = value`) として指定します。ビュー タイプ (例: `SECURE`) は、`creatable_type` キーを使用して追加できます。 | dict | N |
+| `session_properties` | エンジン セッションに適用される、ターゲット エンジンに固有の任意のプロパティのキーと値のマッピング。キーと値のペア (`key = value`) として指定します。 | dict | N |
+| `allow_partials` | このモデルが部分的な (不完全な) データ間隔を処理できるかどうか | bool | N |
+| `enabled` | モデルが有効かどうか。この属性の既定値は `true` です。これを `false` に設定すると、SQLMesh はプロジェクトの読み込み時にこのモデルを無視します。 | bool | N |
+| `gateway` | このモデルの実行に使用するゲートウェイを指定します。指定しない場合は、デフォルトのゲートウェイが使用されます。 | str | N |
+| `optimize_query` | モデルのクエリを最適化するかどうか。この属性はデフォルトで `true` です。これを `false` に設定すると、SQLMesh はクエリの正規化と簡素化を無効にします。最適化されたクエリがテキスト制限を超えるなどのエラーを引き起こす場合にのみ、これをオフにする必要があります。 | bool | N |
+| `ignored_rules` | このモデルで無視/除外するリンタールール名のリスト (または "ALL") | str \| array[str] | N |
+| `formatting` | モデルをフォーマットするかどうか。デフォルトではすべてのモデルがフォーマットされます。これを `false` に設定すると、SQLMesh は `sqlmesh format` 中にこのモデルを無視します。 | bool | N |
 
 ### Model defaults
 
-The SQLMesh project-level configuration must contain the `model_defaults` key and must specify a value for its `dialect` key. Other values are set automatically unless explicitly overridden in the model definition. Learn more about project-level configuration in the [configuration guide](../guides/configuration.md).
+SQLMesh プロジェクトレベル設定には、`model_defaults` キーが含まれ、その `dialect` キーの値を指定する必要があります。その他の値は、モデル定義で明示的にオーバーライドされない限り、自動的に設定されます。プロジェクトレベル設定の詳細については、[設定ガイド](../guides/configuration.md) を参照してください。
 
-In `physical_properties`, `virtual_properties`, and `session_properties`, when both project-level and model-specific properties are defined, they are merged, with model-level properties taking precedence. To unset a project-wide property for a specific model, set it to `None` in the `MODEL`'s DDL properties or within the `@model` decorator for Python models.
+`physical_properties`、`virtual_properties`、および `session_properties` において、プロジェクトレベルとモデル固有のプロパティの両方が定義されている場合、それらはマージされ、モデルレベルのプロパティが優先されます。特定のモデルのプロジェクト全体にわたるプロパティの設定を解除するには、`MODEL` の DDL プロパティ、または Python モデルの `@model` デコレータ内でそのプロパティを `None` に設定します。
 
-For example, with the following `model_defaults` configuration:
+例えば、次の `model_defaults` 設定では、次のようになります。
 
 === "YAML"
 
@@ -80,7 +80,7 @@ For example, with the following `model_defaults` configuration:
     )
     ```
 
-To override `partition_expiration_days`, add a new `creatable_type` property and unset `project_level_property`, you can define the model as follows:
+`partition_expiration_days` をオーバーライドするには、新しい `creatable_type` プロパティを追加し、`project_level_property` を設定解除して、次のようにモデルを定義します。
 
 === "SQL"
 
@@ -108,7 +108,7 @@ To override `partition_expiration_days`, add a new `creatable_type` property and
     )
     ```
 
-You can also use the `@model_kind_name` variable to fine-tune control over `physical_properties` in `model_defaults`. This holds the current model's kind name and is useful for conditionally assigning a property. For example, to disable `creatable_type` for your project's `VIEW` kind models:
+`@model_kind_name` 変数を使用して、`model_defaults` の `physical_properties` を細かく制御することもできます。この変数は現在のモデルの種類名を保持し、条件に応じてプロパティを割り当てる場合に便利です。例えば、プロジェクトの `VIEW` 種類のモデルで `creatable_type` を無効にするには、次のようにします。
 
 === "YAML"
 
@@ -136,7 +136,7 @@ You can also use the `@model_kind_name` variable to fine-tune control over `phys
     )
     ```
 
-You can aso define `pre_statements`, `post_statements` and `on_virtual_update` statements at the project level that will be applied to all models. These default statements are merged with any model-specific statements, with default statements executing first, followed by model-specific statements.
+プロジェクトレベルで `pre_statements`、`post_statements`、`on_virtual_update` ステートメントを定義し、すべてのモデルに適用することもできます。これらのデフォルトステートメントはモデル固有のステートメントとマージされ、デフォルトステートメントが最初に実行され、その後にモデル固有のステートメントが実行されます。
 
 === "YAML"
 
@@ -173,7 +173,7 @@ You can aso define `pre_statements`, `post_statements` and `on_virtual_update` s
     ```
 
 
-The SQLMesh project-level `model_defaults` key supports the following options, described in the [general model properties](#general-model-properties) table above:
+SQLMesh プロジェクト レベルの `model_defaults` キーは、上記の [一般的なモデル プロパティ](#general-model-properties) の表で説明されている次のオプションをサポートしています。
 
 - kind
 - dialect
@@ -199,152 +199,150 @@ The SQLMesh project-level `model_defaults` key supports the following options, d
 
 ### Model Naming
 
-Configuration option for name inference. Learn more in the [model naming guide](../guides/configuration.md#model-naming).
+名前推論の設定オプションです。詳しくは[モデル命名ガイド](../guides/configuration.md#model-naming)をご覧ください。
 
-| Option        | Description                                                                                    | Type | Required |
-|---------------|------------------------------------------------------------------------------------------------|:----:|:--------:|
-| `infer_names` | Whether to automatically infer model names based on the directory structure (Default: `False`) | bool |    N     |
-
+| オプション | 説明 | タイプ | 必須 |
+|--------------|------------------------------------------------------------------------------------------------|:----:|:--------:|
+| `infer_names` | ディレクトリ構造に基づいてモデル名を自動的に推論するかどうか (デフォルト: `False`) | bool | N |
 
 ## Model kind properties
 
-Configuration options for kind-specific SQLMesh model properties, in addition to the [general model properties](#general-model-properties) listed above.
+上記の[一般的なモデルプロパティ](#general-model-properties)に加えて、種類固有のSQLMeshモデルプロパティの構成オプションがあります。
 
-Learn more about model kinds at the [model kind concepts page](../concepts/models/model_kinds.md). Learn more about specifying model kind in Python models at the [Python models concepts page](../concepts/models/python_models.md#model-specification).
+モデルの種類の詳細については、[モデルの種類の概念ページ](../concepts/models/model_kinds.md)をご覧ください。Pythonモデルでのモデル種類の指定の詳細については、[Pythonモデルの概念ページ](../concepts/models/python_models.md#model-specification)をご覧ください。
 
 ### `VIEW` models
 
-Configuration options for models of the [`VIEW` kind](../concepts/models/model_kinds.md#view) (in addition to [general model properties](#general-model-properties)).
+[`VIEW` 種類](../concepts/models/model_kinds.md#view) のモデルの構成オプション（[一般的なモデルプロパティ](#general-model-properties) に加えて）。
 
-| Option         | Description                                                                                          | Type | Required |
-|----------------|------------------------------------------------------------------------------------------------------|:----:|:--------:|
-| `materialized` | Whether views should be materialized (for engines supporting materialized views). (Default: `False`) | bool |    N     |
+| オプション | 説明 | タイプ | 必須 |
+|----------------|--------------------------------------------------------------------------------------------------|:----:|:--------:|
+| `materialized` | ビューをマテリアライズするかどうか（マテリアライズドビューをサポートするエンジンの場合）。(デフォルト: `False`) | bool | N |
 
-Python model kind `name` enum value: [ModelKindName.VIEW](https://sqlmesh.readthedocs.io/en/stable/_readthedocs/html/sqlmesh/core/model/kind.html#ModelKindName)
+Python モデル種類 `name` 列挙値: [ModelKindName.VIEW](https://sqlmesh.readthedocs.io/en/stable/_readthedocs/html/sqlmesh/core/model/kind.html#ModelKindName)
 
 ### `FULL` models
 
-The [`FULL` model kind](../concepts/models/model_kinds.md#full) does not support any configuration options other than the [general model properties listed above](#general-model-properties).
+[`FULL` モデル種別](../concepts/models/model_kinds.md#full) は、[上記の一般的なモデルプロパティ](#general-model-properties) 以外の構成オプションをサポートしていません。
 
-Python model kind `name` enum value: [ModelKindName.FULL](https://sqlmesh.readthedocs.io/en/stable/_readthedocs/html/sqlmesh/core/model/kind.html#ModelKindName)
+Python モデル種別 `name` 列挙値: [ModelKindName.FULL](https://sqlmesh.readthedocs.io/en/stable/_readthedocs/html/sqlmesh/core/model/kind.html#ModelKindName)
 
 ### Incremental models
 
-Configuration options for all incremental models (in addition to [general model properties](#general-model-properties)).
+すべての増分モデルの設定オプション（[一般的なモデルプロパティ](#general-model-properties)に加えて）。
 
-| Option                  | Description                                                                                                                                                                                                                                                                                                                                              | Type | Required |
-|-------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:----:|:--------:|
-| `forward_only`          | Whether the model's changes should always be classified as [forward-only](../concepts/plans.md#forward-only-change). (Default: `False`)                                                                                                                                                                                                                  | bool |    N     |
-| `on_destructive_change` | What should happen when a change to a [forward-only model](../guides/incremental_time.md#forward-only-models) or incremental model in a [forward-only plan](../concepts/plans.md#forward-only-plans) causes a destructive modification to the model schema. Valid values: `allow`, `warn`, `error`, `ignore`. (Default: `error`)                         | str  |    N     |
-| `on_additive_change`    | What should happen when a change to a [forward-only model](../guides/incremental_time.md#forward-only-models) or incremental model in a [forward-only plan](../concepts/plans.md#forward-only-plans) causes an additive modification to the model schema (like adding new columns). Valid values: `allow`, `warn`, `error`, `ignore`. (Default: `allow`) | str  |    N     |
-| `disable_restatement`   | Whether [restatements](../concepts/plans.md#restatement-plans) should be disabled for the model. (Default: `False`)                                                                                                                                                                                                                                      | bool |    N     |
+| オプション | 説明 | タイプ | 必須 |
+|------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:----:|:--------:|
+| `forward_only` | モデルの変更を常に [forward-only](../concepts/plans.md#forward-only-change) として分類するかどうか。(デフォルト: `False`) | bool | N |
+| `on_destructive_change` | [forward-only モデル](../guides/incremental_time.md#forward-only-models) または [forward-only プラン](../concepts/plans.md#forward-only-plans) 内の増分モデルへの変更によって、モデル スキーマに破壊的な変更が発生した場合に何が起こるか。有効な値: `allow`、`warn`、`error`、`ignore`。(既定値: `error`) | str | N |
+| `on_additive_change` | [forward-only モデル](../guides/incremental_time.md#forward-only-models) または [forward-only プラン](../concepts/plans.md#forward-only-plans) 内の増分モデルへの変更によって、モデル スキーマに追加的な変更 (新しい列の追加など) が発生した場合に何が起こるか。有効な値: `allow`、`warn`、`error`、`ignore`。(デフォルト: `allow`) | str | N |
+| `disable_restatement` | モデルに対して [restatements](../concepts/plans.md#restatement-plans) を無効にするかどうか。(デフォルト: `False`) | bool | N |
 
 #### Incremental by time range
 
-Configuration options for [`INCREMENTAL_BY_TIME_RANGE` models](../concepts/models/model_kinds.md#incremental_by_time_range) (in addition to [general model properties](#general-model-properties) and [incremental model properties](#incremental-models)).
+[`INCREMENTAL_BY_TIME_RANGE` モデル](../concepts/models/model_kinds.md#incremental_by_time_range) の設定オプション ([一般モデルプロパティ](#general-model-properties) および [増分モデルプロパティ](#incremental-models) に加えて)。
 
-| Option              | Description                                                                                                                                                                                                                                                                                                                      | Type | Required |
+| オプション | 説明 | タイプ | 必須 |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--: | :------: |
-| `time_column`       | The model column containing each row's timestamp. Should be UTC time zone.                                                                                                                                                                                                                                                       | str  |    Y     |
-| `format`            | Argument to `time_column`. Format of the time column's data. (Default: `%Y-%m-%d`)                                                                                                                                                                                                                                               | str  |    N     |
-| `batch_size`        | The maximum number of intervals that can be evaluated in a single backfill task. If this is `None`, all intervals will be processed as part of a single task. If this is set, a model's backfill will be chunked such that each individual task only contains jobs with the maximum of `batch_size` intervals. (Default: `None`) | int  |    N     |
-| `batch_concurrency` | The maximum number of batches that can run concurrently for this model. (Default: the number of concurrent tasks set in the connection settings)                                                                                                                                                                                 | int  |    N     |
-| `lookback`          | The number of `interval_unit`s prior to the current interval that should be processed - [learn more](../concepts/models/overview.md#lookback). (Default: `0`)                                                                                                                                                                                                        | int  |    N     |
+| `time_column` | 各行のタイムスタンプを格納するモデル列。UTC タイムゾーンである必要があります。 | str | Y |
+| `format` | `time_column` への引数。時刻列のデータの形式。(デフォルト: `%Y-%m-%d`) | str | N |
+| `batch_size` | 1 回のバックフィルタスクで評価できる間隔の最大数。これが `None` の場合、すべての間隔が 1 つのタスクの一部として処理されます。これが設定されている場合、モデルのバックフィルはチャンクに分割され、各タスクには最大 `batch_size` 間隔のジョブのみが含まれます。(デフォルト: `None`) | int | N |
+| `batch_concurrency` | このモデルで同時に実行できるバッチの最大数。(デフォルト: 接続設定で設定された同時実行タスク数) | int | N |
+| `lookback` | 現在の間隔より前の処理対象となる `interval_unit` の数 - [詳細](../concepts/models/overview.md#lookback)。(デフォルト: `0`) | int | N |
 
-Python model kind `name` enum value: [ModelKindName.INCREMENTAL_BY_TIME_RANGE](https://sqlmesh.readthedocs.io/en/stable/_readthedocs/html/sqlmesh/core/model/kind.html#ModelKindName)
+Python モデルの種類 `name` 列挙値: [ModelKindName.INCREMENTAL_BY_TIME_RANGE](https://sqlmesh.readthedocs.io/en/stable/_readthedocs/html/sqlmesh/core/model/kind.html#ModelKindName)
 
 #### Incremental by unique key
 
-Configuration options for [`INCREMENTAL_BY_UNIQUE_KEY` models](../concepts/models/model_kinds.md#incremental_by_unique_key) (in addition to [general model properties](#general-model-properties) and [incremental model properties](#incremental-models)). Batch concurrency cannot be set for incremental by unique key models because they cannot safely be run in parallel.
+[`INCREMENTAL_BY_UNIQUE_KEY` モデル](../concepts/models/model_kinds.md#incremental_by_unique_key) の設定オプションです ([一般モデルプロパティ](#general-model-properties) および [増分モデルプロパティ](#incremental-models) に加えて)。増分 by unique key モデルは安全に並列実行できないため、バッチ同時実行は設定できません。
 
-| Option         | Description                                                                                                                                                                                                                                                                                                                      | Type              | Required |
-|----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------|----------|
-| `unique_key`   | The model column(s) containing each row's unique key                                                                                                                                                                                                                                                                             | str \| array[str] | Y        |
-| `when_matched` | SQL logic used to update columns when a match occurs - only available on engines that support `MERGE`. (Default: update all columns)                                                                                                                                                                                             | str               | N        |
-| `merge_filter` | A single or a conjunction of predicates used to filter data in the ON clause of a MERGE operation - only available on engines that support `MERGE`                                                                                                                                                                               | str               | N        |
-| `batch_size`   | The maximum number of intervals that can be evaluated in a single backfill task. If this is `None`, all intervals will be processed as part of a single task. If this is set, a model's backfill will be chunked such that each individual task only contains jobs with the maximum of `batch_size` intervals. (Default: `None`) | int               | N        |
-| `lookback`     | The number of time unit intervals prior to the current interval that should be processed. (Default: `0`)                                                                                                                                                                                                                         | int               | N        |
+| オプション | 説明 | タイプ | 必須 |
+|----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------|----------|
+| `unique_key` | 各行の一意のキーを含むモデル列 | str \| array[str] | Y |
+| `when_matched` | 一致が発生した場合に列を更新するために使用する SQL ロジック - `MERGE` をサポートするエンジンでのみ使用できます。 (デフォルト: すべての列を更新) | str | N |
+| `merge_filter` | MERGE 操作の ON 句でデータをフィルター処理するために使用される述語 (単一または複数の述語の組み合わせ) - `MERGE` をサポートするエンジンでのみ使用可能 | str | N |
+| `batch_size` | 1 回のバックフィル タスクで評価できる間隔の最大数。これが `None` の場合、すべての間隔が 1 つのタスクの一部として処理されます。これが設定されている場合、モデルのバックフィルは、各タスクに最大 `batch_size` 間隔のジョブのみが含まれるようにチャンク化されます。(デフォルト: `None`) | int | N |
+| `lookback` | 現在の間隔より前の処理対象となる時間単位間隔の数。(デフォルト: `0`) | int | N |
 
-Python model kind `name` enum value: [ModelKindName.INCREMENTAL_BY_UNIQUE_KEY](https://sqlmesh.readthedocs.io/en/stable/_readthedocs/html/sqlmesh/core/model/kind.html#ModelKindName)
+Python モデルの種類 `name` 列挙値: [ModelKindName.INCREMENTAL_BY_UNIQUE_KEY](https://sqlmesh.readthedocs.io/en/stable/_readthedocs/html/sqlmesh/core/model/kind.html#ModelKindName)
 
 #### Incremental by partition
 
-The [`INCREMENTAL_BY_PARTITION` models](../concepts/models/model_kinds.md#incremental_by_partition) kind does not support any configuration options other than the [general model properties](#general-model-properties) and [incremental model properties](#incremental-models).
+[`INCREMENTAL_BY_PARTITION` モデル](../concepts/models/model_kinds.md#incremental_by_partition) 種類は、[一般モデルプロパティ](#general-model-properties) と [増分モデルプロパティ](#incremental-models) 以外の構成オプションをサポートしていません。
 
-Python model kind `name` enum value: [ModelKindName.INCREMENTAL_BY_PARTITION](https://sqlmesh.readthedocs.io/en/stable/_readthedocs/html/sqlmesh/core/model/kind.html#ModelKindName)
+Python モデル種類 `name` 列挙値: [ModelKindName.INCREMENTAL_BY_PARTITION](https://sqlmesh.readthedocs.io/en/stable/_readthedocs/html/sqlmesh/core/model/kind.html#ModelKindName)
 
 #### SCD Type 2 models
 
-Configuration options for [`SCD_TYPE_2` models](../concepts/models/model_kinds.md#scd-type-2) (in addition to [general model properties](#general-model-properties) and [incremental model properties](#incremental-models)).
+[`SCD_TYPE_2` モデル](../concepts/models/model_kinds.md#scd-type-2) の設定オプション ([一般モデルプロパティ](#general-model-properties) および [増分モデルプロパティ](#incremental-models) に加えて)。
 
-| Option                    | Description                                                                                                                                                                                 |    Type    | Required |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------: | :------: |
-| `unique_key`              | The model column(s) containing each row's unique key                                                                                                                                        | array[str] |    Y     |
-| `valid_from_name`         | The model column containing each row's valid from date. (Default: `valid_from`)                                                                                                             |    str     |    N     |
-| `valid_to_name`           | The model column containing each row's valid to date. (Default: `valid_to`)                                                                                                                 |    str     |    N     |
-| `invalidate_hard_deletes` | If set to true, when a record is missing from the source table it will be marked as invalid - see [here](../concepts/models/model_kinds.md#deletes) for more information. (Default: `True`) |    bool    |    N     |
+| オプション | 説明 | タイプ | 必須 |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------: | :------: |
+| `unique_key` | 各行の一意のキーを含むモデル列 | 配列[str] | Y |
+| `valid_from_name` | 各行の有効開始日を含むモデル列。(デフォルト: `valid_from`) | str | N |
+| `valid_to_name` | 各行の有効終了日を含むモデル列。 (デフォルト: `valid_to`) | str | N |
+| `invalidate_hard_deletes` | true に設定すると、ソース テーブルにレコードがない場合、そのレコードは無効としてマークされます。詳細については、[こちら](../concepts/models/model_kinds.md#deletes) を参照してください。(デフォルト: `True`) | bool | N |
 
 ##### SCD Type 2 By Time
 
-Configuration options for [`SCD_TYPE_2_BY_TIME` models](../concepts/models/model_kinds.md#scd-type-2) (in addition to [general model properties](#general-model-properties), [incremental model properties](#incremental-models), and [SCD Type 2 properties](#scd-type-2-models)).
+[`SCD_TYPE_2_BY_TIME` モデル](../concepts/models/model_kinds.md#scd-type-2) の設定オプション ([一般モデルプロパティ](#general-model-properties)、[増分モデルプロパティ](#incremental-models)、[SCD タイプ 2 プロパティ](#scd-type-2-models) に加えて)。
 
-| Option                     | Description                                                                                                                                                                      | Type | Required |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--: | :------: |
-| `updated_at_name`          | The model column containing each row's updated at date. (Default: `updated_at`)                                                                                                  | str  |    N     |
-| `updated_at_as_valid_from` | By default, for new rows the `valid_from` column is set to 1970-01-01 00:00:00. This sets `valid_from` to the value of `updated_at` when the row is inserted. (Default: `False`) | bool |    N     |
+| オプション | 説明 | タイプ | 必須 |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :--: | :------: |
+| `updated_at_name` | 各行の更新日時を含むモデル列。(デフォルト: `updated_at`) | str | N |
+| `updated_at_as_valid_from` |デフォルトでは、新しい行の `valid_from` 列は 1970-01-01 00:00:00 に設定されます。これにより、行が挿入されたときの `updated_at` の値が `valid_from` に設定されます。(デフォルト: `False`) | bool | N |
 
-Python model kind `name` enum value: [ModelKindName.SCD_TYPE_2_BY_TIME](https://sqlmesh.readthedocs.io/en/stable/_readthedocs/html/sqlmesh/core/model/kind.html#ModelKindName)
+Python モデルの種類 `name` 列挙値: [ModelKindName.SCD_TYPE_2_BY_TIME](https://sqlmesh.readthedocs.io/en/stable/_readthedocs/html/sqlmesh/core/model/kind.html#ModelKindName)
 
 ##### SCD Type 2 By Column
 
-Configuration options for [`SCD_TYPE_2_BY_COLUMN` models](../concepts/models/model_kinds.md#scd-type-2) (in addition to [general model properties](#general-model-properties), [incremental model properties](#incremental-models), and [SCD Type 2 properties](#scd-type-2-models)).
+[`SCD_TYPE_2_BY_COLUMN` モデル](../concepts/models/model_kinds.md#scd-type-2) の設定オプション ([一般モデルプロパティ](#general-model-properties)、[増分モデルプロパティ](#incremental-models)、[SCD タイプ 2 プロパティ](#scd-type-2-models) に加えて)。
 
-| Option                         | Description                                                                                                                                                                 |       Type        | Required |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------: | :------: |
-| `columns`                      | Columns whose changed data values indicate a data update (instead of an `updated_at` column). `*` to represent that all columns should be checked.                          | str \| array[str] |    Y     |
-| `execution_time_as_valid_from` | By default, for new rows `valid_from` is set to 1970-01-01 00:00:00. This changes the behavior to set it to the execution_time of when the pipeline ran. (Default: `False`) |       bool        |    N     |
+| オプション | 説明 | タイプ | 必須 |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------: | :------: |
+| `columns` | 変更されたデータ値がデータ更新を示す列 (`updated_at` 列ではなく)。`*` はすべての列をチェックする必要があることを表します。 | str \| array[str] | Y |
+| `execution_time_as_valid_from` |デフォルトでは、新しい行の `valid_from` は 1970-01-01 00:00:00 に設定されています。これにより、パイプラインが実行された時点の execution_time に設定されるようになります。(デフォルト: `False`) | bool | N |
 
-Python model kind `name` enum value: [ModelKindName.SCD_TYPE_2_BY_COLUMN](https://sqlmesh.readthedocs.io/en/stable/_readthedocs/html/sqlmesh/core/model/kind.html#ModelKindName)
+Python モデルの種類 `name` 列挙値: [ModelKindName.SCD_TYPE_2_BY_COLUMN](https://sqlmesh.readthedocs.io/en/stable/_readthedocs/html/sqlmesh/core/model/kind.html#ModelKindName)
 
 ### `SEED` models
 
-Configuration options for [`SEED` models](../concepts/models/model_kinds.md#seed). `SEED` models do not support all the general properties supported by other models; they only support the properties listed in this table.
+[`SEED` モデル](../concepts/models/model_kinds.md#seed) の設定オプション。`SEED` モデルは、他のモデルでサポートされているすべての一般プロパティをサポートしているわけではなく、この表に記載されているプロパティのみをサポートしています。
 
-Top-level options inside the MODEL DDL:
+MODEL DDL 内の最上位オプション:
 
-| Option        | Description                                                                                                                                                                                                                |    Type    | Required |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------: | :------: |
-| `name`        | The model name. Must include at least a qualifying schema (`<schema>.<model>`) and may include a catalog (`<catalog>.<schema>.<model>`). Can be omitted if [infer_names](#model-naming) is set to true.                                                                                |    str     |    N     |
-| `kind`        | The model kind. Must be `SEED`.                                                                                                                                                                                            |    str     |    Y     |
-| `columns`     | The column names and data types in the CSV file. Disables automatic inference of column names and types by the pandas CSV reader. NOTE: order of columns overrides the order specified in the CSV header row (if present). | array[str] |    N     |
-| `audits`      | SQLMesh [audits](../concepts/audits.md) that should run against the model's output                                                                                                                                         | array[str] |    N     |
-| `owner`       | The owner of a model; may be used for notification purposes                                                                                                                                                                |    str     |    N     |
-| `stamp`       | Arbitrary string used to indicate a model's version without changing the model name                                                                                                                                        |    str     |    N     |
-| `tags`        | Arbitrary strings used to organize or classify a model                                                                                                                                                                     | array[str] |    N     |
-| `description` | Description of the model. Automatically registered in the SQL engine's table COMMENT field or equivalent (if supported by the engine).                                                                                     |    str     |    N     |
+| オプション | 説明 | タイプ | 必須 |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------: | :------: |
+| `name` | モデル名。少なくとも修飾スキーマ (`<schema>.<model>`) を含める必要があり、カタログ (`<catalog>.<schema>.<model>`) を含めることもできます。[infer_names](#model-naming) が true に設定されている場合は省略できます。 | str | N |
+| `kind` | モデルの種類。`SEED` である必要があります。 | str | Y |
+| `columns` | CSV ファイル内の列名とデータ型。pandas CSV リーダーによる列名と型の自動推論を無効にします。注: 列の順序は、CSV ヘッダー行 (存在する場合) で指定された順序よりも優先されます。 | array[str] | N |
+| `audits` | モデルの出力に対して実行する SQLMesh [監査](../concepts/audits.md) | array[str] | N |
+| `owner` | モデルの所有者。通知目的で使用される場合があります | str | N |
+| `stamp` | モデル名を変更せずにモデルのバージョンを示すために使用される任意の文字列 | str | N |
+| `tags` | モデルを整理または分類するために使用される任意の文字列 | array[str] | N |
+| `description` | モデルの説明。 SQL エンジンのテーブル COMMENT フィールドまたは同等のフィールド (エンジンでサポートされている場合) に自動的に登録されます。 | str | N |
 
-Options specified within the top-level `kind` property:
+最上位の `kind` プロパティ内で指定されるオプション:
 
-| Option         | Description                                                                                                                                                                             | Type | Required |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | -------- |
-| `path`         | Path to seed CSV file.                                                                                                                                                                  | str  | Y        |
-| `batch_size`   | The maximum number of CSV rows ingested in each batch. All rows ingested in one batch if not specified.                                                                                 | int  | N        |
-| `csv_settings` | Pandas CSV reader settings (overrides [default values](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html)). Specified as key-value pairs (`key = value`). | dict | N        |
+| オプション | 説明 | タイプ | 必須 |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | -------- |
+| `path` | シード CSV ファイルへのパス。 | str | Y |
+| `batch_size` | 各バッチで取り込まれる CSV 行の最大数。指定されていない場合は、すべての行が 1 つのバッチで取り込まれます。 | int | N |
+| `csv_settings` | Pandas CSV リーダー設定 ([デフォルト値](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html) をオーバーライドします)。キーと値のペア (`key = value`) として指定します。 | dict | N |
 
 <a id="csv_settings"></a>
-Options specified within the `kind` property's `csv_settings` property (overrides [default Pandas CSV reader settings](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html)):
+`kind` プロパティの `csv_settings` プロパティ内で指定されたオプション（[Pandas CSV リーダーのデフォルト設定](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html) をオーバーライドします）:
 
-| Option             | Description                                                                                                                                                                                                                                                                         | Type | Required |
+| オプション | 説明 | タイプ | 必須 |
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | -------- |
-| `delimiter`        | Character or regex pattern to treat as the delimiter. More information at the [Pandas documentation](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html).                                                                                              | str  | N        |
-| `quotechar`        | Character used to denote the start and end of a quoted item. More information at the [Pandas documentation](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html).                                                                                       | str  | N        |
-| `doublequote`      | When quotechar is specified, indicate whether or not to interpret two consecutive quotechar elements INSIDE a field as a single quotechar element. More information at the [Pandas documentation](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html). | bool | N        |
-| `escapechar`       | Character used to escape other characters. More information at the [Pandas documentation](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html).                                                                                                         | str  | N        |
-| `skipinitialspace` | Skip spaces after delimiter. More information at the [Pandas documentation](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html).                                                                                                                       | bool | N        |
-| `lineterminator`   | Character used to denote a line break. More information at the [Pandas documentation](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html).                                                                                                             | str  | N        |
-| `encoding`         | Encoding to use for UTF when reading/writing (ex. 'utf-8'). More information at the [Pandas documentation](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html).                                                                                        | str  | N        |
-| `na_values` | An array of values that should be recognized as NA/NaN. In order to specify such an array per column, a mapping in the form of `(col1 = (v1, v2, ...), col2 = ...)` can be passed instead. These values can be integers, strings, booleans or NULL, and they are converted to their corresponding Python values. More information at the [Pandas documentation](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html).                                                                                        | array[value] \| array[array[key = value]]  | N        |
-| `keep_default_na` | Whether or not to include the default NaN values when parsing the data. More information at the [Pandas documentation](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html).                                                                                                                       | bool | N        |
+| `delimiter` | 区切り文字として扱う文字または正規表現パターン。詳細については、[Pandas のドキュメント](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html)を参照してください。 | str | N |
+| `quotechar` | 引用符で囲まれた項目の開始と終了を示すために使用される文字。詳細については、[Pandas のドキュメント](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html)を参照してください。 | str | N |
+| `doublequote` | quotechar が指定されている場合、フィールド内にある 2 つの連続する quotechar 要素を 1 つの quotechar 要素として解釈するかどうかを示します。詳細については、[Pandas のドキュメント](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html) を参照してください。 | bool | N |
+| `escapechar` | 他の文字をエスケープするために使用される文字。詳細については、[Pandas のドキュメント](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html) を参照してください。 | str | N |
+| `skipinitialspace` | 区切り文字の後のスペースをスキップします。詳細については、[Pandas のドキュメント](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html) を参照してください。 | bool | N |
+| `lineterminator` | 改行を示すために使用される文字。詳細については、[Pandas のドキュメント](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html) を参照してください。 | str | N |
+| `encoding` | 読み取り/書き込み時に UTF に使用するエンコーディング (例: 'utf-8')。詳細については、[Pandas のドキュメント](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html) を参照してください。 | str | N |
+| `na_values` | NA/NaN として認識される値の配列。列ごとにこのような配列を指定するには、代わりに `(col1 = (v1, v2, ...), col2 = ...)` という形式のマッピングを渡すことができます。これらの値は、整数、文字列、ブール値、または NULL にすることができ、対応する Python 値に変換されます。詳細については、[Pandas ドキュメント](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html) をご覧ください。 | array[value] \| array[array[key = value]] | N |
+| `keep_default_na` | データの解析時にデフォルトの NaN 値を含めるかどうか。詳細については、[Pandas ドキュメント](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html) をご覧ください。 | bool | N |
 
-
-Python model kind `name` enum value: [ModelKindName.SEED](https://sqlmesh.readthedocs.io/en/stable/_readthedocs/html/sqlmesh/core/model/kind.html#ModelKindName)
+Python モデルの種類 `name` 列挙値: [ModelKindName.SEED](https://sqlmesh.readthedocs.io/en/stable/_readthedocs/html/sqlmesh/core/model/kind.html#ModelKindName)

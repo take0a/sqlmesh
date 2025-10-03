@@ -1,37 +1,39 @@
 # Fabric
 
 !!! info
-    The Fabric engine adapter is a community contribution. Due to this, only limited community support is available.
 
-## Local/Built-in Scheduler
-**Engine Adapter Type**: `fabric`
+    Fabricエンジンアダプタはコミュニティからの貢献です。そのため、コミュニティによるサポートは限定的なものとなります。
 
-NOTE: Fabric Warehouse is not recommended to be used for the SQLMesh [state connection](../../reference/configuration.md#connections).
+## ローカル/組み込みスケジューラ
+**エンジンアダプタタイプ**: `fabric`
 
-### Installation
-#### Microsoft Entra ID / Azure Active Directory Authentication:
+注: SQLMesh [状態接続](../../reference/configuration.md#connections) には Fabric Warehouse の使用は推奨されません。
+
+### インストール
+#### Microsoft Entra ID / Azure Active Directory 認証:
+
 ```
 pip install "sqlmesh[fabric]"
 ```
 
-### Connection options
+### 接続オプション
 
-| Option            | Description                                                  |     Type     | Required |
-| ----------------- | ------------------------------------------------------------ | :----------: | :------: |
-| `type`            | Engine type name - must be `fabric`                           |    string    |    Y     |
-| `host`            | The hostname of the Fabric Warehouse server                             |    string    |    Y     |
-| `user`            | The client id to use for authentication with the Fabric Warehouse server |    string    |    N     |
-| `password`        | The client secret to use for authentication with the Fabric Warehouse server |    string    |    N     |
-| `port`            | The port number of the Fabric Warehouse server                          |     int      |    N     |
-| `database`        | The target database                                          |    string    |    N     |
-| `charset`         | The character set used for the connection                    |    string    |    N     |
-| `timeout`         | The query timeout in seconds. Default: no timeout            |     int      |    N     |
-| `login_timeout`   | The timeout for connection and login in seconds. Default: 60 |     int      |    N     |
-| `appname`         | The application name to use for the connection               |    string    |    N     |
-| `conn_properties` | The list of connection properties                            | list[string] |    N     |
-| `autocommit`      | Is autocommit mode enabled. Default: false                   |     bool     |    N     |
-| `driver`          | The driver to use for the connection. Default: pyodbc            |    string    |    N     |
-| `driver_name`     | The driver name to use for the connection. E.g., *ODBC Driver 18 for SQL Server* |    string    |    N     |
-| `tenant_id`          | The Azure / Entra tenant UUID                             |    string    |    Y     |
-| `workspace_id`       | The Fabric workspace UUID. The preferred way to retrieve it is by running `notebookutils.runtime.context.get("currentWorkspaceId")` in a python notebook.                             |    string    |    Y     |
-| `odbc_properties` | The dict of ODBC connection properties. E.g., authentication: ActiveDirectoryServicePrincipal. See more [here](https://learn.microsoft.com/en-us/sql/connect/odbc/dsn-connection-string-attribute?view=sql-server-ver16). | dict |    N     |
+| オプション | 説明 | タイプ | 必須 |
+| ----------------- | ---------------------------------------------------------- | :---------: | :------: |
+| `type` | エンジンタイプ名 - `fabric` である必要があります | 文字列 | Y |
+| `host` | Fabric Warehouse サーバーのホスト名 | 文字列 | Y |
+| `user` | Fabric Warehouse サーバーでの認証に使用するクライアント ID | 文字列 | N |
+| `password` | Fabric Warehouse サーバーでの認証に使用するクライアントシークレット | 文字列 | N |
+| `port` | Fabric Warehouse サーバーのポート番号 | int | N |
+| `database` | ターゲットデータベース | 文字列 | N |
+| `charset` | 接続に使用する文字セット | 文字列 | N |
+| `timeout` | クエリのタイムアウト値 (秒)。デフォルト: タイムアウトなし | int | N |
+| `login_timeout` | 接続およびログインのタイムアウト (秒)。既定値: 60 | int | N |
+| `appname` | 接続に使用するアプリケーション名 | 文字列 | N |
+| `conn_properties` | 接続プロパティのリスト | list[string] | N |
+| `autocommit` | 自動コミット モードが有効かどうか。既定値: false | bool | N |
+| `driver` | 接続に使用するドライバー。既定値: pyodbc | 文字列 | N |
+| `driver_name` | 接続に使用するドライバー名。例: *ODBC Driver 18 for SQL Server* | 文字列 | N |
+| `tenant_id` | Azure / Entra テナント UUID | 文字列 | Y |
+| `workspace_id` | Fabric ワークスペース UUID。これを取得するには、Python ノートブックで `notebookutils.runtime.context.get("currentWorkspaceId")` を実行することをお勧めします。| string | Y |
+| `odbc_properties` | ODBC 接続プロパティの辞書。例: 認証: ActiveDirectoryServicePrincipal。詳細については、[こちら](https://learn.microsoft.com/en-us/sql/connect/odbc/dsn-connection-string-attribute?view=sql-server-ver16) を参照してください。| dict | N |

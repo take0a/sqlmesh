@@ -1,32 +1,33 @@
 # DuckDB
 
-!!! warning "DuckDB state connection limitations"
-    DuckDB is a [single user](https://duckdb.org/docs/connect/concurrency.html#writing-to-duckdb-from-multiple-processes) database. Using it for a state connection in your SQLMesh project limits you to a single workstation. This means your project cannot be shared amongst your team members or your CI/CD infrastructure. This is usually fine for proof of concept or test projects but it will not scale to production usage.
+!!! warning "DuckDB 状態接続の制限"
 
-    For production projects, use [Tobiko Cloud](https://tobikodata.com/product.html) or a more robust state database such as [Postgres](./postgres.md).
+    DuckDB は [シングルユーザー](https://duckdb.org/docs/connect/concurrency.html#writing-to-duckdb-from-multiple-processes) データベースです。SQLMesh プロジェクトで DuckDB を状態接続に使用する場合、使用できるワークステーションは 1 台に制限されます。つまり、プロジェクトをチームメンバーや CI/CD インフラストラクチャ間で共有することはできません。これは通常、概念実証やテストプロジェクトには適していますが、本番環境での使用には適していません。
 
-## Local/Built-in Scheduler
-**Engine Adapter Type**: `duckdb`
+    本番環境プロジェクトでは、[Tobiko Cloud](https://tobikodata.com/product.html) または [Postgres](./postgres.md) などのより堅牢な状態データベースを使用してください。
 
-### Connection options
+## ローカル/組み込みスケジューラ
+**エンジンアダプタタイプ**: `duckdb`
 
-| Option             | Description                                                                                                                                                                                                                                     |   Type    | Required |
-|--------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:---------:|:--------:|
-| `type`             | Engine type name - must be `duckdb`                                                                                                                                                                                                             |  string   |    Y     |
-| `database`         | The optional database name. If not specified, the in-memory database is used. Cannot be defined if using `catalogs`.                                                                                                                            |  string   |    N     |
-| `catalogs`         | Mapping to define multiple catalogs. Can [attach DuckDB catalogs](#duckdb-catalogs-example) or [catalogs for other connections](#other-connection-catalogs-example). First entry is the default catalog. Cannot be defined if using `database`. |   dict    |    N     |
-| `extensions`       | Extension to load into duckdb. Only autoloadable extensions are supported.                                                                                                                                                                      |   list    |    N     |
-| `connector_config` | Configuration to pass into the duckdb connector.                                                                                                                                                                                                |   dict    |    N     |
-| `secrets`          | Configuration for authenticating external sources (e.g., S3) using DuckDB secrets. Can be a list of secret configurations or a dictionary with custom secret names.                                                                             | list/dict |    N     |
-| `filesystems`      | Configuration for registering `fsspec` filesystems to the DuckDB connection.                                                                                                                                                                    |   dict    |    N     |
+### 接続オプション
 
-#### DuckDB Catalogs Example
+| オプション | 説明 | タイプ | 必須 |
+|--------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:---------:|:--------:|
+| `type` | エンジンタイプ名 - `duckdb` である必要があります | 文字列 | Y |
+| `database` | オプションのデータベース名。指定しない場合は、インメモリデータベースが使用されます。`catalogs` を使用している場合は定義できません。 | 文字列 | N |
+| `catalogs` | 複数のカタログを定義するためのマッピング。[DuckDB カタログをアタッチ](#duckdb-catalogs-example) または [他の接続用のカタログ](#other-connection-catalogs-example) できます。最初のエントリはデフォルトのカタログです。`database` を使用している場合は定義できません。 | dict | N |
+| `extensions` | duckdb に読み込む拡張機能。自動ロード可能な拡張機能のみがサポートされています。 | list | N |
+| `connector_config` | duckdb コネクタに渡す設定。 | dict | N |
+| `secrets` | DuckDB シークレットを使用して外部ソース (例: S3) を認証するための設定。シークレット設定のリスト、またはカスタム シークレット名を含む辞書を指定できます。 | list/dict | N |
+| `filesystems` | `fsspec` ファイルシステムを DuckDB 接続に登録するための設定。 | dict | N |
 
-This example specifies two catalogs. The first catalog is named "persistent" and maps to the DuckDB file database `local.duckdb`. The second catalog is named "ephemeral" and maps to the DuckDB in-memory database.
+#### DuckDB カタログの例
 
-`persistent` is the default catalog since it is the first entry in the dictionary. SQLMesh will place models without an explicit catalog, such as `my_schema.my_model`, into the `persistent` catalog `local.duckdb` DuckDB file database.
+この例では、2 つのカタログを指定します。1 つ目のカタログは「persistent」という名前で、DuckDB ファイルデータベース `local.duckdb` にマッピングされます。2 つ目のカタログは「ephemeral」という名前で、DuckDB インメモリデータベースにマッピングされます。
 
-SQLMesh will place models with the explicit catalog "ephemeral", such as `ephemeral.other_schema.other_model`, into the `ephemeral` catalog DuckDB in-memory database.
+`persistent` は辞書の最初のエントリであるため、デフォルトのカタログです。SQLMesh は、`my_schema.my_model` のように明示的なカタログを持たないモデルを、`persistent` カタログの `local.duckdb` DuckDB ファイルデータベースに配置します。
+
+SQLMesh は、`ephemeral.other_schema.other_model` のように明示的なカタログ「ephemeral」を持つモデルを、DuckDB インメモリデータベースの `ephemeral` カタログに配置します。
 
 === "YAML"
 
@@ -65,7 +66,7 @@ SQLMesh will place models with the explicit catalog "ephemeral", such as `epheme
     )
     ```
 
-#### DuckLake Catalog Example
+#### DuckLakeカタログの例
 
 === "YAML"
 
@@ -114,12 +115,12 @@ SQLMesh will place models with the explicit catalog "ephemeral", such as `epheme
     )
     ```
 
-#### Other Connection Catalogs Example
+#### その他の接続カタログの例
 
-Catalogs can also be defined to connect to anything that [DuckDB can be attached to](https://duckdb.org/docs/sql/statements/attach.html).
+カタログは、[DuckDB が接続可能な](https://duckdb.org/docs/sql/statements/attach.html)あらゆるものに接続できるように定義することもできます。
 
-Below are examples of connecting to a SQLite database and a PostgreSQL database.
-The SQLite database is read-write, while the PostgreSQL database is read-only.
+以下は、SQLite データベースと PostgreSQL データベースへの接続例です。
+SQLite データベースは読み書き可能ですが、PostgreSQL データベースは読み取り専用です。
 
 === "YAML"
 
@@ -173,39 +174,39 @@ The SQLite database is read-write, while the PostgreSQL database is read-only.
     )
     ```
 
-##### Catalogs for PostgreSQL
+##### PostgreSQL のカタログ
 
-In PostgreSQL, the catalog name must match the actual catalog name it is associated with, as shown in the example above, where the database name (`dbname` in the path) is the same as the catalog name.
+PostgreSQL では、カタログ名は、関連付けられている実際のカタログ名と一致する必要があります。上記の例では、データベース名（パス内の `dbname`）はカタログ名と同じです。
 
-##### Connectors without schemas
+##### スキーマのないコネクタ
 
-Some connections, like SQLite, do not support schema names and therefore objects will be attached under the default schema name of `main`.
+SQLite などの一部の接続ではスキーマ名がサポートされていないため、オブジェクトはデフォルトのスキーマ名である `main` でアタッチされます。
 
-Example: mounting a SQLite database with the name `sqlite` that has a table `example_table` will be accessible as `sqlite.main.example_table`.
+例: `example_table` というテーブルを持つ `sqlite` という名前の SQLite データベースをマウントすると、`sqlite.main.example_table` としてアクセスできるようになります。
 
-##### Sensitive fields in paths
+##### パス内の機密フィールド
 
-If a connector, like Postgres, requires sensitive information in the path, it might support defining environment variables instead.
-[See DuckDB Documentation for more information](https://duckdb.org/docs/extensions/postgres#configuring-via-environment-variables).
+Postgres などのコネクタがパス内に機密情報を必要とする場合、代わりに環境変数の定義をサポートしている可能性があります。
+[詳細については、DuckDB ドキュメントをご覧ください](https://duckdb.org/docs/extensions/postgres#configuring-via-environment-variables)。
 
-#### Cloud service authentication
+#### クラウドサービス認証
 
-DuckDB can read data directly from cloud services via extensions (e.g., [httpfs](https://duckdb.org/docs/extensions/httpfs/s3api), [azure](https://duckdb.org/docs/extensions/azure)).
+DuckDBは、拡張機能（例：[httpfs](https://duckdb.org/docs/extensions/httpfs/s3api)、[azure](https://duckdb.org/docs/extensions/azure)）を介してクラウドサービスから直接データを読み取ることができます。
 
-The `secrets` option allows you to configure DuckDB's [Secrets Manager](https://duckdb.org/docs/configuration/secrets_manager.html) to authenticate with external services like S3. This is the recommended approach for cloud storage authentication in DuckDB v0.10.0 and newer, replacing the [legacy authentication method](https://duckdb.org/docs/stable/extensions/httpfs/s3api_legacy_authentication.html) via variables.
+`secrets` オプションを使用すると、DuckDBの[Secrets Manager](https://duckdb.org/docs/configuration/secrets_manager.html) を設定して、S3などの外部サービスとの認証を行うことができます。これは、DuckDB v0.10.0以降におけるクラウドストレージ認証の推奨アプローチであり、変数を介した[従来の認証方法](https://duckdb.org/docs/stable/extensions/httpfs/s3api_legacy_authentication.html)に代わるものです。
 
-##### Secrets Configuration
+##### シークレットの設定
 
-The `secrets` option supports two formats:
+`secrets` オプションは 2 つの形式をサポートしています。
 
-1. **List format** (default secrets): A list of secret configurations where each secret uses DuckDB's default naming
-2. **Dictionary format** (named secrets): A dictionary where keys are custom secret names and values are the secret configurations
+1. **リスト形式** (デフォルトのシークレット): シークレット設定のリスト。各シークレットには DuckDB のデフォルトの命名規則が適用されます。
+2. **辞書形式** (名前付きシークレット): キーがカスタムシークレット名、値がシークレット設定である辞書。
 
-This flexibility allows you to organize multiple secrets of the same type or reference specific secrets by name in your SQL queries.
+この柔軟性により、同じ種類の複数のシークレットを整理したり、SQL クエリで特定のシークレットを名前で参照したりできます。
 
-##### List Format Example (Default Secrets)
+##### リスト形式の例 (デフォルトのシークレット)
 
-Using a list creates secrets with DuckDB's default naming:
+リストを使用すると、DuckDB のデフォルトの命名規則に従ってシークレットが作成されます。
 
 === "YAML"
 
@@ -262,9 +263,9 @@ Using a list creates secrets with DuckDB's default naming:
     )
     ```
 
-##### Dictionary Format Example (Named Secrets)
+##### 辞書形式の例 (名前付きシークレット)
 
-Using a dictionary allows you to assign custom names to your secrets for better organization and reference:
+辞書を使用すると、シークレットにカスタム名を割り当てて整理し、参照しやすくすることができます。
 
 === "YAML"
 
@@ -331,15 +332,15 @@ Using a dictionary allows you to assign custom names to your secrets for better 
     )
     ```
 
-After configuring the secrets, you can directly reference S3 paths in your catalogs or in SQL queries without additional authentication steps.
+シークレットを設定すると、追加の認証手順なしで、カタログまたはSQLクエリでS3パスを直接参照できます。
 
-Refer to the official DuckDB documentation for the full list of [supported S3 secret parameters](https://duckdb.org/docs/stable/extensions/httpfs/s3api.html#overview-of-s3-secret-parameters) and for more information on the [Secrets Manager configuration](https://duckdb.org/docs/configuration/secrets_manager.html).
+[サポートされているS3シークレットパラメータ](https://duckdb.org/docs/stable/extensions/httpfs/s3api.html#overview-of-s3-secret-parameters)の完全なリストと[Secrets Managerの設定](https://duckdb.org/docs/configuration/secrets_manager.html)の詳細については、DuckDBの公式ドキュメントを参照してください。
 
-> Note: Loading credentials at runtime using `load_aws_credentials()` or similar deprecated functions may fail when using SQLMesh.
+> 注: SQLMeshを使用する場合、`load_aws_credentials()`または同様の非推奨関数を使用して実行時に認証情報を読み込むと失敗する可能性があります。
 
-##### File system configuration example for Microsoft Onelake
+##### Microsoft Onelake のファイルシステム設定例
 
-The `filesystems` accepts a list of file systems to register in the DuckDB connection. This is especially useful for Azure Storage Accounts, as it adds write support for DuckDB which is not natively supported by DuckDB (yet).
+`filesystems` は、DuckDB 接続に登録するファイルシステムのリストを受け取ります。これは、DuckDB がネイティブにサポートしていない書き込みサポートを Azure ストレージアカウントに追加するため、特に便利です。
 
 
 === "YAML"
@@ -367,4 +368,4 @@ The `filesystems` accepts a list of file systems to register in the DuckDB conne
     ```
 
 
-Refer to the documentation for `fsspec` [fsspec.filesystem](https://filesystem-spec.readthedocs.io/en/latest/api.html#fsspec.filesystem) and `adlfs` [adlfs.AzureBlobFileSystem](https://fsspec.github.io/adlfs/api/#api-reference) for a full list of storage options. 
+ストレージ オプションの完全な一覧については、`fsspec` [fsspec.filesystem](https://filesystem-spec.readthedocs.io/en/latest/api.html#fsspec.filesystem) および `adlfs` [adlfs.AzureBlobFileSystem](https://fsspec.github.io/adlfs/api/#api-reference) のドキュメントを参照してください。

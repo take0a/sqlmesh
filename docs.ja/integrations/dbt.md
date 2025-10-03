@@ -1,60 +1,60 @@
 # dbt
 
-SQLMesh has native support for running dbt projects with its dbt adapter.
+SQLMesh は、dbt アダプターを使用して dbt プロジェクトを実行するためのネイティブ サポートを備えています。
 
 !!! tip
 
-    If you've never used SQLMesh before, learn the basics of how it works in the [SQLMesh Quickstart](../quick_start.md)!
+    これまで SQLMesh を使用したことがない場合は、[SQLMesh クイックスタート](../quick_start.md)で SQLMesh の基本動作を学習してください。
 
-## Getting started
+## はじめに
 
-### Installing SQLMesh
+### SQLMesh のインストール
 
-SQLMesh is a Python library you install with the `pip` command. We recommend running your SQLMesh projects in a [Python virtual environment](../installation.md#python-virtual-environment), which must be created and activated before running any `pip` commands.
+SQLMesh は、`pip` コマンドでインストールする Python ライブラリです。SQLMesh プロジェクトは [Python 仮想環境](../installation.md#python-virtual-environment) で実行することをお勧めします。`pip` コマンドを実行する前に、仮想環境を作成してアクティブ化する必要があります。
 
-Most people do not use all of SQLMesh's functionality. For example, most projects only run on one [SQL execution engine](../integrations/overview.md#execution-engines).
+ほとんどのユーザーは、SQLMesh のすべての機能を使用するわけではありません。たとえば、ほとんどのプロジェクトは 1 つの [SQL 実行エンジン](../integrations/overview.md#execution-engines) でのみ実行されます。
 
-Therefore, SQLMesh is packaged with multiple "extras," which you may optionally install based on the functionality your project needs. You may specify all your project's extras in a single `pip` call.
+そのため、SQLMesh は複数の「追加機能」と共にパッケージ化されており、プロジェクトに必要な機能に応じてオプションでインストールできます。プロジェクトのすべての追加機能を 1 回の `pip` 呼び出しで指定できます。
 
-At minimum, using the SQLMesh dbt adapter requires installing the dbt extra:
+SQLMesh dbt アダプターを使用するには、少なくとも dbt 追加機能をインストールする必要があります。
 
 ```bash
 > pip install "sqlmesh[dbt]"
 ```
 
-If your project uses any SQL execution engine other than DuckDB, you must install the extra for that engine. For example, if your project runs on the Postgres SQL engine:
+プロジェクトでDuckDB以外のSQL実行エンジンを使用している場合は、そのエンジン用のextraをインストールする必要があります。例えば、プロジェクトがPostgres SQLエンジンで動作している場合、以下のようになります。
 
 ```bash
 > pip install "sqlmesh[dbt,postgres]"
 ```
 
-If you would like to use the [SQLMesh Browser UI](../guides/ui.md) to view column-level lineage, include the `web` extra:
+[SQLMesh ブラウザー UI](../guides/ui.md) を使用して列レベルの系統を表示する場合は、`web` エクストラを追加します。
 
 ```bash
 > pip install "sqlmesh[dbt,web]"
 ```
 
-Learn more about [SQLMesh installation and extras here](../installation.md#install-extras).
+[SQLMesh のインストールと追加機能の詳細については、ここ](../installation.md#install-extras) を参照してください。
 
-### Reading a dbt project
+### dbt プロジェクトの読み込み
 
-Prepare an existing dbt project to be run by SQLMesh by executing the `sqlmesh init` command *within the dbt project root directory* and with the `dbt` template option:
+既存の dbt プロジェクトを SQLMesh で実行できるように準備するには、*dbt プロジェクトのルートディレクトリ内*で、`dbt` テンプレートオプションを指定して `sqlmesh init` コマンドを実行します。
 
 ```bash
 $ sqlmesh init -t dbt
 ```
 
-This will create a file called `sqlmesh.yaml` containing the [default model start date](../reference/model_configuration.md#model-defaults). This configuration file is a minimum starting point for enabling SQLMesh to work with your DBT project.
+これにより、[デフォルトのモデル開始日](../reference/model_configuration.md#model-defaults)を含む `sqlmesh.yaml` というファイルが作成されます。この構成ファイルは、DBT プロジェクトで SQLMesh を動作させるための最低限の開始点となります。
 
-As you become more comfortable with running your project under SQLMesh, you may specify additional SQLMesh [configuration](../reference/configuration.md) as required to unlock more features.
+SQLMesh でプロジェクトを実行することに慣れてきたら、必要に応じて追加の SQLMesh [構成](../reference/configuration.md) を指定して、より多くの機能を利用できるようになります。
 
 !!! note "profiles.yml"
 
-    SQLMesh will use the existing data warehouse connection target from your dbt project's `profiles.yml` file so the connection configuration does not need to be duplicated in `sqlmesh.yaml`. You may change the target at any time in the dbt config and SQLMesh will pick up the new target.
+    SQLMesh は、dbt プロジェクトの `profiles.yml` ファイルにある既存のデータウェアハウス接続ターゲットを使用するため、`sqlmesh.yaml` で接続設定を複製する必要はありません。dbt 設定でいつでもターゲットを変更でき、SQLMesh は新しいターゲットを取得します。
 
-### Setting model backfill start dates
+### モデルのバックフィル開始日の設定
 
-Models **require** a start date for backfilling data through use of the `start` configuration parameter. `start` can be defined individually for each model in its `config` block or globally in the `sqlmesh.yaml` file as follows:
+モデルでは、`start` 構成パラメータを使用して、データのバックフィルの開始日を**指定する必要があります**。`start` は、`config` ブロック内でモデルごとに個別に定義することも、`sqlmesh.yaml` ファイル内で次のようにグローバルに定義することもできます。
 
 === "sqlmesh.yaml"
 
@@ -75,19 +75,19 @@ Models **require** a start date for backfilling data through use of the `start` 
     }}
     ```
 
-### Configuration
+### 構成
 
-SQLMesh derives a project's configuration from its dbt configuration files. This section outlines additional settings specific to SQLMesh that can be defined.
+SQLMesh は、dbt 構成ファイルからプロジェクトの構成を取得します。このセクションでは、SQLMesh 固有の追加設定について説明します。
 
-#### Selecting a different state connection
+#### 別の状態接続の選択
 
-[Certain engines](https://sqlmesh.readthedocs.io/en/stable/guides/configuration/?h=unsupported#state-connection), like Trino, cannot be used to store SQLMesh's state.
+Trino などの [一部のエンジン](https://sqlmesh.readthedocs.io/en/stable/guides/configuration/?h=unsupported#state-connection) は、SQLMesh の状態を保存するために使用できません。
 
-In addition, even if your warehouse is supported for state, you may find that you get better performance by using a [traditional database](../concepts/state.md) to store state as these are a better fit for the state workload than a warehouse optimized for analytics workloads.
+また、ウェアハウスが状態をサポートしている場合でも、分析ワークロード向けに最適化されたウェアハウスよりも、[従来のデータベース](../concepts/state.md) を使用して状態を保存した方がパフォーマンスが向上する場合があります。
 
-In these cases, we recommend specifying a [supported production state engine](../concepts/state.md#state) using the `state_connection` configuration.
+このような場合は、`state_connection` 構成を使用して、[サポートされている本番環境の状態エンジン](../concepts/state.md#state) を指定することをお勧めします。
 
-This involves updating `sqlmesh.yaml` to add a gateway configuration for the state connection:
+これには、`sqlmesh.yaml` を更新して、状態接続用のゲートウェイ構成を追加する必要があります。
 
 ```yaml
 gateways:
@@ -100,7 +100,7 @@ model_defaults:
   start: '2000-01-01'
 ```
 
-Or, for a specific dbt profile defined in `profiles.yml`, eg `dev`:
+または、`profiles.yml` で定義された特定の dbt プロファイル (例: `dev`) の場合:
 
 ```yaml
 gateways:
@@ -113,17 +113,17 @@ model_defaults:
   start: '2000-01-01'
 ```
 
-Learn more about how to configure state connections [here](https://sqlmesh.readthedocs.io/en/stable/guides/configuration/#state-connection).
+状態接続を構成する方法の詳細については、[こちら](https://sqlmesh.readthedocs.io/en/stable/guides/configuration/#state-connection) を参照してください。
 
-#### Runtime vars
+#### 実行時変数
 
-dbt supports passing variable values at runtime with its [CLI `vars` option](https://docs.getdbt.com/docs/build/project-variables#defining-variables-on-the-command-line).
+dbt は、[CLI の `vars` オプション](https://docs.getdbt.com/docs/build/project-variables#defining-variables-on-the-command-line) を使用して、実行時に変数値を渡すことができます。
 
-In SQLMesh, these variables are passed via configurations. When you initialize a dbt project with `sqlmesh init`, a file `sqlmesh.yaml` is created in your project directory.
+SQLMesh では、これらの変数は構成を介して渡されます。`sqlmesh init` を使用して dbt プロジェクトを初期化すると、プロジェクトディレクトリに `sqlmesh.yaml` ファイルが作成されます。
 
-You may define global variables in the same way as a native project by adding a `variables` section to the config.
+ネイティブプロジェクトと同様に、構成に `variables` セクションを追加することで、グローバル変数を定義できます。
 
-For example, we could specify the runtime variable `is_marketing` and its value `no` as:
+例えば、実行時変数 `is_marketing` とその値 `no` を次のように指定できます。
 
 ```yaml
 variables:
@@ -133,17 +133,17 @@ model_defaults:
   start: '2000-01-01'
 ```
 
-Variables can also be set at the gateway/profile level which override variables set at the project level. See the [variables documentation](../concepts/macros/sqlmesh_macros.md#gateway-variables) to learn more about how to specify them at different levels.
+ゲートウェイ/プロファイルレベルで変数を設定することもできます。これらの変数は、プロジェクトレベルで設定された変数をオーバーライドします。各レベルで変数を指定する方法の詳細については、[変数のドキュメント](../concepts/macros/sqlmesh_macros.md#gateway-variables)をご覧ください。
 
-#### Combinations
+#### 組み合わせ
 
-Some projects use combinations of runtime variables to control project behavior. Different combinations can be specified in different `sqlmesh_config` objects, with the relevant configuration passed to the SQLMesh CLI command.
+一部のプロジェクトでは、ランタイム変数の組み合わせを使用してプロジェクトの動作を制御します。異なる `sqlmesh_config` オブジェクトで異なる組み合わせを指定し、関連する設定を SQLMesh CLI コマンドに渡すことができます。
 
 !!! info "Python config"
 
-    Switching between different config objects requires the use of [Python config](../guides/configuration.md#python) instead of the default YAML config.
+    異なる設定オブジェクトを切り替えるには、デフォルトの YAML 設定ではなく、[Python 設定](../guides/configuration.md#python) を使用する必要があります。
 
-    You will need to create a file called `config.py` in the root of your project with the following contents:
+    プロジェクトのルートに、以下の内容を含む `config.py` というファイルを作成する必要があります。
 
     ```py
     from pathlib import Path
@@ -152,9 +152,9 @@ Some projects use combinations of runtime variables to control project behavior.
     config = sqlmesh_config(Path(__file__).parent)
     ```
 
-    Note that any config from `sqlmesh.yaml` will be overlayed on top of the active Python config so you dont need to remove the `sqlmesh.yaml` file
+    `sqlmesh.yaml` の設定はアクティブな Python 設定の上に上書きされるため、`sqlmesh.yaml` ファイルを削除する必要はありません。
 
-For example, consider a project with a special configuration for the `marketing` department. We could create separate configurations to pass at runtime like this:
+例えば、`marketing` 部門用の特別な設定を持つプロジェクトを考えてみましょう。実行時に渡す個別の設定を以下のように作成できます。
 
 ```python
 config = sqlmesh_config(
@@ -168,21 +168,21 @@ marketing_config = sqlmesh_config(
 )
 ```
 
-By default, SQLMesh will use the configuration object named `config`. Use a different configuration by passing the object name to SQLMesh CLI commands with the `--config` option. For example, we could run a `plan` with the marketing configuration like this:
+デフォルトでは、SQLMesh は `config` という名前の構成オブジェクトを使用します。`--config` オプションを使用してオブジェクト名を SQLMesh CLI コマンドに渡すことで、別の構成を使用します。たとえば、次のようにマーケティング構成で `plan` を実行できます。
 
 ```python
 sqlmesh --config marketing_config plan
 ```
 
-Note that the `--config` option is specified between the word `sqlmesh` and the command being executed (e.g., `plan`, `run`).
+`--config` オプションは、`sqlmesh` という単語と実行されるコマンド (例: `plan`、`run`) の間に指定されることに注意してください。
 
-#### Registering comments
+#### コメントの登録
 
-SQLMesh automatically registers model descriptions and column comments with the target SQL engine, as described in the [Models Overview documentation](../concepts/models/overview#model-description-and-comments). Comment registration is on by default for all engines that support it.
+SQLMesh は、[モデルの概要ドキュメント](../concepts/models/overview#model-description-and-comments) に記載されているように、モデルの説明と列のコメントを対象の SQL エンジンに自動的に登録します。コメントの登録は、それをサポートするすべてのエンジンでデフォルトで有効になっています。
 
-dbt offers similar comment registration functionality via its [`persist_docs` model configuration parameter](https://docs.getdbt.com/reference/resource-configs/persist_docs), specified by model. SQLMesh comment registration is configured at the project level, so it does not use dbt's model-specific `persist_docs` configuration.
+dbt は、モデルごとに指定する [`persist_docs` モデル構成パラメータ](https://docs.getdbt.com/reference/resource-configs/persist_docs) を介して、同様のコメント登録機能を提供します。SQLMesh のコメント登録はプロジェクトレベルで構成されるため、dbt のモデル固有の `persist_docs` 構成は使用されません。
 
-SQLMesh's project-level comment registration defaults are overridden with the `sqlmesh_config()` `register_comments` argument. For example, this configuration turns comment registration off:
+SQLMesh のプロジェクトレベルのコメント登録のデフォルトは、`sqlmesh_config()` の `register_comments` 引数によってオーバーライドされます。たとえば、次の構成はコメント登録を無効にします。
 
 ```python
 config = sqlmesh_config(
@@ -191,85 +191,85 @@ config = sqlmesh_config(
     )
 ```
 
-### Running SQLMesh
+### SQLMesh の実行
 
-Run SQLMesh as with a SQLMesh project, generating and applying [plans](../concepts/overview.md#make-a-plan), running [tests](../concepts/overview.md#tests) or [audits](../concepts/overview.md#audits), and executing models with a [scheduler](../guides/scheduling.md) if desired.
+SQLMesh プロジェクトと同様に SQLMesh を実行し、[プラン](../concepts/overview.md#make-a-plan) を生成・適用し、[テスト](../concepts/overview.md#tests) または [監査](../concepts/overview.md#audits) を実行し、必要に応じて [スケジューラ](../guides/scheduling.md) を使用してモデルを実行します。
 
-You continue to use your dbt file and project format.
+dbt ファイルとプロジェクト形式は引き続き使用できます。
 
-## Workflow differences between SQLMesh and dbt
+## SQLMesh と dbt のワークフローの違い
 
-Consider the following when using a dbt project:
+dbt プロジェクトを使用する際は、以下の点にご注意ください。
 
-* SQLMesh will detect and deploy new or modified seeds as part of running the `plan` command and applying changes - there is no separate seed command. Refer to [seed models](../concepts/models/seed_models.md) for more information.
-* The `plan` command dynamically creates environments, so environments do not need to be hardcoded into your `profiles.yml` file as targets. To get the most out of SQLMesh, point your dbt profile target at the production target and let SQLMesh handle the rest for you.
-* The term "test" has a different meaning in dbt than in SQLMesh:
-    - dbt "tests" are [audits](../concepts/audits.md) in SQLMesh.
-    - SQLMesh "tests" are [unit tests](../concepts/tests.md), which test query logic before applying a SQLMesh plan.
-* dbt's' recommended incremental logic is not compatible with SQLMesh, so small tweaks to the models are required (don't worry - dbt can still use the models!).
+* SQLMesh は、`plan` コマンドの実行と変更の適用の一環として、新規または変更されたシードを検出してデプロイします。個別のシードコマンドはありません。詳細については、[シードモデル](../concepts/models/seed_models.md) を参照してください。
+* `plan` コマンドは環境を動的に作成するため、環境を `profiles.yml` ファイルにターゲットとしてハードコードする必要はありません。SQLMesh を最大限に活用するには、dbt プロファイルターゲットを本番環境ターゲットに設定し、残りの処理は SQLMesh に任せましょう。
+* 「テスト」という用語は、dbt と SQLMesh では意味が異なります。
+  - dbt の「テスト」は、SQLMesh では [監査](../concepts/audits.md) です。
+  - SQLMesh の「テスト」は [ユニットテスト](../concepts/tests.md) であり、SQLMesh プランを適用する前にクエリロジックをテストします。
+* dbt が推奨する増分ロジックは SQLMesh と互換性がないため、モデルに小さな調整が必要です (心配しないでください。dbt は引き続きモデルを使用できます)。
 
-## How to use SQLMesh incremental models with dbt projects
+## dbt プロジェクトで SQLMesh の増分モデルを使用する方法
 
-Incremental loading is a powerful technique when datasets are large and recomputing tables is expensive. SQLMesh offers first-class support for incremental models, and its approach differs from dbt's.
+データセットが大きく、テーブルの再計算にコストがかかる場合、増分ロードは強力な手法です。SQLMesh は増分モデルを強力にサポートしますが、そのアプローチは dbt とは異なります。
 
-This section describes how to adapt dbt's incremental models to run on sqlmesh and maintain backwards compatibility with dbt.
+このセクションでは、dbt の増分モデルを sqlmesh で実行できるように適応させ、dbt との下位互換性を維持する方法について説明します。
 
-### Incremental types
+### 増分型
 
-SQLMesh supports two approaches to implement [idempotent](../concepts/glossary.md#idempotency) incremental loads:
+SQLMesh は、[べき等](../concepts/glossary.md#idempotency) な増分ロードを実装するための 2 つのアプローチをサポートしています。
 
-* Using merge (with the sqlmesh [`INCREMENTAL_BY_UNIQUE_KEY` model kind](../concepts/models/model_kinds.md#incremental_by_unique_key))
-* Using [`INCREMENTAL_BY_TIME_RANGE` model kind](../concepts/models/model_kinds.md#incremental_by_time_range)
+* マージを使用する (sqlmesh の [`INCREMENTAL_BY_UNIQUE_KEY` モデル種類](../concepts/models/model_kinds.md#incremental_by_unique_key) を使用)
+* [`INCREMENTAL_BY_TIME_RANGE` モデル種類](../concepts/models/model_kinds.md#incremental_by_time_range) を使用する
 
-#### Incremental by unique key
+#### ユニークキーによる増分
 
-To enable incremental_by_unique_key incrementality, the model configuration should contain:
+incremental_by_unique_key による増分を有効にするには、モデル設定に以下を含める必要があります。
 
-* The `unique_key` key with the model's unique key field name or names as the value
-* The `materialized` key with value `'incremental'`
-* Either:
-    * No `incremental_strategy` key or
-    * The `incremental_strategy` key with value `'merge'`
+* モデルのユニークキーフィールド名を値として持つ `unique_key` キー
+* 値を `'incremental'` とする `materialized` キー
+* 次のいずれか:
+  * `incremental_strategy` キーがない、または
+  * 値を `'merge'` とする `incremental_strategy` キー
 
-#### Incremental by time range
+#### 時間範囲による増分
 
-To enable incremental_by_time_range incrementality, the model configuration must contain:
+incremental_by_time_range による増分を有効にするには、モデル設定に以下の設定が含まれている必要があります。
 
-* The `materialized` key with value `'incremental'`
-* The `incremental_strategy` key with the value `incremental_by_time_range`
-* The `time_column` key with the model's time column field name as the value (see [`time column`](../concepts/models/model_kinds.md#time-column) for details)
+* `materialized` キーに値 `'incremental'` を設定
+* `incremental_strategy` キーに値 `incremental_by_time_range` を設定
+* `time_column` キーにモデルの時間列フィールド名を設定（詳細は [`time column`](../concepts/models/model_kinds.md#time-column) を参照）
 
-### Incremental logic
+### 増分ロジック
 
-Unlike dbt incremental strategies, SQLMesh does not require the use of `is_incremental` jinja blocks to implement incremental logic. 
-Instead, SQLMesh provides predefined time macro variables that can be used in the model's SQL to filter data based on the time column.
+dbt の増分戦略とは異なり、SQLMesh では増分ロジックを実装するために `is_incremental` Jinja ブロックを使用する必要はありません。
+代わりに、SQLMesh は定義済みの時間マクロ変数を提供します。これらの変数は、モデルの SQL で時間列に基づいてデータをフィルタリングするために使用できます。
 
-For example, the SQL `WHERE` clause with the "ds" column goes in a new jinja block gated by `{% if sqlmesh_incremental is defined %}` as follows:
+例えば、「ds」列を含む SQL `WHERE` 句は、次のように `{% if sqlmesh_incremental is defined %}` でゲートされた新しい Jinja ブロックに記述されます。
 
 ```bash
 >   WHERE
 >     ds BETWEEN '{{ start_ds }}' AND '{{ end_ds }}'
 ```
 
-`{{ start_ds }}` and `{{ end_ds }}` are the jinja equivalents of SQLMesh's `@start_ds` and `@end_ds` predefined time macro variables. See all [predefined time variables](../concepts/macros/macro_variables.md) available in jinja.
+`{{ start_ds }}` と `{{ end_ds }}` は、SQLMesh の `@start_ds` と `@end_ds` という定義済みの時間マクロ変数に相当する Jinja の関数です。Jinja で利用可能なすべての [定義済みの時間変数](../concepts/macros/macro_variables.md) を参照してください。
 
-### Incremental model configuration
+### 増分モデルの設定
 
-SQLMesh provides configuration parameters that enable control over how incremental computations occur. These parameters are set in the model's `config` block.
+SQLMesh には、増分計算の実行方法を制御できる設定パラメータが用意されています。これらのパラメータは、モデルの `config` ブロックで設定します。
 
-See [Incremental Model Properties](../concepts/models/overview.md#incremental-model-properties) for the full list of incremental model configuration parameters.
+増分モデルの設定パラメータの完全なリストについては、[増分モデルのプロパティ](../concepts/models/overview.md#incremental-model-properties) を参照してください。
 
-**Note:** By default, all incremental dbt models are configured to be [forward-only](../concepts/plans.md#forward-only-plans). However, you can change this behavior by setting the `forward_only: false` setting either in the configuration of an individual model or globally for all models in the `dbt_project.yaml` file. The [forward-only](../concepts/plans.md#forward-only-plans) mode aligns more closely with the typical operation of dbt and therefore better meets user's expectations.
+**注:** デフォルトでは、すべての増分 dbt モデルは [forward-only](../concepts/plans.md#forward-only-plans) に設定されています。ただし、個々のモデルの設定で、または `dbt_project.yaml` ファイル内のすべてのモデルに対してグローバルに `forward_only: false` を設定することで、この動作を変更できます。[forward-only](../concepts/plans.md#forward-only-plans) モードは、dbt の一般的な動作により近いため、ユーザーの期待に応えることができます。
 
-Similarly, the [allow_partials](../concepts/models/overview.md#allow_partials) parameter is set to `true` by default unless the `allow_partials` parameter is explicitly set to `false` in the model configuration.
+同様に、[allow_partials](../concepts/models/overview.md#allow_partials) パラメータは、モデル設定で `allow_partials` パラメータが明示的に `false` に設定されていない限り、デフォルトで `true` に設定されます。
 
 #### on_schema_change
 
-SQLMesh automatically detects both destructive and additive schema changes to [forward-only incremental models](../guides/incremental_time.md#forward-only-models) and to all incremental models in [forward-only plans](../concepts/plans.md#destructive-changes).
+SQLMesh は、[forward-only 増分モデル](../guides/incremental_time.md#forward-only-models) および [forward-only プラン](../concepts/plans.md#destructive-changes) 内のすべての増分モデルに対する破壊的および追加的なスキーマ変更を自動的に検出します。
 
-A model's [`on_destructive_change` and `on_additive_change` settings](../guides/incremental_time.md#schema-changes) determine whether it errors, warns, silently allows, or ignores the changes. SQLMesh provides fine-grained control over both destructive changes (like dropping columns) and additive changes (like adding new columns).
+モデルの [`on_destructive_change` および `on_additive_change` 設定](../guides/incremental_time.md#schema-changes) によって、変更をエラー、警告、警告なしで許可、または無視するかどうかが決まります。SQLMesh は、破壊的な変更（列の削除など）と追加的な変更（新しい列の追加など）の両方をきめ細かく制御できます。
 
-`on_schema_change` configuration values are mapped to these SQLMesh settings:
+`on_schema_change` 設定値は、以下の SQLMesh 設定にマッピングされます。
 
 | `on_schema_change` | SQLMesh `on_destructive_change` | SQLMesh `on_additive_change` |
 |--------------------|---------------------------------|------------------------------|
@@ -279,25 +279,25 @@ A model's [`on_destructive_change` and `on_additive_change` settings](../guides/
 | sync_all_columns   | allow                           | allow                        |
 
 
-## Snapshot support
+## スナップショットのサポート
 
-SQLMesh supports both dbt snapshot strategies of either `timestamp` or `check`.
-Only unsupported snapshot functionality is `invalidate_hard_deletes` which must be set to `True`.
-If set to `False`, then the snapshot will be skipped and a warning will be logged indicating this happened.
-Support for this will be added soon.
+SQLMesh は、`timestamp` または `check` の両方の dbt スナップショット戦略をサポートしています。
+サポートされていないスナップショット機能は `invalidate_hard_deletes` のみで、`True` に設定する必要があります。
+`False` に設定した場合、スナップショットはスキップされ、その旨を示す警告がログに記録されます。
+この機能のサポートは近日中に追加される予定です。
 
-## Tests
-SQLMesh uses dbt tests to perform SQLMesh [audits](../concepts/audits.md) (coming soon).
+## テスト
+SQLMesh は dbt テストを使用して SQLMesh [監査](../concepts/audits.md) を実行します (近日公開予定)。
 
-Add SQLMesh [unit tests](../concepts/tests.md) to a dbt project by placing them in the "tests" directory.
+SQLMesh [ユニットテスト](../concepts/tests.md) を "tests" ディレクトリに配置して、dbt プロジェクトに追加します。
 
-## Seed column types
+## シード列の型
 
-SQLMesh parses seed CSV files using [Panda's `read_csv` utility](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html) and its default column type inference.
+SQLMesh は、[Panda の `read_csv` ユーティリティ](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html) とそのデフォルトの列型推論を使用して、シード CSV ファイルを解析します。
 
-dbt parses seed CSV files using [agate's csv reader](https://agate.readthedocs.io/en/latest/api/csv.html#csv-reader-and-writer) and [customizes agate's default type inference](https://github.com/dbt-labs/dbt-common/blob/ae8ffe082926fdb3ef2a15486588f40c7739aea9/dbt_common/clients/agate_helper.py#L59).
+dbt は、[agate の csv リーダー](https://agate.readthedocs.io/en/latest/api/csv.html#csv-reader-and-writer) を使用してシード CSV ファイルを解析し、[agate のデフォルトの型推論をカスタマイズ](https://github.com/dbt-labs/dbt-common/blob/ae8ffe082926fdb3ef2a15486588f40c7739aea9/dbt_common/clients/agate_helper.py#L59) を使用してシード CSV ファイルを解析します。
 
-If SQLMesh and dbt infer different column types for a seed CSV file, you may specify a [column_types](https://docs.getdbt.com/reference/resource-configs/column_types) dictionary in your `dbt_project.yml` file, where the keys define the column names and the values the data types.
+SQLMesh と dbt がシード CSV ファイルの異なる列タイプを推測する場合は、`dbt_project.yml` ファイルで [column_types](https://docs.getdbt.com/reference/resource-configs/column_types) ディクショナリを指定できます。ここで、キーは列名を定義し、値はデータ型を定義します。
 
 ``` yaml
 seeds:
@@ -306,7 +306,7 @@ seeds:
       <column name>: <SQL data type>
 ```
 
-Alternatively, you can define this dictionary in the seed [seed properties configuration file](https://docs.getdbt.com/reference/seed-properties).
+あるいは、シード [シード プロパティ構成ファイル](https://docs.getdbt.com/reference/seed-properties) でこの辞書を定義することもできます。
 
 ``` yaml
 seeds:
@@ -316,7 +316,7 @@ seeds:
         <column name>: <SQL data type>
 ```
 
-You may also specify a column's SQL data type in its `data_type` key, as shown below. The file must list all columns present in the CSV file; SQLMesh's default type inference will be used for columns that do not specify the `data_type` key.
+列のSQLデータ型を`data_type`キーで指定することもできます（以下を参照）。ファイルにはCSVファイル内のすべての列をリストする必要があります。`data_type`キーが指定されていない列には、SQLMeshのデフォルトの型推論が使用されます。
 
 ``` yaml
 seeds:
@@ -326,15 +326,15 @@ seeds:
         data_type: <SQL data type>
 ```
 
-## Package Management
-SQLMesh does not have its own package manager; however, SQLMesh's dbt adapter is compatible with dbt's package manager. Continue to use [dbt deps](https://docs.getdbt.com/reference/commands/deps) and [dbt clean](https://docs.getdbt.com/reference/commands/clean) to update, add, or remove packages.
+## パッケージ管理
+SQLMesh には独自のパッケージマネージャーはありませんが、SQLMesh の dbt アダプターは dbt のパッケージマネージャーと互換性があります。パッケージの更新、追加、削除には、引き続き [dbt deps](https://docs.getdbt.com/reference/commands/deps) と [dbt clean](https://docs.getdbt.com/reference/commands/clean) をご利用ください。
 
-## Documentation
-Model documentation is available in the [SQLMesh UI](../quickstart/ui.md#2-open-the-sqlmesh-web-ui).
+## ドキュメント
+モデルのドキュメントは、[SQLMesh UI](../quickstart/ui.md#2-open-the-sqlmesh-web-ui) でご覧いただけます。
 
-## Supported dbt jinja methods
+## サポートされている dbt jinja メソッド
 
-SQLMesh supports running dbt projects using the majority of dbt jinja methods, including:
+SQLMesh は、以下を含むほとんどの dbt jinja メソッドを使用した dbt プロジェクトの実行をサポートしています。
 
 | Method    | Method         | Method       | Method  |
 | --------- | -------------- | ------------ | ------- |
@@ -347,15 +347,15 @@ SQLMesh supports running dbt projects using the majority of dbt jinja methods, i
 | builtins  | modules        | source       |         |
 | config    | print          | statement    |         |
 
-## Unsupported dbt jinja methods
+## サポートされていない dbt jinja メソッド
 
-The dbt jinja methods that are not currently supported are:
+現在サポートされていない dbt jinja メソッドは次のとおりです。
 
 * debug
 * selected_sources
 * graph.nodes.values
 * graph.metrics.values
 
-## Missing something you need?
+## 必要な情報が不足していますか？
 
-Submit an [issue](https://github.com/TobikoData/sqlmesh/issues), and we'll look into it!
+[問題](https://github.com/TobikoData/sqlmesh/issues) を送信していただければ、調査いたします。

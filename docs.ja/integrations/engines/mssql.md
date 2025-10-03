@@ -1,27 +1,27 @@
 # MSSQL
 
-## Installation
+## インストール
 
-### User / Password Authentication:
+### ユーザー/パスワード認証:
 ```
 pip install "sqlmesh[mssql]"
 ```
-### Microsoft Entra ID / Azure Active Directory Authentication:
+### Microsoft Entra ID / Azure Active Directory 認証:
 ```
 pip install "sqlmesh[mssql-odbc]"
 ```
 
-## Incremental by unique key `MERGE`
+## 一意キーによる増分 `MERGE`
 
-SQLMesh executes a `MERGE` statement to insert rows for [incremental by unique key](../../concepts/models/model_kinds.md#incremental_by_unique_key) model kinds.
+SQLMesh は `MERGE` ステートメントを実行し、[一意キーによる増分](../../concepts/models/model_kinds.md#incremental_by_unique_key) モデル種別の行を挿入します。
 
-By default, the `MERGE` statement updates all non-key columns of an existing row when a new row with the same key values is inserted. If all column values match between the two rows, those updates are unnecessary.
+デフォルトでは、`MERGE` ステートメントは、同じキー値を持つ新しい行が挿入されると、既存の行のキー以外のすべての列を更新します。2 つの行のすべての列値が一致する場合、これらの更新は不要です。
 
-SQLMesh provides an optional performance optimization that skips unnecessary updates by comparing column values with the `EXISTS` and `EXCEPT` operators.
+SQLMesh は、列の値を `EXISTS` 演算子と `EXCEPT` 演算子で比較することで不要な更新をスキップするオプションのパフォーマンス最適化機能を提供しています。
 
-Enable the optimization by setting the `mssql_merge_exists` key to `true` in the [`physical_properties`](../../concepts/models/overview.md#physical_properties) section of the `MODEL` statement.
+この最適化を有効にするには、`MODEL` ステートメントの [`physical_properties`](../../concepts/models/overview.md#physical_properties) セクションで `mssql_merge_exists` キーを `true` に設定します。
 
-For example:
+例えば：
 
 ```sql linenums="1" hl_lines="7-9"
 MODEL (
@@ -36,30 +36,31 @@ MODEL (
 );
 ```
 
-!!! warning "Not all column types supported"
-    The `mssql_merge_exists` optimization is not supported for all column types, including `GEOMETRY`, `XML`, `TEXT`, `NTEXT`, `IMAGE`, and most user-defined types.
+!!! warning "すべての列タイプがサポートされているわけではありません"
 
-    Learn more in the [MSSQL `EXCEPT` statement documentation](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/set-operators-except-and-intersect-transact-sql?view=sql-server-ver17#arguments).
+    `mssql_merge_exists` 最適化は、`GEOMETRY`、`XML`、`TEXT`、`NTEXT`、`IMAGE`、およびほとんどのユーザー定義型を含むすべての列型ではサポートされていません。
 
-## Local/Built-in Scheduler
-**Engine Adapter Type**: `mssql`
+    詳細については、[MSSQL `EXCEPT` ステートメントのドキュメント](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/set-operators-except-and-intersect-transact-sql?view=sql-server-ver17#arguments) をご覧ください。
 
-### Connection options
+## ローカル/組み込みスケジューラ
+**エンジンアダプタタイプ**: `mssql`
 
-| Option            | Description                                                                                                                                                                                                               |     Type     | Required |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------: | :------: |
-| `type`            | Engine type name - must be `mssql`                                                                                                                                                                                        |    string    |    Y     |
-| `host`            | The hostname of the MSSQL server                                                                                                                                                                                          |    string    |    Y     |
-| `user`            | The username / client id to use for authentication with the MSSQL server                                                                                                                                                  |    string    |    N     |
-| `password`        | The password / client secret to use for authentication with the MSSQL server                                                                                                                                              |    string    |    N     |
-| `port`            | The port number of the MSSQL server                                                                                                                                                                                       |     int      |    N     |
-| `database`        | The target database                                                                                                                                                                                                       |    string    |    N     |
-| `charset`         | The character set used for the connection                                                                                                                                                                                 |    string    |    N     |
-| `timeout`         | The query timeout in seconds. Default: no timeout                                                                                                                                                                         |     int      |    N     |
-| `login_timeout`   | The timeout for connection and login in seconds. Default: 60                                                                                                                                                              |     int      |    N     |
-| `appname`         | The application name to use for the connection                                                                                                                                                                            |    string    |    N     |
-| `conn_properties` | The list of connection properties                                                                                                                                                                                         | list[string] |    N     |
-| `autocommit`      | Is autocommit mode enabled. Default: false                                                                                                                                                                                |     bool     |    N     |
-| `driver`          | The driver to use for the connection. Default: pymssql                                                                                                                                                                    |    string    |    N     |
-| `driver_name`     | The driver name to use for the connection (e.g., *ODBC Driver 18 for SQL Server*).                                                                                                                                          |    string    |    N     |
-| `odbc_properties` | ODBC connection properties (e.g., *authentication: ActiveDirectoryServicePrincipal*). See more [here](https://learn.microsoft.com/en-us/sql/connect/odbc/dsn-connection-string-attribute?view=sql-server-ver16). |     dict     |    N     |
+### 接続オプション
+
+| オプション | 説明 | タイプ | 必須 |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------: | :------: |
+| `type` | エンジンタイプ名 - `mssql` である必要があります | 文字列 | Y |
+| `host` | MSSQL サーバーのホスト名 | 文字列 | Y |
+| `user` | MSSQL サーバーでの認証に使用するユーザー名 / クライアント ID | 文字列 | N |
+| `password` | MSSQL サーバーでの認証に使用するパスワード / クライアントシークレット | 文字列 | N |
+| `port` | MSSQL サーバーのポート番号 | int | N |
+| `database` | ターゲットデータベース | 文字列 | N |
+| `charset` | 接続に使用する文字セット | 文字列 | N |
+| `timeout` | クエリのタイムアウト（秒）。デフォルト: タイムアウトなし | int | N |
+| `login_timeout` | 接続およびログインのタイムアウト (秒)。 デフォルト: 60 | int | N |
+| `appname` | 接続に使用するアプリケーション名 | string | N |
+| `conn_properties` | 接続プロパティのリスト | list[string] | N |
+| `autocommit` | 自動コミット モードが有効かどうか。 デフォルト: false | bool | N |
+| `driver` | 接続に使用するドライバー。 デフォルト: pymssql | string | N |
+| `driver_name` | 接続に使用するドライバー名 (例: *ODBC Driver 18 for SQL Server*)。 | string | N |
+| `odbc_properties` | ODBC 接続プロパティ (例: *authentication: ActiveDirectoryServicePrincipal*)。詳細については、[こちら](https://learn.microsoft.com/en-us/sql/connect/odbc/dsn-connection-string-attribute?view=sql-server-ver16) を参照してください。 | dict | N |

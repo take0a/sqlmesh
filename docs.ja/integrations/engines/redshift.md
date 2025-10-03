@@ -1,55 +1,55 @@
 # Redshift
 
-## Local/Built-in Scheduler
-**Engine Adapter Type**: `redshift`
+## ローカル/組み込みスケジューラ
+**エンジンアダプタタイプ**: `redshift`
 
-### Installation
+### インストール
 ```
 pip install "sqlmesh[redshift]"
 ```
 
-### Connection options
+### 接続オプション
 
-| Option                  | Description                                                                                                 |  Type  | Required |
-|-------------------------|-------------------------------------------------------------------------------------------------------------|:------:|:--------:|
-| `type`                  | Engine type name - must be `redshift`                                                                       | string |    Y     |
-| `user`                  | The username to use for authentication with the Amazon Redshift cluster                                     | string |    N     |
-| `password`              | The password to use for authentication with the Amazon Redshift cluster                                     | string |    N     |
-| `database`              | The name of the database instance to connect to                                                             | string |    N     |
-| `host`                  | The hostname of the Amazon Redshift cluster                                                                 | string |    N     |
-| `port`                  | The port number of the Amazon Redshift cluster                                                              |  int   |    N     |
-| `ssl`                   | Is SSL enabled. SSL must be enabled when authenticating using IAM (Default: `True`)                         |  bool  |    N     |
-| `sslmode`               | The security of the connection to the Amazon Redshift cluster. `verify-ca` and `verify-full` are supported. | string |    N     |
-| `timeout`               | The number of seconds before the connection to the server will timeout.                                     |  int   |    N     |
-| `tcp_keepalive`         | Is [TCP keepalive](https://en.wikipedia.org/wiki/Keepalive#TCP_keepalive) used. (Default: `True`)           |  bool  |    N     |
-| `application_name`      | The name of the application                                                                                 | string |    N     |
-| `preferred_role`        | The IAM role preferred for the current connection                                                           | string |    N     |
-| `principal_arn`         | The ARN of the IAM entity (user or role) for which you are generating a policy                              | string |    N     |
-| `credentials_provider`  | The class name of the IdP that will be used for authenticating with the Amazon Redshift cluster             | string |    N     |
-| `region`                | The AWS region of the Amazon Redshift cluster                                                               | string |    N     |
-| `cluster_identifier`    | The cluster identifier of the Amazon Redshift cluster                                                       | string |    N     |
-| `iam`                   | If IAM authentication is enabled. IAM must be True when authenticating using an IdP                         |  dict  |    N     |
-| `is_serverless`         | If the Amazon Redshift cluster is serverless (Default: `False`)                                             |  bool  |    N     |
-| `serverless_acct_id`    | The account ID of the serverless cluster                                                                    | string |    N     |
-| `serverless_work_group` | The name of work group for serverless end point                                                             | string |    N     |
-| `enable_merge`         | Whether the incremental_by_unique_key model kind will use the native Redshift MERGE operation or SQLMesh's logical merge. (Default: `False`)           |  bool  |    N     |
+| オプション | 説明 | タイプ | 必須 |
+|------------------------|----------------------------------------------------------------------------------------------------------------------------|:-------:|:--------:|
+| `type` | エンジンタイプ名 - `redshift` である必要があります | 文字列 | Y |
+| `user` | Amazon Redshift クラスターでの認証に使用するユーザー名 | 文字列 | N |
+| `password` | Amazon Redshift クラスターでの認証に使用するパスワード | 文字列 | N |
+| `database` | 接続するデータベースインスタンスの名前 | 文字列 | N |
+| `host` | Amazon Redshift クラスターのホスト名 | 文字列 | N |
+| `port` | Amazon Redshift クラスターのポート番号 | int | N |
+| `ssl` | SSL が有効かどうか。IAM を使用して認証する場合は SSL が有効になっている必要があります (デフォルト: `True`) | bool | N |
+| `sslmode` | Amazon Redshift クラスターへの接続のセキュリティ。`verify-ca` と `verify-full` がサポートされています。 | 文字列 | N |
+| `timeout` | サーバーへの接続がタイムアウトするまでの秒数。 | int | N |
+| `tcp_keepalive` | [TCP キープアライブ](https://en.wikipedia.org/wiki/Keepalive#TCP_keepalive) が使用されているかどうか。(デフォルト: `True`) | bool | N |
+| `application_name` | アプリケーションの名前 | 文字列 | N |
+| `preferred_role` | 現在の接続に優先する IAM ロール | 文字列 | N |
+| `principal_arn` | ポリシーを生成する IAM エンティティ (ユーザーまたはロール) の ARN | 文字列 | N |
+| `credentials_provider` | Amazon Redshift クラスターでの認証に使用される IdP のクラス名 | 文字列 | N |
+| `region` | Amazon Redshift クラスターの AWS リージョン | 文字列 | N |
+| `cluster_identifier` | Amazon Redshift クラスターのクラスター識別子 | 文字列 | N |
+| `iam` | IAM 認証が有効な場合。IdP を使用して認証する場合、IAM は True である必要があります | dict | N |
+| `is_serverless` | Amazon Redshift クラスターがサーバーレスの場合 (デフォルト: `False`) | bool | N |
+| `serverless_acct_id` | サーバーレスクラスターのアカウント ID | 文字列 | N |
+| `serverless_work_group` | サーバーレスエンドポイントのワークグループの名前 | 文字列 | N |
+| `enable_merge` | incremental_by_unique_key モデルの種類で、ネイティブの Redshift MERGE 操作を使用するか、SQLMesh の論理マージを使用するか。 (デフォルト: `False`) | bool | N |
 
-## Performance Considerations
+## パフォーマンスに関する考慮事項
 
-### Timestamp Macro Variables and Sort Keys
+### タイムスタンプマクロ変数とソートキー
 
-When working with Redshift tables that have a `TIMESTAMP` sort key, using the standard `@start_dt` and `@end_dt` macro variables may lead to performance issues. These macros render as `TIMESTAMP WITH TIME ZONE` values in SQL queries, which prevents Redshift from performing efficient pruning when filtering against `TIMESTAMP` (without timezone) sort keys.
+`TIMESTAMP` ソートキーを持つ Redshift テーブルを操作する場合、標準の `@start_dt` および `@end_dt` マクロ変数を使用するとパフォーマンス上の問題が発生する可能性があります。これらのマクロは SQL クエリで `TIMESTAMP WITH TIME ZONE` 値としてレンダリングされるため、`TIMESTAMP`（タイムゾーンなし）ソートキーでフィルタリングする際に Redshift が効率的なプルーニングを実行できなくなります。
 
-This can result in full table scans instead, causing significant performance degradation.
+その結果、テーブル全体のスキャンが実行され、パフォーマンスが大幅に低下する可能性があります。
 
-**Solution**: Use the `_dtntz` (datetime no timezone) variants of macro variables:
+**解決策**: マクロ変数の `_dtntz` (datetime no timezone) バリアントを使用します。
 
-- `@start_dtntz` instead of `@start_dt`
-- `@end_dtntz` instead of `@end_dt`
+- `@start_dt` ではなく `@start_dtntz`
+- `@end_dt` ではなく `@end_dtntz`
 
-These variants render as `TIMESTAMP WITHOUT TIME ZONE`, allowing Redshift to properly utilize sort key optimizations.
+これらのバリアントは `TIMESTAMP WITHOUT TIME ZONE` としてレンダリングされるため、Redshift はソートキーの最適化を適切に利用できます。
 
-**Example**:
+**例**：
 
 ```sql linenums="1"
 -- Inefficient: May cause full table scan

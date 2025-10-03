@@ -1,78 +1,78 @@
 # dlt
 
-SQLMesh enables efforless project generation using data ingested through [dlt](https://github.com/dlt-hub/dlt). This involves creating a baseline project scaffolding, generating incremental models to process the data from the pipeline's tables by inspecting its schema and configuring the gateway connection using the pipeline's credentials.
+SQLMesh は、[dlt](https://github.com/dlt-hub/dlt) を通じて取り込まれたデータを使用して、簡単にプロジェクトを生成できます。これには、ベースラインプロジェクトのスキャフォールディングの作成、パイプラインのテーブルからのデータを処理するための増分モデルの生成（スキーマの検査とパイプラインの資格情報を使用したゲートウェイ接続の構成による）が含まれます。
 
-## Getting started
-### Reading from a dlt pipeline
+## はじめに
+### DLT パイプラインからの読み取り
 
-To load data from a dlt pipeline into SQLMesh, ensure the dlt pipeline has been run or restored locally. Then simply execute the sqlmesh `init` command *within the dlt project root directory* using the `dlt` template option and specifying the pipeline's name with the `dlt-pipeline` option:
+DLT パイプラインから SQLMesh にデータを読み込むには、DLT パイプラインがローカルで実行または復元されていることを確認してください。次に、*DLT プロジェクトのルートディレクトリ内で* sqlmesh の `init` コマンドを実行します。`dlt` テンプレートオプションを使用し、`dlt-pipeline` オプションでパイプライン名を指定します。
 
 ```bash
 $ sqlmesh init -t dlt --dlt-pipeline <pipeline-name> dialect
 ```
 
-This will create the configuration file and directories, which are found in all SQLMesh projects:
+これにより、すべての SQLMesh プロジェクトで使用される設定ファイルとディレクトリが作成されます。
 
 - config.yaml
-    - The file for project configuration. Refer to [configuration](../reference/configuration.md).
+    - プロジェクト設定ファイル。[configuration](../reference/configuration.md) を参照してください。
 - ./models
-    - SQL and Python models. Refer to [models](../concepts/models/overview.md).
+    - SQL および Python モデル。[models](../concepts/models/overview.md) を参照してください。
 - ./seeds
-    - Seed files. Refer to [seeds](../concepts/models/seed_models.md).
+    - シードファイル。[seeds](../concepts/models/seed_models.md) を参照してください。
 - ./audits
-    - Shared audit files. Refer to [auditing](../concepts/audits.md).
+    - 共有監査ファイル。[auditing](../concepts/audits.md) を参照してください。
 - ./tests
-    - Unit test files. Refer to [testing](../concepts/tests.md).
+    - ユニットテストファイル。[testing](../concepts/tests.md) を参照してください。
 - ./macros
-    - Macro files. Refer to [macros](../concepts/macros/overview.md).
+    - マクロファイル。[macros](../concepts/macros/overview.md) を参照してください。
 
-SQLMesh will also automatically generate models to ingest data from the pipeline incrementally. Incremental loading is ideal for large datasets where recomputing entire tables is resource-intensive. In this case utilizing the [`INCREMENTAL_BY_TIME_RANGE` model kind](../concepts/models/model_kinds.md#incremental_by_time_range). However, these model definitions can be customized to meet your specific project needs.
+SQLMesh は、パイプラインからデータを段階的に取り込むためのモデルも自動生成します。増分読み込みは、テーブル全体の再計算に多くのリソースを消費する大規模なデータセットに最適です。この場合、[`INCREMENTAL_BY_TIME_RANGE` モデル種類](../concepts/models/model_kinds.md#incremental_by_time_range) を使用します。ただし、これらのモデル定義は、特定のプロジェクトのニーズに合わせてカスタマイズできます。
 
-#### Specify the path to the pipelines directory
+#### パイプラインディレクトリへのパスを指定します。
 
-The default location for dlt pipelines is `~/.dlt/pipelines/<pipeline_name>`. If your pipelines are in a [different directory](https://dlthub.com/docs/general-usage/pipeline#separate-working-environments-with-pipelines_dir), use the `--dlt-path` argument to specify the path explicitly:
+DLTパイプラインのデフォルトの場所は `~/.dlt/pipelines/<pipeline_name>` です。パイプラインが[別のディレクトリ](https://dlthub.com/docs/general-usage/pipeline#separate-working-environments-with-pipelines_dir)にある場合は、`--dlt-path` 引数を使用してパスを明示的に指定してください。
 
 ```bash
 $ sqlmesh init -t dlt --dlt-pipeline <pipeline-name> --dlt-path <pipelines-directory> dialect
 ```
 
-### Generating models on demand
+### オンデマンドでのモデル生成
 
-To update the models in your SQLMesh project on demand, use the `dlt_refresh` command. This allows you to either specify individual tables to generate incremental models from or update all models at once.
+SQLMesh プロジェクト内のモデルをオンデマンドで更新するには、`dlt_refresh` コマンドを使用します。このコマンドでは、増分モデルを生成するテーブルを個別に指定するか、すべてのモデルを一括更新することができます。
 
-- **Generate all missing tables**:
+- **不足しているすべてのテーブルを生成する**:
 
 ```bash
 $ sqlmesh dlt_refresh <pipeline-name>
 ```
 
-- **Generate all missing tables and overwrite existing ones** (use with `--force` or `-f`):
+- **不足しているテーブルをすべて生成し、既存のテーブルを上書きします** (`--force` または `-f` と共に使用)。
 
 ```bash
 $ sqlmesh dlt_refresh <pipeline-name> --force
 ```
 
-- **Generate specific dlt tables** (using `--table` or `-t`):
+- **特定の dlt テーブルを生成します** (`--table` または `-t` を使用):
 
 ```bash
 $ sqlmesh dlt_refresh <pipeline-name> --table <dlt-table>
 ```
 
-- **Provide the explicit path to the pipelines directory** (using `--dlt-path`):
+- **パイプライン ディレクトリへの明示的なパスを指定します** (`--dlt-path` を使用):
 
 ```bash
 $ sqlmesh dlt_refresh <pipeline-name> --dlt-path <pipelines-directory>
 ```
 
-#### Configuration
+#### 構成
 
-SQLMesh will retrieve the data warehouse connection credentials from your dlt project to configure the `config.yaml` file. This configuration can be modified or customized as needed. For more details, refer to the [configuration guide](../guides/configuration.md).
+SQLMesh は、DLT プロジェクトからデータウェアハウス接続の認証情報を取得し、`config.yaml` ファイルを構成します。この構成は必要に応じて変更またはカスタマイズできます。詳細については、[構成ガイド](../guides/configuration.md) を参照してください。
 
-### Example
+### 例
 
-Generating a SQLMesh project dlt is quite simple. In this example, we'll use the example `sushi_pipeline.py` from the [sushi-dlt project](https://github.com/TobikoData/sqlmesh/tree/main/examples/sushi_dlt).
+SQLMesh プロジェクトの dlt の生成は非常に簡単です。この例では、[sushi-dlt プロジェクト](https://github.com/TobikoData/sqlmesh/tree/main/examples/sushi_dlt) のサンプル `sushi_pipeline.py` を使用します。
 
-First, run the pipeline within the project directory:
+まず、プロジェクトディレクトリ内でパイプラインを実行します。
 
 ```bash
 $ python sushi_pipeline.py
@@ -80,13 +80,13 @@ Pipeline sushi load step completed in 2.09 seconds
 Load package 1728074157.660565 is LOADED and contains no failed jobs
 ```
 
-After the pipeline has run, generate a SQLMesh project by executing:
+パイプラインの実行後、次のコマンドを実行して SQLMesh プロジェクトを生成します。
 
 ```bash
 $ sqlmesh init -t dlt --dlt-pipeline sushi duckdb
 ```
 
-Then the SQLMesh project is all set up. You can then proceed to run the SQLMesh `plan` command to ingest the dlt pipeline data and populate the SQLMesh tables:
+これでSQLMeshプロジェクトのセットアップは完了です。SQLMeshの`plan`コマンドを実行して、DLTパイプラインデータを取り込み、SQLMeshテーブルにデータを入力します。
 
 ```bash
 $ sqlmesh plan
@@ -115,4 +115,4 @@ Virtually Updating 'prod' ━━━━━━━━━━━━━━━━━━
 The target environment has been updated successfully
 ```
 
-Once the models are planned and applied, you can continue as with any SQLMesh project, generating and applying [plans](../concepts/overview.md#make-a-plan), running [tests](../concepts/overview.md#tests) or [audits](../concepts/overview.md#audits), and executing models with a [scheduler](../guides/scheduling.md) if desired.
+モデルを計画して適用したら、他の SQLMesh プロジェクトと同様に、[プラン](../concepts/overview.md#make-a-plan) を生成して適用し、[テスト](../concepts/overview.md#tests) または [監査](../concepts/overview.md#audits) を実行し、必要に応じて [スケジューラ](../guides/scheduling.md) を使用してモデルを実行できます。

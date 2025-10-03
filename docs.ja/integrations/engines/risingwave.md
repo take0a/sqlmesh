@@ -1,46 +1,47 @@
 # RisingWave
 
-This page provides information about how to use SQLMesh with the [RisingWave](https://risingwave.com/) streaming database engine.
+このページでは、[RisingWave](https://risingwave.com/) ストリーミング データベース エンジンで SQLMesh を使用する方法について説明します。
 
 !!! info
-    The RisingWave engine adapter is a community contribution. Due to this, only limited community support is available.
 
-## Local/Built-in Scheduler
+    RisingWaveエンジンアダプターはコミュニティからの貢献です。そのため、コミュニティからのサポートは限定的です。
 
-**Engine Adapter Type**: `risingwave`
+## ローカル/組み込みスケジューラ
 
-### Installation
+**エンジンアダプタタイプ**: `risingwave`
+
+### インストール
 
 ```
 pip install "sqlmesh[risingwave]"
 ```
 
-## Connection options
+## 接続オプション
 
-RisingWave is based on Postgres and uses the same `psycopg2` connection library. Therefore, the connection parameters are very similar to [Postgres](./postgres.md).
+RisingWave は Postgres をベースとしており、同じ `psycopg2` 接続ライブラリを使用します。そのため、接続パラメータは [Postgres](./postgres.md) と非常に似ています。
 
-| Option         | Description                                                       | Type   | Required |
-|----------------|-------------------------------------------------------------------|:------:|:--------:|
-| `type`         | Engine type name - must be `risingwave`                           | string | Y        |
-| `host`         | The hostname of the RisingWave server                             | string | Y        |
-| `user`         | The username to use for authentication with the RisingWave server | string | Y        |
-| `password`     | The password to use for authentication with the RisingWave server | string | N        |
-| `port`         | The port number of the RisingWave engine server                   | int    | Y        |
-| `database`     | The name of the database instance to connect to                   | string | Y        |
-| `role`         | The role to use for authentication with the RisingWave server     | string | N        |
-| `sslmode`      | The security of the connection to the RisingWave server           | string | N        |
+| オプション | 説明 | タイプ | 必須 |
+|------------------|-------------------------------------------------------------------|:------:|:--------:|
+| `type` | エンジンタイプ名 - `risingwave` である必要があります | 文字列 | Y |
+| `host` | RisingWave サーバーのホスト名 | 文字列 | Y |
+| `user` | RisingWave サーバーでの認証に使用するユーザー名 | 文字列 | Y |
+| `password` | RisingWave サーバーでの認証に使用するパスワード | 文字列 | N |
+| `port` | RisingWave エンジンサーバーのポート番号 | 整数 | Y |
+| `database` |接続するデータベースインスタンスの名前 | 文字列 | Y |
+| `role` | RisingWave サーバーでの認証に使用するロール | 文字列 | N |
+| `sslmode` | RisingWave サーバーへの接続のセキュリティ | 文字列 | N |
 
-## Extra Features
+## 追加機能
 
-As a streaming database engine, RisingWave contains some extra features tailored specifically to streaming usecases.
+ストリーミングデータベースエンジンであるRisingWaveには、ストリーミングユースケースに特化した追加機能が搭載されています。
 
-Primarily, these are:
- - [Sources](https://docs.risingwave.com/sql/commands/sql-create-source) which are used to stream records into RisingWave from streaming sources like Kafka
- - [Sinks](https://docs.risingwave.com/sql/commands/sql-create-sink) which are used to write the results of data processed by RisingWave to an external target, such as an Apache Iceberg table in object storage.
+主な機能は以下のとおりです。
+- [ソース](https://docs.risingwave.com/sql/commands/sql-create-source): KafkaなどのストリーミングソースからRisingWaveにレコードをストリーミングするために使用されます。
+- [シンク](https://docs.risingwave.com/sql/commands/sql-create-sink): RisingWaveによって処理されたデータの結果を、オブジェクトストレージ内のApache Icebergテーブルなどの外部ターゲットに書き込むために使用されます。
 
-RisingWave exposes these features via normal SQL statements, namely `CREATE SOURCE` and `CREATE SINK`. To utilize these in SQLMesh, you can use them in [pre / post statements](../../concepts/models/sql_models.md#optional-prepost-statements).
+RisingWaveは、これらの機能を通常のSQL文、つまり`CREATE SOURCE`と`CREATE SINK`で公開しています。SQLMeshでこれらの機能を利用するには、[pre / post ステートメント](../../concepts/models/sql_models.md#optional-prepost-statements)で使用できます。
 
-Here is an example of creating a Sink from a SQLMesh model using a post statement:
+以下は、 post ステートメントを使用して SQLMesh モデルからシンクを作成する例です。
 
 ```sql
 MODEL (
@@ -71,4 +72,5 @@ ENCODE JSON (force_append_only=true);
 ```
 
 !!! info "@this_model"
-    The `@this_model` macro resolves to the physical table for the current version of the model. See [here](../../concepts/macros/macro_variables.md#runtime-variables) for more information.
+
+    `@this_model` マクロは、モデルの現在のバージョンの物理テーブルに解決されます。詳細については、[こちら](../../concepts/macros/macro_variables.md#runtime-variables) を参照してください。

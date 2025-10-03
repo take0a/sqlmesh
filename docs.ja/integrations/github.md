@@ -2,21 +2,22 @@
 
 <iframe width="704" height="396" src="https://www.youtube.com/embed/TkGT1vVZItU?si=gpnJeWefRN4qT4hi" title="Bot Overview" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
-The GitHub Actions CI/CD Bot enables teams to automate their SQLMesh projects using GitHub Actions. It can be configured to perform the following things:
+GitHub Actions CI/CD Bot を使用すると、チームは GitHub Actions を使用して SQLMesh プロジェクトを自動化できます。この Bot は、以下の機能を実行するように設定できます。
 
-* Automatically run unit tests on PRs
-* Automatically run the linter on PRs
-* Automatically create PR environments that represent the code changes in the PR
-* Automatically categorize and backfill data for models that have changed
-* Automatically deploy changes to production with automatic data gap prevention and merge the PR
+* PR でユニットテストを自動実行
+* PR でリンターを自動実行
+* PR 内のコード変更を反映した PR 環境を自動作成
+* 変更されたモデルのデータを自動的に分類およびバックフィル
+* データギャップを自動で防止し、変更を本番環境へ自動デプロイして PR をマージ
 
-All of these features provide summaries and links to the relevant information in the PR so that you can easily see what is happening and why.
+これらの機能はすべて、PR 内の関連情報の概要とリンクを提供するため、何が起こっているのか、そしてその理由を簡単に把握できます。
 
-Due to the variety of ways that this bot can be configured, it is recommended to perform the initial setup and then explore the different configuration options to see which ones fit your use case.
+この Bot は様々な方法で設定できるため、まずは初期設定を行い、その後、さまざまな設定オプションを試して、ユースケースに適したものを見つけることをお勧めします。
 
-## Initial Setup
-1. Make sure SQLMesh is added to your project's dependencies and it includes the github extra (`pip install sqlmesh[github]`).
-2. Create a new file in `.github/workflows/sqlmesh.yml` with the following contents:
+## 初期設定
+1. SQLMesh がプロジェクトの依存関係に追加され、github の extra が含まれていることを確認します (`pip install sqlmesh[github]`)。
+2. `.github/workflows/sqlmesh.yml` に以下の内容の新しいファイルを作成します。
+
 ```yaml
 name: SQLMesh Bot
 run-name: 🚀SQLMesh Bot 🚀
@@ -57,34 +58,34 @@ jobs:
           sqlmesh_cicd -p ${{ github.workspace }} github --token ${{ secrets.GITHUB_TOKEN }} run-all
 ```
 
-Next checkout the [Core Bot Behavior Configuration Guide](#core-bot-behavior-configuration-guide) to see how to configure the bot's core behavior. Then checkout [Bot Configuration](#bot-configuration) to see how to configure the bot's behavior in general. Finally, checkout [Custom Workflow Configuration](#custom-workflow-configuration) to see the full set of customizations available to the bot.
+次に、[コアボット動作設定ガイド](#core-bot-behavior-configuration-guide) でボットのコア動作の設定方法を確認してください。次に、[ボット設定](#bot-configuration) でボットの一般的な動作の設定方法を確認してください。最後に、[カスタムワークフロー設定](#custom-workflow-configuration) でボットで利用可能なカスタマイズの全セットを確認してください。
 
-## Core Bot Behavior Configuration Guide
+## Core Bot 動作設定ガイド {#core-bot-behavior-configuration-guide}
 
-There are two fundamental ways the bot can be configured: synchronized or desynchronized production code and data.
+ボットの設定には、本番環境のコードとデータを同期させるか、非同期にするかという2つの基本的な方法があります。
 
-### Synchronized vs. Desynchronized Deployments
+### 同期型デプロイメントと非同期型デプロイメント
 
-Typically, CI/CD workflows for data projects follow a flow where code is merged into a main branch and then the production datasets that are represented by the code in main are **eventually** updated to match the code. 
-This could either be on merge, and therefore they will be updated after the refresh job completes, or it could be on a schedule where the refresh job is run on a schedule.
-Either way the data in production is **lagging** behind the code in main and therefore code and data are **desynchronized**. 
-![Desynchronized](github/cicd_bot_desync.png)
-The advantage though of this approach is that users just need to merge a branch in order to see their changes **eventually** represented in production.
-The disadvantage is that it can be difficult for users to know the current state of production is and when their changes will be live.
-In addition, if an error occurs while the data in production is being updated then the data in production may never reflect the state that is represented in the main branch.
+通常、データプロジェクトのCI/CDワークフローは、コードがメインブランチにマージされ、その後、メインブランチのコードで表現される本番環境データセットが**最終的に**コードに合わせて更新されるというフローに従います。
+これは、マージ時に更新ジョブの完了後に更新される場合と、更新ジョブがスケジュールに従って実行される場合の2通りがあります。
+いずれの場合も、本番環境のデータはメインブランチのコードより**遅れ**ているため、コードとデータは**非同期**状態になります。
+![非同期](github/cicd_bot_desync.png)
+このアプローチの利点は、ユーザーがブランチをマージするだけで、変更が**最終的に**本番環境に反映されるのを確認できることです。
+欠点は、ユーザーが本番環境の現在の状態と、変更がいつ反映されるかを把握するのが難しい場合があることです。
+さらに、本番環境のデータ更新中にエラーが発生した場合、本番環境のデータはメインブランチの状態を反映しない可能性があります。
 
-SQLMesh's virtual data environments offer a different approach where the deployment can be **synchronized**.
-This means that dev datasets can be quickly deployed to production using SQLMesh's virtual update and then immediately after the branch is automatically merged to main.
-Now the code and data in production are synchronized and users can see their changes immediately.
-![Synchronized](github/cicd_bot_sync.png)
-The disadvantage of this approach is that users can't simply merge a branch to get their changes into production since SQLMesh needs to be able to deploy the changes and then perform the merge itself.
-As a result it requires a "signal" from users to indicate that they want a change deployed to production that will then trigger the bot to deploy the changes and then merge the PR.
+SQLMesh の仮想データ環境は、デプロイメントを **同期** できる別のアプローチを提供します。
+つまり、SQLMesh の仮想更新を使用して開発データセットを本番環境に迅速にデプロイし、その直後にブランチが自動的にメインブランチにマージされます。
+これで、本番環境のコードとデータが同期され、ユーザーは変更内容をすぐに確認できます。
+![同期済み](github/cicd_bot_sync.png)
+このアプローチの欠点は、SQLMesh が変更をデプロイし、その後マージを実行する必要があるため、ユーザーがブランチをマージするだけでは本番環境に変更を反映できないことです。
+そのため、変更を本番環境にデプロイしたいことを示す「シグナル」をユーザーから受け取る必要があり、そのシグナルによってボットが変更をデプロイし、PR をマージするようになります。
 
-SQLMesh's GitHub CI/CD Bot supports either approach and it is up to each team which mode is the best fit given their organization's constraints.
+SQLMesh の GitHub CI/CD ボットはどちらのアプローチもサポートしており、組織の制約を考慮してどのモードが最適であるかは各チーム次第です。
 
-### Synchronized Production Code and Data Configuration
+### 本番環境のコードとデータ構成の同期
 
-Regardless of signal approach being used, the bot needs to be configured to use the merge method you want to use when merging the PR after deploying to production.
+シグナルアプローチの種類に関わらず、本番環境へのデプロイ後にPRをマージする際に使用するマージ方法を使用するようにボットを設定する必要があります。
 
 === "YAML"
 
@@ -107,18 +108,18 @@ Regardless of signal approach being used, the bot needs to be configured to use 
     )
     ```
 
-In this example we configured the merge method to be `squash`. See [Bot Configuration](#bot-configuration) for more details on the `merge_method` option.
+この例では、マージメソッドを `squash` に設定しました。`merge_method` オプションの詳細については、[ボット設定](#bot-configuration) を参照してください。
 
-#### Required Approval Signal
+#### 承認必須シグナル
 
-One way to signal to SQLMesh that a PR is ready to go to production is through the use of "Required Approvers". 
-In this approach users configure their SQLMesh project to list users that are designated as "Required Approver" and then when the bot detects an approval was received from one of these individuals then it determines that it is time to deploy to production.
-The bot will only do the deploy to prod if the base branch is a production branch (as defined in the bot's configuration but defaults to either `main` or `master`).
-This pattern can be a great fit for teams that already have an approval process like this in place and therefore it actually removes an extra step from either the author or the approver since SQLMesh will automate the deployment and merge until of it having to be manually done.
+SQLMesh に PR を本番環境へデプロイする準備が整ったことを通知する方法の一つは、「必須承認者」を使用することです。
+このアプローチでは、ユーザーは SQLMesh プロジェクトで「必須承認者」に指定されたユーザーをリストするように設定し、ボットがこれらの承認者のいずれかから承認を受けたことを検出すると、本番環境へのデプロイのタイミングと判断します。
+ボットは、ベースブランチが本番環境ブランチ（ボットの設定で定義されますが、デフォルトでは「main」または「master」）の場合のみ、本番環境へのデプロイを実行します。
+このパターンは、既にこのような承認プロセスを導入しているチームに最適です。SQLMesh がデプロイとマージを自動化するため、手動で行う必要がなくなり、作成者と承認者の手間が省けます。
 
-##### Required Approval Configuration
+##### 承認必須設定
 
-In order to configure this pattern, you need to define a user in your SQLMesh project that has the "Required Approver" role.
+このパターンを設定するには、SQLMesh プロジェクトで「承認必須」ロールを持つユーザーを定義する必要があります。
 
 === "YAML"
 
@@ -147,7 +148,7 @@ In order to configure this pattern, you need to define a user in your SQLMesh pr
     )
     ```
 
-The GitHub Actions workflow needs to be updated to trigger the action based on if a pull request review has come in. 
+プル リクエストのレビューが届いたかどうかに基づいてアクションをトリガーするように、GitHub Actions ワークフローを更新する必要があります。
 
 ```yaml linenums="1"
 on:
@@ -163,18 +164,18 @@ on:
     - dismissed
 ```
 
-Now if the bot detects an approval from this user then it will deploy the changes to production and merge the PR.
+ボットがこのユーザーからの承認を検出すると、変更を本番環境にデプロイし、PR をマージします。
 
-### Deploy Command Signal
+### デプロイコマンドシグナル
 
-In this approach users can issue a `/deploy` command to the bot to signal that they want the changes in the PR to be deployed to production.
-This pattern is more flexible than the required approval pattern.
-Deploy command signal can be used alongside the required approval signal or on its own. 
-The deploy command, if issued, overrides the required approval signal and will deploy the changes to production and merge the PR.
+このアプローチでは、ユーザーはボットに `/deploy` コマンドを発行することで、PR の変更を本番環境にデプロイすることを通知できます。
+このパターンは、承認要求パターンよりも柔軟性があります。
+デプロイコマンドシグナルは、承認要求シグナルと併用することも、単独で使用することもできます。
+デプロイコマンドが発行された場合、承認要求シグナルはオーバーライドされ、変更が本番環境にデプロイされ、PR がマージされます。
 
-#### Deploy Command Configuration
+#### デプロイコマンドの設定
 
-This command must be enabled in the bot's configuration. 
+このコマンドはボットの設定で有効にする必要があります。
 
 === "YAML"
 
@@ -199,9 +200,9 @@ This command must be enabled in the bot's configuration.
     )
     ```
 
-Optionally, a `command_namespace` can be configured to avoid clashing with other bots. See [Bot Configuration](#bot-configuration) for more details on the `command_namespace` option.
+オプションとして、他のボットとの競合を避けるため、`command_namespace` を設定できます。`command_namespace` オプションの詳細については、[ボット設定](#bot-configuration) を参照してください。
 
-The GitHub Actions workflow needs to be updated to trigger the action based on if a comment has been created. 
+コメントが作成されたかどうかに基づいてアクションをトリガーするように、GitHub Actions ワークフローを更新する必要があります。
 
 ```yaml linenums="1"
 on:
@@ -215,12 +216,12 @@ on:
     - created
 ```
 
-Note: the `issue_comment` event will not work until this change is merged into your main branch. Therefore, to enable this you will need to make the change in a branch, merge, and then future branches will support the deploy command.
+注: `issue_comment` イベントは、この変更がメインブランチにマージされるまで動作しません。そのため、これを有効にするには、ブランチで変更を加えてマージする必要があります。その後、将来のブランチで deploy コマンドがサポートされるようになります。
 
-### Desynchronized Production Code and Data Configuration
+### 非同期の本番環境コードとデータ構成
 
-In order to support this pattern we need to add an additional step to the workflow that will run the `deploy-production` command after the merge to main.
-In addition we need to also update some prior steps with if checks to differentiate the merge vs. non-merge behavior.
+このパターンをサポートするには、ワークフローに、main へのマージ後に `deploy-production` コマンドを実行するステップを追加する必要があります。
+さらに、マージ時と非マージ時の挙動を区別するために、if チェックを使用して、それ以前のステップをいくつか更新する必要があります。
 
 ```yaml linenums="1"
 pull_request:
@@ -259,12 +260,13 @@ jobs:
         sqlmesh_cicd -p ${{ github.workspace }} github --token ${{ secrets.GITHUB_TOKEN }} deploy-production
 ```
 
-Make sure that "Required Approvers" are not configured (they are not by default) and "Deploy Command" is not enabled (it is not by default).
+「必要な承認者」が構成されていないこと (デフォルトでは構成されていません)、および「デプロイ コマンド」が有効になっていないこと (デフォルトでは有効になっていません) を確認します。
 
-## Bot Configuration
-The bot's behavior is configured using your project's `config.yaml` or `config.py` file. See [SQLMesh Configuration](https://sqlmesh.readthedocs.io/en/stable/guides/configuration/) for more details on how to generally setup and configure SQLMesh.
+## ボットの設定 {#bot-configuration}
 
-Below is an example of how to define the default config for the bot in either YAML or Python.
+ボットの動作は、プロジェクトの `config.yaml` ファイルまたは `config.py` ファイルを使用して設定します。SQLMesh の一般的なセットアップと構成方法の詳細については、[SQLMesh の設定](https://sqlmesh.readthedocs.io/en/stable/guides/configuration/) を参照してください。
+
+以下は、YAML または Python でボットのデフォルト設定を定義する例です。
 
 === "YAML"
 
@@ -284,25 +286,25 @@ Below is an example of how to define the default config for the bot in either YA
     )
     ```
 
-### Configuration Properties
+### 構成プロパティ
 
 | Option                                | Description                                                                                                                                                                                                                                                                                                                                                                                              |  Type  | Required |
 |---------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:------:|:--------:|
-| `invalidate_environment_after_deploy` | Indicates if the PR environment created should be automatically invalidated after changes are deployed. Invalidated environments are cleaned up automatically by the Janitor. Default: `True`                                                                                                                                                                                                            |  bool  |    N     |
-| `merge_method`                        | The merge method to use when automatically merging a PR after deploying to prod. Defaults to `None` meaning automatic merge is not done. Options: `merge`, `squash`, `rebase`                                                                                                                                                                                                                            | string |    N     |
-| `enable_deploy_command`               | Indicates if the `/deploy` command should be enabled in order to allowed synchronized deploys to production. Default: `False`                                                                                                                                                                                                                                                                            |  bool  |    N     |
-| `command_namespace`                   | The namespace to use for SQLMesh commands. For example if you provide `#SQLMesh` as a value then commands will be expected in the format of `#SQLMesh/<command>`. Default: `None` meaning no namespace is used.                                                                                                                                                                                          | string |    N     |
-| `auto_categorize_changes`             | Auto categorization behavior to use for the bot. If not provided then the project-wide categorization behavior is used. See [Auto-categorize model changes](https://sqlmesh.readthedocs.io/en/stable/guides/configuration/#auto-categorize-model-changes) for details.                                                                                                                                   |  dict  |    N     |
-| `default_pr_start`                    | Default start when creating PR environment plans. If running in a mode where the bot automatically backfills models (based on `auto_categorize_changes` behavior) then this can be used to limit the amount of data backfilled. Defaults to `None` meaning the start date is set to the earliest model's start or to 1 day ago if [data previews](../concepts/plans.md#data-preview) need to be computed.|  str   |    N     |
-| `pr_min_intervals`                    | Intended for use when `default_pr_start` is set to a relative time, eg `1 week ago`. This ensures that at least this many intervals across every model are included for backfill in the PR environment. Without this, models with an interval unit wider than `default_pr_start` (such as `@monthly` models if `default_pr_start` was set to `1 week ago`) will be excluded from backfill entirely.      |  int   |    N     |
-| `skip_pr_backfill`                    | Indicates if the bot should skip backfilling models in the PR environment. Default: `True`                                                                                                                                                                                                                                                                                                               |  bool  |    N     |
-| `pr_include_unmodified`               | Indicates whether to include unmodified models in the PR environment. Default to the project's config value (which defaults to `False`)                                                                                                                                                                                                                                                                  |  bool  |    N     |
-| `run_on_deploy_to_prod`               | Indicates whether to run latest intervals when deploying to prod. If set to false, the deployment will backfill only the changed models up to the existing latest interval in production, ignoring any missing intervals beyond this point. Default: `False`                                                                                                                                             |  bool  |    N     |
-| `pr_environment_name`                 | The name of the PR environment to create for which a PR number will be appended to. Defaults to the repo name if not provided. Note: The name will be normalized to alphanumeric + underscore and lowercase.                                                                                                                                                                                             |  str   |    N     |
-| `prod_branch_name`                    | The name of the git branch associated with production. Ex: `prod`. Default: `main` or `master` is considered prod                                                                                                                                                                                                                                                                                        |  str   |    N     |
-| `forward_only_branch_suffix`          | If the git branch has this suffix, trigger a [forward-only](../concepts/plans.md#forward-only-plans) plan instead of a normal plan. Default: `-forward-only`                                                                                                                                                                                                                                             |  str   |    N     |
+| `invalidate_environment_after_deploy` | 変更がデプロイされた後、作成された PR 環境を自動的に無効化するかどうかを示します。無効化された環境は Janitor によって自動的にクリーンアップされます。デフォルト: `True` | bool | N |
+| `merge_method` | 本番環境にデプロイした後に PR を自動的にマージするときに使用するマージ方法。デフォルトは `None` で、自動マージは行われません。オプション: `merge`、`squash`、`rebase` | str | N |
+| `enable_deploy_command` | 本番環境への同期デプロイを許可するために `/deploy` コマンドを有効にするかどうかを示します。デフォルト: `False` | bool | N |
+| `command_namespace` | SQLMesh コマンドに使用する名前空間。たとえば、値として `#SQLMesh` を指定した場合、コマンドは `#SQLMesh/<command>` の形式で指定する必要があります。デフォルト: `None` (名前空間は使用されないことを意味します)。| string | N |
+| `auto_categorize_changes` | ボットに使用する自動分類動作。指定されていない場合は、プロジェクト全体の分類動作が使用されます。詳細については、[モデルの変更を自動分類する](https://sqlmesh.readthedocs.io/en/stable/guides/configuration/#auto-categorize-model-changes) を参照してください。| dict | N |
+| `default_pr_start` | PR 環境プランを作成するときのデフォルトの開始。ボットがモデルを自動的にバックフィルするモードで実行している場合 (`auto_categorize_changes` 動作に基づいて)、これを使用してバックフィルされるデータの量を制限できます。デフォルトは `None` で、開始日は最も古いモデルの開始に設定されるか、[データ プレビュー](../concepts/plans.md#data-preview) を計算する必要がある場合は 1 日前に設定されます。| str | N |
+| `pr_min_intervals` | `default_pr_start` が `1 week ago` などの相対時間に設定されている場合に使用します。これにより、PR 環境のバックフィルに、すべてのモデルで少なくともこの数の間隔が含まれるようになります。これがない場合、間隔単位が `default_pr_start` よりも広いモデル (`default_pr_start` が `1 week ago` に設定されている場合の `@monthly` モデルなど) は、バックフィルから完全に除外されます。| int | N |
+| `skip_pr_backfill` | ボットが PR 環境でモデルのバックフィルをスキップするかどうかを示します。デフォルト: `True` | bool | N |
+| `pr_include_unmodified` | PR 環境に未変更のモデルを含めるかどうかを示します。デフォルトはプロジェクトの設定値 (デフォルトは `False`) です | bool | N |
+| `run_on_deploy_to_prod` | 本番環境にデプロイするときに最新の間隔を実行するかどうかを示します。false に設定すると、デプロイメントでは本番環境の既存の最新間隔までの変更されたモデルのみがバックフィルされ、この時点以降の欠落した間隔は無視されます。デフォルト: `False` | bool | N |
+| `pr_environment_name` | PR 番号が追加される PR 環境の名前。指定されていない場合は、デフォルトでリポジトリ名になります。注: 名前は、英数字 + アンダースコアと小文字に正規化されます。 | str | N |
+| `prod_branch_name` | 本番環境に関連付けられた Git ブランチの名前。例: `prod`。デフォルト: `main` または `master` は prod と見なされます | str | N |
+| `forward_only_branch_suffix` | Git ブランチにこのサフィックスが付いている場合は、通常のプランではなく [forward-only](../concepts/plans.md#forward-only-plans) プランをトリガーします。デフォルト: `-forward-only` | str | N |
 
-Example with all properties defined:
+すべてのプロパティが定義された例:
 
 === "YAML"
 
@@ -350,11 +352,11 @@ Example with all properties defined:
     )
     ```
 
-## Bot Output
+## ボット出力
 
-Step outputs are created by the bot that capture the status of each of the checks that reach a conclusion in a run. 
-These can be used to potentially trigger follow up steps in the workflow.
-These are the possible outputs (based on how the bot is configured) that are created by the bot:
+ステップ出力はボットによって作成され、実行中に結論に達した各チェックのステータスをキャプチャします。
+これらは、ワークフロー内の後続ステップをトリガーするために使用できます。
+ボットによって作成される可能性のある出力は次のとおりです（ボットの設定に基づきます）。
 
 * `run_unit_tests`
 * `linter`
@@ -363,10 +365,11 @@ These are the possible outputs (based on how the bot is configured) that are cre
 * `prod_plan_preview`
 * `prod_environment_synced`
 
-[There are many possible conclusions](https://github.com/TobikoData/sqlmesh/blob/main/sqlmesh/integrations/github/cicd/controller.py#L96-L102) so the best use case for this is likely to check for `success` conclusion in order to potentially run follow up steps. 
-Note that in error cases conclusions may not be set and therefore you will get an empty string.
+[考えられる結論は多数あります](https://github.com/TobikoData/sqlmesh/blob/main/sqlmesh/integrations/github/cicd/controller.py#L96-L102)。そのため、この出力の最適なユースケースは、`success` 結論を確認して後続ステップを実行する可能性があることです。
+エラーが発生した場合、結論が設定されず、空の文字列が返される可能性があることに注意してください。
 
-Example of running a step after pr environment has been synced:
+pr 環境が同期された後にステップを実行する例:
+
 ```yaml linenums="1"
   steps:
     - id: run-bot
@@ -376,15 +379,17 @@ Example of running a step after pr environment has been synced:
       run: ...
 ```
 
-In addition, there are custom outputs listed below:
+さらに、以下のカスタム出力があります。
 
-* `created_pr_environment` - set to `"true"` (a string with a value of `true`) if a PR environment was created for the first time. It is absent, or considered empty string if you check for it, if it is not created for the first time
-* `pr_environment_name` - the name of the PR environment. It is output whenever PR environment synced check reaches a conclusion. Therefore make sure to check the status of `created_pr_environment` or `pr_environment_synced` before acting on this output 
+* `created_pr_environment` - PR環境が初めて作成された場合は、`"true"`（値が`true`の文字列）に設定されます。初めて作成されていない場合は、この値は設定されていないか、チェックしても空文字列とみなされます。
+* `pr_environment_name` - PR環境の名前。PR環境の同期チェックが完了するたびに出力されます。したがって、この出力に基づいて操作を行う前に、`created_pr_environment`または`pr_environment_synced`のステータスを確認してください。
 
-Note: The `linter` step will run only if it's enabled in the project's configuration (`config.yaml` / `config.py`). The step will fail if the linter finds errors, otherwise it'll output only the warnings.
+注: `linter`ステップは、プロジェクトの設定（`config.yaml` / `config.py`）で有効になっている場合にのみ実行されます。linterがエラーを検出した場合、このステップは失敗します。それ以外の場合は、警告のみが出力されます。
 
-## Custom Workflow Configuration
-You can configure each individual action to run as a separate step. This can allow for more complex workflows or integrating specific steps with other actions you want to trigger. Run `sqlmesh_cicd github` to see a list of commands that can be supplied and their potential options.
+## カスタムワークフロー構成 {#custom-workflow-configuration}
+
+各アクションを個別のステップとして実行するように設定できます。これにより、より複雑なワークフローを作成したり、特定のステップをトリガーする他のアクションと統合したりできます。`sqlmesh_cicd github` を実行すると、指定可能なコマンドとそのオプションの一覧が表示されます。
+
 ```bash
   Github Action CI/CD Bot
 
@@ -402,8 +407,8 @@ Commands:
   update-pr-environment     Creates or updates the PR environments
 ```
 
-## Example Synchronized Full Workflow
-This workflow involves configuring a SQLMesh connection to Databricks.
+## 同期された完全なワークフローの例
+このワークフローでは、DatabricksへのSQLMesh接続を構成します。
 
 ```yaml
 name: SQLMesh Bot
@@ -462,18 +467,18 @@ jobs:
           sqlmesh_cicd -p ${{ github.workspace }} github --token ${{ secrets.GITHUB_TOKEN }} run-all
 ```
 
-## Example Screenshots
-### Automated Unit Tests with Error Summary
-![Automated Unit Tests with Error Summary](github/github_test_summary.png)
-### Automated Linting with Error Summary
-![Automated Linting with Error Summary](github/linter_errors.png)
-### Automated Linting with Warning Summary
-![Automated Linting with Warning Summary](github/linter_warnings.png)
-### Automatically create PR Environments that represent the code changes in the PR
-![Environment Summary](github/github_env_summary.png)
-### Enforce that certain reviewers have approved of the PR before it can be merged
-![Required Approver](github/github_reviewers.png)
-### Preview Prod Plans before Deploying
-![Preview Prod Plans](github/github_prod_plan_preview.png)
-### Automatic deployments to production and merge
-![Deployed Plans](github/github_deployed_plans.png)
+## スクリーンショットの例
+### エラーサマリー付きの自動ユニットテスト
+![エラーサマリー付きの自動ユニットテスト](github/github_test_summary.png)
+### エラーサマリー付きの自動リンティング
+![エラーサマリー付きの自動リンティング](github/linter_errors.png)
+### 警告サマリー付きの自動リンティング
+![警告サマリー付きの自動リンティング](github/linter_warnings.png)
+### PR 内のコード変更を表す PR 環境を自動的に作成
+![環境サマリー](github/github_env_summary.png)
+### PR をマージする前に、特定のレビュー担当者による承認を必須にする
+![必要な承認者](github/github_reviewers.png)
+### デプロイ前に本番環境プランをプレビュー
+![本番環境プレビュープラン](github/github_prod_plan_preview.png)
+### 本番環境への自動デプロイとマージ
+![デプロイ済みプラン](github/github_deployed_plans.png)

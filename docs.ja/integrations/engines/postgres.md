@@ -1,25 +1,25 @@
 # Postgres
 
-## Local/Built-in Scheduler
-**Engine Adapter Type**: `postgres`
+## ローカル/組み込みスケジューラ
+**エンジンアダプタタイプ**: `postgres`
 
-### Installation
+### インストール
 ```
 pip install "sqlmesh[postgres]"
 ```
 
-### Connection options
+### 接続オプション
 
-| Option             | Description                                                                     | Type   | Required |
-|--------------------|---------------------------------------------------------------------------------|:------:|:--------:|
-| `type`             | Engine type name - must be `postgres`                                           | string | Y        |
-| `host`             | The hostname of the Postgres server                                             | string | Y        |
-| `user`             | The username to use for authentication with the Postgres server                 | string | Y        |
-| `password`         | The password to use for authentication with the Postgres server                 | string | Y        |
-| `port`             | The port number of the Postgres server                                          | int    | Y        |
-| `database`         | The name of the database instance to connect to                                 | string | Y        |
-| `keepalives_idle`  | The number of seconds between each keepalive packet sent to the server.         | int    | N        |
-| `connect_timeout`  | The number of seconds to wait for the connection to the server. (Default: `10`) | int    | N        |
-| `role`             | The role to use for authentication with the Postgres server                     | string | N        |
-| `sslmode`          | The security of the connection to the Postgres server                           | string | N        |
-| `application_name` | The name of the application to use for the connection                           | string | N        |
+| オプション | 説明 | タイプ | 必須 |
+|--------------------|---------------------------------------------------------------------------------|:-------:|:--------:|
+| `type` | エンジンタイプ名 - `postgres` である必要があります | 文字列 | Y |
+| `host` | Postgres サーバーのホスト名 | 文字列 | Y |
+| `user` | Postgres サーバーの認証に使用するユーザー名 | 文字列 | Y |
+| `password` | Postgres サーバーの認証に使用するパスワード | 文字列 | Y |
+| `port` | Postgres サーバーのポート番号 | 整数 | Y |
+| `database` | 接続するデータベース インスタンスの名前 | 文字列 | Y |
+| `keepalives_idle` | サーバーに送信される各キープアライブ パケットの間隔 (秒数)。 | int | N |
+| `connect_timeout` | サーバーへの接続を待機する秒数 (デフォルト: `10`) | int | N |
+| `role` | Postgres サーバーでの認証に使用するロール | 文字列 | N |
+| `sslmode` | Postgres サーバーへの接続のセキュリティ | 文字列 | N |
+| `application_name` | 接続に使用するアプリケーションの名前 | 文字列 | N |

@@ -1,29 +1,29 @@
 # Trino
 
-## Local/Built-in Scheduler
-**Engine Adapter Type**: `trino`
+## ローカル/組み込みスケジューラ
+**エンジンアダプタタイプ**: `trino`
 
-NOTE: Trino may not be used for the SQLMesh [state connection](../../reference/configuration.md#connections).
+注: Trino は SQLMesh の [状態接続](../../reference/configuration.md#connections) には使用できません。
 
-## Installation
+## インストール
 ```
 pip install "sqlmesh[trino]"
 ```
 
-If you are using Oauth for Authentication, it is recommended to install keyring cache:
+認証に Oauth を使用している場合は、キーリング キャッシュをインストールすることをお勧めします。
 ```
 pip install "trino[external-authentication-token-cache]"
 ```
 
-### Trino Connector Support
+### Trino コネクタのサポート
 
-The trino engine adapter has been tested against the [Hive Connector](https://trino.io/docs/current/connector/hive.html), [Iceberg Connector](https://trino.io/docs/current/connector/iceberg.html), and [Delta Lake Connector](https://trino.io/docs/current/connector/delta-lake.html).
+Trino エンジンアダプタは、[Hive コネクタ](https://trino.io/docs/current/connector/hive.html)、[Iceberg コネクタ](https://trino.io/docs/current/connector/iceberg.html)、[Delta Lake コネクタ](https://trino.io/docs/current/connector/delta-lake.html) でテストされています。
 
-Please let us know on [Slack](https://tobikodata.com/slack) if you are wanting to use another connector or have tried another connector.
+別のコネクタをご利用になりたい場合、または別のコネクタを試したことがある場合は、[Slack](https://tobikodata.com/slack) でお知らせください。
 
-#### Hive Connector Configuration
+#### Hive コネクタの設定
 
-Recommended hive catalog properties configuration (`<catalog_name>.properties`):
+推奨される Hive カタログプロパティの設定 (`<catalog_name>.properties`):
 
 ```properties linenums="1"
 hive.metastore-cache-ttl=0s
@@ -36,28 +36,29 @@ hive.allow-rename-column=true
 hive.allow-rename-table=true
 ```
 
-#### Iceberg Connector Configuration
+#### Iceberg コネクタの設定
 
-If you're using a hive metastore for the Iceberg catalog, the [properties](https://trino.io/docs/current/connector/metastores.html#general-metastore-configuration-properties) are mostly the same as the Hive connector.
+Iceberg カタログに Hive メタストアを使用している場合、[プロパティ](https://trino.io/docs/current/connector/metastores.html#general-metastore-configuration-properties) は Hive コネクタとほぼ同じです。
 
 ```properties linenums="1"
 iceberg.catalog.type=hive_metastore
 # metastore properties as per the Hive Connector Configuration above
 ```
 
-**Note**: The Trino Iceberg Connector must be configured with an `iceberg.catalog.type` that supports views. At the time of this writing, this is `hive_metastore`, `glue`, and `rest`.
+**注**: Trino Iceberg コネクタは、ビューをサポートする `iceberg.catalog.type` で構成する必要があります。この記事の執筆時点では、`hive_metastore`、`glue`、`rest` がこれに該当します。
 
-The `jdbc` and `nessie` iceberg catalog types do not support views and are thus incompatible with SQLMesh.
+`jdbc` および `nessie` アイスバーグカタログタイプはビューをサポートしていないため、SQLMesh と互換性がありません。
 
 !!! info "Nessie"
-    Nessie is supported when used as an Iceberg REST Catalog (`iceberg.catalog.type=rest`).
-    For more information on how to configure the Trino Iceberg connector for this, see the [Nessie documentation](https://projectnessie.org/nessie-latest/trino/).
 
-#### Delta Lake Connector Configuration
+    Nessie は、Iceberg REST カタログ (`iceberg.catalog.type=rest`) として使用する場合にサポートされます。
+    Trino Iceberg コネクタをこの目的で設定する方法の詳細については、[Nessie ドキュメント](https://projectnessie.org/nessie-latest/trino/) を参照してください。
 
-The Trino adapter Delta Lake connector has only been tested with the Hive metastore catalog type.
+#### Delta Lakeコネクタの設定
 
-The [properties file](https://trino.io/docs/current/connector/delta-lake.html#general-configuration) must include the Hive metastore URI and catalog name in addition to any other [general properties](https://trino.io/docs/current/object-storage/metastores.html#general-metastore-properties).
+TrinoアダプタのDelta Lakeコネクタは、Hiveメタストアカタログタイプでのみテストされています。
+
+[プロパティファイル](https://trino.io/docs/current/connector/delta-lake.html#general-configuration)には、その他の[一般プロパティ](https://trino.io/docs/current/object-storage/metastores.html#general-metastore-properties)に加えて、HiveメタストアのURIとカタログ名を含める必要があります。
 
 ``` properties linenums="1"
 hive.metastore.uri=thrift://example.net:9083
@@ -66,76 +67,76 @@ delta.hive-catalog-name=datalake_delta # example catalog name, can be any valid 
 
 #### AWS Glue
 
-[AWS Glue](https://aws.amazon.com/glue/) provides an implementation of the Hive metastore catalog.
+[AWS Glue](https://aws.amazon.com/glue/) は、Hive メタストアカタログの実装を提供します。
 
-Your Trino project's physical data objects are stored in a specific location, such as an [AWS S3](https://aws.amazon.com/s3/) bucket. Hive provides a default location, which you can override in its configuration file.
+Trino プロジェクトの物理データオブジェクトは、[AWS S3](https://aws.amazon.com/s3/) バケットなどの特定の場所に保存されます。Hive はデフォルトの場所を提供しますが、設定ファイルで上書きできます。
 
-Set the default location for your project's tables in the Hive catalog configuration's [`hive.metastore.glue.default-warehouse-dir` parameter](https://trino.io/docs/current/object-storage/metastores.html#aws-glue-catalog-configuration-properties).
+プロジェクトのテーブルのデフォルトの場所は、Hive カタログ設定の [`hive.metastore.glue.default-warehouse-dir` パラメータ](https://trino.io/docs/current/object-storage/metastores.html#aws-glue-catalog-configuration-properties) で設定します。
 
-For example:
+例:
 
 ```linenums="1"
 hive.metastore=glue
 hive.metastore.glue.default-warehouse-dir=s3://my-bucket/
 ```
 
-### Connection options
+### 接続オプション
 
-| Option                    | Description                                                                                                                                                                             |  Type  | Required |
-|---------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:------:|:--------:|
-| `type`                    | Engine type name - must be `trino`                                                                                                                                                      | string |    Y     |
-| `user`                    | The username (of the account) to log in to your cluster. When connecting to Starburst Galaxy clusters, you must include the role of the user as a suffix to the username.               | string |    Y     |
-| `host`                    | The hostname of your cluster. Don't include the `http://` or `https://` prefix.                                                                                                         | string |    Y     |
-| `catalog`                 | The name of a catalog in your cluster.                                                                                                                                                  | string |    Y     |
-| `http_scheme`             | The HTTP scheme to use when connecting to your cluster. By default, it's `https` and can only be `http` for no-auth or basic auth.                                                      | string |    N     |
-| `port`                    | The port to connect to your cluster. By default, it's `443` for `https` scheme and `80` for `http`                                                                                      |  int   |    N     |
-| `roles`                   | Mapping of catalog name to a role                                                                                                                                                       |  dict  |    N     |
-| `http_headers`            | Additional HTTP headers to send with each request.                                                                                                                                      |  dict  |    N     |
-| `session_properties`      | Trino session properties. Run `SHOW SESSION` to see all options.                                                                                                                        |  dict  |    N     |
-| `retries`                 | Number of retries to attempt when a request fails. Default: `3`                                                                                                                         |  int   |    N     |
-| `timezone`                | Timezone to use for the connection. Default: client-side local timezone                                                                                                                 | string |    N     |
-| `schema_location_mapping` | A mapping of regex patterns to S3 locations to use for the `LOCATION` property when creating schemas. See [Table and Schema locations](#table-and-schema-locations) for more details.   |  dict  |    N     |
-| `catalog_type_overrides`  | A mapping of catalog names to their connector type. This is used to enable/disable connector specific behavior. See [Catalog Type Overrides](#catalog-type-overrides) for more details. |  dict  |    N     |
+| オプション | 説明 | タイプ | 必須 |
+|--------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:------:|:--------:|
+| `type` | エンジンタイプ名 - `trino` である必要があります | 文字列 | Y |
+| `user` | クラスターにログインするためのユーザー名（アカウントのユーザー名）。Starburst Galaxy クラスターに接続する場合は、ユーザー名のサフィックスとしてユーザーのロールを含める必要があります。 | 文字列 | Y |
+| `host` | クラスターのホスト名。`http://` または `https://` プレフィックスを含めないでください。 | 文字列 | Y |
+| `catalog` | クラスター内のカタログ名。 | 文字列 | Y |
+| `http_scheme` | クラスターへの接続時に使用する HTTP スキーム。デフォルトでは `https` で、認証なしまたは基本認証の場合は `http` のみになります。 | 文字列 | N |
+| `port` | クラスターに接続するためのポート。デフォルトでは、`https` スキームの場合は `443`、`http` の場合は `80` です。 | int | N |
+| `roles` | カタログ名とロールのマッピング | dict | N |
+| `http_headers` | 各リクエストで送信する追加の HTTP ヘッダー。 | dict | N |
+| `session_properties` | Trino セッション プロパティ。すべてのオプションを表示するには、`SHOW SESSION` を実行します。 | dict | N |
+| `retries` | リクエストが失敗した場合に試行する再試行回数。デフォルト: `3` | int | N |
+| `timezone` | 接続に使用するタイムゾーン。デフォルト: クライアント側のローカル タイムゾーン | 文字列 | N |
+| `schema_location_mapping` | スキーマ作成時に `LOCATION` プロパティに使用する S3 の場所への正規表現パターンのマッピング。詳細については、[テーブルとスキーマの場所](#table-and-schema-locations) を参照してください。 | dict | N |
+| `catalog_type_overrides` | カタログ名とコネクタタイプとのマッピング。これは、コネクタ固有の動作を有効/無効にするために使用されます。詳細については、[カタログタイプのオーバーライド](#catalog-type-overrides) を参照してください。 | dict | N |
 
-## Table and Schema locations
+## テーブルとスキーマの場所
 
-When using connectors that are decoupled from their storage (such as the Iceberg, Hive or Delta connectors), when creating new tables Trino needs to know the location in the physical storage it should write the table data to.
+ストレージから分離されたコネクタ（Iceberg、Hive、Delta コネクタなど）を使用する場合、新しいテーブルを作成する際に、Trino はテーブルデータを書き込む物理ストレージ内の場所を認識する必要があります。
 
-This location gets stored against the table in the metastore so that any engine trying to read the data knows where to look.
+この場所はメタストア内のテーブルに対して保存されるため、データを読み取ろうとするすべてのエンジンは、どこを参照すればよいかを知ることができます。
 
-### Default behaviour
+### デフォルトの動作
 
-Trino allows you to optionally configure a `default-warehouse-dir` property at the [Metastore](https://trino.io/docs/current/object-storage/metastores.html) level. When creating objects, Trino will infer schema locations to be `<default warehouse dir>/<schema name>` and table locations to be `<default warehouse dir>/<schema name>/<table name>`.
+Trino では、[Metastore](https://trino.io/docs/current/object-storage/metastores.html) レベルで `default-warehouse-dir` プロパティをオプションで設定できます。オブジェクト作成時に、Trino はスキーマの場所を `<default warehouse dir>/<schema name>`、テーブルの場所を `<default warehouse dir>/<schema name>/<table name>` と推測します。
 
-However, if you dont set this property, Trino can still infer table locations if a *schema* location is explicitly set.
+ただし、このプロパティを設定しない場合でも、*schema* の場所が明示的に設定されていれば、Trino はテーブルの場所を推測できます。
 
-For example, if you specify the `LOCATION` property when creating a schema like so:
+例えば、スキーマ作成時に `LOCATION` プロパティを次のように指定した場合:
 
 ```sql
 CREATE SCHEMA staging_data
 WITH (LOCATION = 's3://warehouse/production/staging_data')
 ```
 
-Then any tables created under that schema will have their location inferred as `<schema location>/<table name>`.
+すると、そのスキーマで作成されたすべてのテーブルの場所は、`<schema location>/<table name>` として推測されます。
 
-If you specify neither a `default-warehouse-dir` in the metastore config nor a schema location when creating the schema, you must specify an explicit table location when creating the table or Trino will produce an error.
+メタストア設定で `default-warehouse-dir` を指定せず、スキーマ作成時にスキーマの場所も指定しない場合は、テーブル作成時に明示的にテーブルの場所を指定する必要があります。そうしないと、Trino はエラーを生成します。
 
-Creating a table in a specific location is very similar to creating a schema in a specific location:
+特定の場所にテーブルを作成することは、特定の場所にスキーマを作成することと非常によく似ています。
 
 ```sql
 CREATE TABLE staging_data.customers (customer_id INT)
 WITH (LOCATION = 's3://warehouse/production/staging_data/customers')
 ```
 
-### Configuring in SQLMesh
+### SQLMesh での設定
 
-Within SQLMesh, you can configure the value to use for the `LOCATION` property when SQLMesh creates tables and schemas. This overrides what Trino would have inferred based on the cluster configuration.
+SQLMesh では、SQLMesh がテーブルとスキーマを作成する際に `LOCATION` プロパティに使用する値を設定できます。この設定は、クラスター構成に基づいて Trino が推測する値をオーバーライドします。
 
-#### Schemas
+#### スキーマ
 
-To configure the `LOCATION` property that SQLMesh will specify when issuing `CREATE SCHEMA` statements, you can use the `schema_location_mapping` connection property. This applies to all schemas that SQLMesh creates, including its internal ones.
+SQLMesh が `CREATE SCHEMA` ステートメントを発行する際に指定する `LOCATION` プロパティを設定するには、`schema_location_mapping` 接続プロパティを使用します。これは、SQLMesh が作成するすべてのスキーマ（内部スキーマも含む）に適用されます。
 
-The simplest example is to emulate a `default-warehouse-dir`:
+最も簡単な例は、`default-warehouse-dir` をエミュレートすることです。
 
 ```yaml title="config.yaml"
 gateways:
@@ -147,13 +148,13 @@ gateways:
         '.*': 's3://warehouse/production/@{schema_name}'
 ```
 
-This will cause all schemas to get created with their location set to `s3://warehouse/production/<schema name>`. The table locations will be inferred by Trino as `s3://warehouse/production/<schema name>/<table name>` so all objects will effectively be created under `s3://warehouse/production/`.
+これにより、すべてのスキーマが作成され、その場所が `s3://warehouse/production/<schema name>` に設定されます。テーブルの場所は Trino によって `s3://warehouse/production/<schema name>/<table name>` と推測されるため、すべてのオブジェクトは実質的に `s3://warehouse/production/` 以下に作成されます。
 
-It's worth mentioning that if your models are using fully qualified three part names, eg `<catalog>.<schema>.<name>` then string being matched against the `schema_location_mapping` regex will be `<catalog>.<schema>` and not just the `<schema>` itself. This allows you to set different locations for the same schema name if that schema name is used across multiple catalogs.
+モデルで `<catalog>.<schema>.<name>` のような 3 部構成の完全修飾名を使用している場合、`schema_location_mapping` 正規表現に照合される文字列は `<schema>` 自体ではなく `<catalog>.<schema>` になります。これにより、同じスキーマ名が複数のカタログで使用されている場合でも、異なる場所を設定できます。
 
-If your models are using two part names, eg `<schema>.<table>` then only the `<schema>` part will be matched against the regex.
+モデルで `<schema>.<table>` のような 2 部構成名を使用している場合、`<schema>` 部分のみが正規表現に照合されます。
 
-Here's an example:
+例を挙げます。
 
 ```yaml title="config.yaml"
 gateways:
@@ -168,29 +169,30 @@ gateways:
         '^sqlmesh.*$': 's3://sqlmesh-internal/dev/@{schema_name}'
 ```
 
-This would perform the following mappings:
+これにより、以下のマッピングが実行されます。
 
-- a schema called `sales` would not be mapped to a location at all because it doesnt match any of the patterns. It would be created without a `LOCATION` property
-- a schema called `utils` would be mapped to the location `s3://utils-bucket/utils` because it directly matches the `^utils$` pattern
-- a schema called `transactions` in a catalog called `landing` would be mapped to the location `s3://raw-data/landing/transactions` because the string `landing.transactions` matches the `^landing\..*$` pattern
-- schemas called `staging_customers` and `staging_accounts` would be mapped to the locations `s3://bucket/staging_customers_dev` and `s3://bucket/staging_accounts_dev` respectively because they match the `^staging.*$` pattern
-- a schema called `accounts` in a catalog called `staging` would be mapped to the location `s3://bucket/accounts_dev` because the string `staging.accounts` matches the `^staging.*$` pattern
-- schemas called `sqlmesh__staging_customers` and `sqlmesh__staging_utils` would be mapped to the locations `s3://sqlmesh-internal/dev/sqlmesh__staging_customers` and `s3://sqlmesh-internal/dev/sqlmesh__staging_utils` respectively because they match the `^sqlmesh.*$` pattern
+-  `sales` というスキーマは、どのパターンにも一致しないため、場所にマッピングされません。これは `LOCATION` プロパティなしで作成されます。
+- `utils` というスキーマは、`^utils$` パターンに直接一致するため、`s3://utils-bucket/utils` という場所にマッピングされます。
+- `landing` というカタログ内の `transactions` というスキーマは、`landing.transactions` という文字列が `^landing\..*$` パターンに一致するため、`s3://raw-data/landing/transactions` という場所にマッピングされます。
+- `staging_customers` と `staging_accounts` というスキーマは、`^staging.*$` パターンに一致するため、それぞれ `s3://bucket/staging_customers_dev` と `s3://bucket/staging_accounts_dev` という場所にマッピングされます。
+- `staging` というカタログ内の `accounts` というスキーマは、`s3://bucket/accounts_dev` という場所にマッピングされます。文字列 `staging.accounts` は `^staging.*$` パターンに一致します。
+- `sqlmesh__staging_customers` および `sqlmesh__staging_utils` というスキーマは、`^sqlmesh.*$` パターンに一致するため、それぞれ `s3://sqlmesh-internal/dev/sqlmesh__staging_customers` および `s3://sqlmesh-internal/dev/sqlmesh__staging_utils` にマッピングされます。
 
 !!! info "Placeholders"
-    You may use the `@{catalog_name}` and `@{schema_name}` placeholders in the mapping value.
 
-    If there is a match on one of the patterns then the catalog / schema that SQLMesh is about to use in the `CREATE SCHEMA` statement will be substituted into these placeholders.
+    マッピング値には、`@{catalog_name}` および `@{schema_name}` プレースホルダーを使用できます。
 
-    Note the use of curly brace syntax `@{}` when referencing these placeholders - learn more [here](../../concepts/macros/sqlmesh_macros.md#embedding-variables-in-strings).
+    いずれかのパターンに一致する場合、SQLMesh が `CREATE SCHEMA` ステートメントで使用するカタログ/スキーマがこれらのプレースホルダーに置き換えられます。
 
-#### Tables
+    これらのプレースホルダーを参照する際は、中括弧構文 `@{}` を使用することに注意してください。詳細については、[こちら](../../concepts/macros/sqlmesh_macros.md#embedding-variables-in-strings) をご覧ください。
 
-Often, you don't need to configure an explicit table location because if you have configured explicit schema locations, table locations are automatically inferred by Trino to be a subdirectory under the schema location.
+#### テーブル
 
-However, if you need to, you can configure an explicit table location by adding a `location` property to the model `physical_properties`.
+多くの場合、明示的にテーブルの場所を設定する必要はありません。スキーマの場所を明示的に設定している場合、Trino はスキーマの場所のサブディレクトリをテーブルの場所として自動的に推測します。
 
-Note that you need to use the [@resolve_template](../../concepts/macros/sqlmesh_macros.md#resolve_template) macro to generate a unique table location for each model version. Otherwise, all model versions will be written to the same location and clobber each other.
+ただし、必要に応じて、モデルの `physical_properties` に `location` プロパティを追加することで、明示的にテーブルの場所を設定できます。
+
+[@resolve_template](../../concepts/macros/sqlmesh_macros.md#resolve_template) マクロを使用して、モデルバージョンごとに一意のテーブルの場所を生成する必要があることに注意してください。そうしないと、すべてのモデルバージョンが同じ場所に書き込まれ、互いに上書きされてしまいます。
 
 ```sql hl_lines="5"
 MODEL (
@@ -204,15 +206,15 @@ MODEL (
 SELECT ...
 ```
 
-This will cause SQLMesh to set the specified `LOCATION` when issuing a `CREATE TABLE` statement.
+これにより、SQLMesh は `CREATE TABLE` ステートメントを発行する際に、指定された `LOCATION` を設定します。
 
-## Catalog Type Overrides
+## カタログタイプのオーバーライド
 
-SQLMesh attempts to determine the connector type of a catalog by querying the `system.metadata.catalogs` table and checking the `connector_name` column.
-It checks if the connector name is `hive` for Hive connector behavior or contains `iceberg` or `delta_lake` for Iceberg or Delta Lake connector behavior respectively.
-However, the connector name may not always be a reliable way to determine the connector type, for example when using a custom connector or a fork of an existing connector.
-To handle such cases, you can use the `catalog_type_overrides` connection property to explicitly specify the connector type for specific catalogs.
-For example, to specify that the `datalake` catalog is using the Iceberg connector and the `analytics` catalog is using the Hive connector, you can configure the connection as follows:
+SQLMesh は、`system.metadata.catalogs` テーブルをクエリし、`connector_name` 列をチェックすることで、カタログのコネクタタイプを判別しようとします。
+コネクタ名が、Hive コネクタの動作の場合は `hive` であるか、Iceberg コネクタの動作の場合は `iceberg` または `delta_lake` を含んでいるかどうかを確認します。
+ただし、カスタムコネクタや既存のコネクタのフォークを使用している場合など、コネクタ名だけでコネクタタイプを判別できるとは限りません。
+このようなケースに対処するには、`catalog_type_overrides` 接続プロパティを使用して、特定のカタログのコネクタタイプを明示的に指定できます。
+たとえば、`datalake` カタログが Iceberg コネクタを使用し、`analytics` カタログが Hive コネクタを使用するように指定するには、次のように接続を構成できます。
 
 ```yaml title="config.yaml"
 gateways:
@@ -225,12 +227,13 @@ gateways:
         analytics: hive
 ```
 
-## Authentication
+## 認証
 
 === "No Auth"
-    | Option     | Description                              |  Type  | Required |
-    |------------|------------------------------------------|:------:|:--------:|
-    | `method`   | `no-auth` (Default)                      | string |    N     |
+
+    | オプション | 説明 | タイプ | 必須 |
+    |-----------|------------------------------------------|:------:|:--------:|
+    | `method` | `no-auth` (デフォルト) | 文字列 | N |
 
     ```yaml linenums="1"
     gateway_name:
@@ -246,11 +249,11 @@ gateways:
 
 === "Basic Auth"
 
-    | Option     | Description                                                                                                                                                                  |  Type  | Required |
-    | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | :------: |
-    | `method`   | `basic`                                                                                                                                                                      | string |    Y     |
-    | `password` | The password to use when authenticating.                                                                                                                                     | string |    Y     |
-    | `verify`   | Boolean flag for whether SSL verification should occur. Default: [trinodb Python client](https://github.com/trinodb/trino-python-client) default (`true` as of this writing) |  bool  |    N     |
+    | オプション | 説明 | タイプ | 必須 |
+    | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :----: | :------: |
+    | `method` | `basic` | 文字列 | Y |
+    | `password` | 認証時に使用するパスワード。 | 文字列 | Y |
+    | `verify` | SSL 検証を行うかどうかのブール値フラグ。デフォルト: [trinodb Python クライアント](https://github.com/trinodb/trino-python-client) デフォルト (執筆時点では `true`) | bool | N |
 
 
     ```yaml linenums="1"
@@ -264,16 +267,16 @@ gateways:
         catalog: [catalog]
     ```
 
-    * [Trino Documentation on Basic Authentication](https://trino.io/docs/current/security/password-file.html)
-    * [Python Client Basic Authentication](https://github.com/trinodb/trino-python-client#basic-authentication)
+    * [Trino Basic認証に関するドキュメント](https://trino.io/docs/current/security/password-file.html)
+    * [Pythonクライアント Basic認証](https://github.com/trinodb/trino-python-client#basic-authentication)
 
 === "LDAP"
 
-    | Option               | Description                                                             |  Type  | Required |
-    |----------------------|-------------------------------------------------------------------------|:------:|:--------:|
-    | `method`             | `ldap`                                                                  | string |    Y     |
-    | `password`           | The password to use when authenticating.                                | string |    Y     |
-    | `impersonation_user` | Override the provided username. This lets you impersonate another user. | string |    N     |
+    | オプション | 説明 | タイプ | 必須 |
+    |----------------------|------------------------------------------------------------------------------------|:------:|:--------:|
+    | `method` | `ldap` | 文字列 | Y |
+    | `password` | 認証時に使用するパスワード。 | 文字列 | Y |
+    | `impersonation_user` | 指定されたユーザー名を上書きします。これにより、別のユーザーを偽装できます。 | 文字列 | N |
 
     ```yaml linenums="1"
     gateway_name:
@@ -286,23 +289,23 @@ gateways:
         catalog: [catalog]
     ```
 
-    * [Trino Documentation on LDAP Authentication](https://trino.io/docs/current/security/ldap.html)
-    * [Python Client LDAP Authentication](https://github.com/trinodb/trino-python-client#basic-authentication)
+    * [LDAP認証に関するTrinoドキュメント](https://trino.io/docs/current/security/ldap.html)
+    * [PythonクライアントLDAP認証](https://github.com/trinodb/trino-python-client#basic-authentication)
 
 === "Kerberos"
 
-    | Option                           | Description                                                                       |  Type  | Required |
+    | オプション | 説明 | タイプ | 必須 |
     |----------------------------------|-----------------------------------------------------------------------------------|:------:|:--------:|
-    | `method`                         | `kerberos`                                                                        | string |    Y     |
-    | `keytab`                         | Path to keytab. Ex: `/tmp/trino.keytab`                                           | string |    Y     |
-    | `krb5_config`                    | Path to config. Ex: `/tmp/krb5.conf`                                              | string |    Y     |
-    | `principal`                      | Principal.  Ex: `user@company.com`                                                | string |    Y     |
-    | `service_name`                   | Service name (default is `trino`)                                                 | string |    N     |
-    | `hostname_override`              | Kerberos hostname for a host whose DNS name doesn't match                         | string |    N     |
-    | `mutual_authentication`          | Boolean flag for mutual authentication. Default: `false`                          |  bool  |    N     |
-    | `force_preemptive`               | Boolean flag to preemptively initiate the Kerberos GSS exchange. Default: `false` |  bool  |    N     |
-    | `sanitize_mutual_error_response` | Boolean flag to strip content and headers from error responses. Default: `true`   |  bool  |    N     |
-    | `delegate`                       | Boolean flag for credential delegation (`GSS_C_DELEG_FLAG`). Default: `false`     |  bool  |    N     |
+    | `method` | `kerberos` | 文字列 | Y |
+    | `keytab` | keytab へのパス。例: `/tmp/trino.keytab` | 文字列 | Y |
+    | `krb5_config` | config へのパス。例: `/tmp/krb5.conf` | 文字列 | Y |
+    | `principal` | プリンシパル。例: `user@company.com` | 文字列 | Y |
+    | `service_name` | サービス名 (デフォルトは `trino`) | 文字列 | N |
+    | `hostname_override` | DNS 名が一致しないホストの Kerberos ホスト名 | 文字列 | N |
+    | `mutual_authentication` | 相互認証のブールフラグ。デフォルト: `false` | bool | N |
+    | `force_preemptive` | Kerberos GSS 交換を事前に開始するためのブールフラグ。デフォルト: `false` | bool | N |
+    | `sanitize_mutual_error_response` | エラー応答からコンテンツとヘッダーを削除するためのブールフラグ。デフォルト: `true` | bool | N |
+    | `delegate` | 資格情報の委任 (`GSS_C_DELEG_FLAG`) のブールフラグ。デフォルト: `false` | bool | N |
 
     ```yaml linenums="1"
     gateway_name:
@@ -317,15 +320,15 @@ gateways:
         catalog: datalake
     ```
 
-    * [Trino Documentation on Kerberos Authentication](https://trino.io/docs/current/security/kerberos.html)
-    * [Python Client Kerberos Authentication](https://github.com/trinodb/trino-python-client#kerberos-authentication)
+    * [Kerberos認証に関するTrinoドキュメント](https://trino.io/docs/current/security/kerberos.html)
+    * [PythonクライアントKerberos認証](https://github.com/trinodb/trino-python-client#kerberos-authentication)
 
 === "JWT"
 
-    | Option      | Description     |  Type  | Required |
-    |-------------|-----------------|:------:|:--------:|
-    | `method`    | `jwt`           | string |    Y     |
-    | `jwt_token` | The JWT string. | string |    Y     |
+    | オプション | 説明 | タイプ | 必須 |
+    |------------|-----------------|:------:|:--------:|
+    | `method` | `jwt` | 文字列 | Y |
+    | `jwt_token` | JWT 文字列。 | 文字列 | Y |
 
     ```yaml linenums="1"
     gateway_name:
@@ -338,18 +341,17 @@ gateways:
         catalog: [catalog]
     ```
 
-    * [Trino Documentation on JWT Authentication](https://trino.io/docs/current/security/jwt.html)
-    * [Python Client JWT Authentication](https://github.com/trinodb/trino-python-client#jwt-authentication)
+    * [JWT認証に関するTrinoドキュメント](https://trino.io/docs/current/security/jwt.html)
+    * [PythonクライアントJWT認証](https://github.com/trinodb/trino-python-client#jwt-authentication)
 
 === "Certificate"
 
-    | Option               | Description                                       |  Type  | Required |
+    | オプション | 説明 | タイプ | 必須 |
     |----------------------|---------------------------------------------------|:------:|:--------:|
-    | `method`             | `certificate`                                     | string |    Y     |
-    | `cert`               | The full path to a certificate file               | string |    Y     |
-    | `client_certificate` | Path to client certificate. Ex: `/tmp/client.crt` | string |    Y     |
-    | `client_private_key` | Path to client private key. Ex: `/tmp/client.key` | string |    Y     |
-
+    | `method` | `certificate` | 文字列 | Y |
+    | `cert` | 証明書ファイルへのフルパス | 文字列 | Y |
+    | `client_certificate` | クライアント証明書へのパス。例: `/tmp/client.crt` | 文字列 | Y |
+    | `client_private_key` | クライアント秘密鍵へのパス。例: `/tmp/client.key` | 文字列 | Y |
 
     ```yaml linenums="1"
     gateway_name:
@@ -367,9 +369,9 @@ gateways:
 
 === "Oauth"
 
-    | Option               | Description                                       |  Type  | Required |
+    | オプション | 説明 | タイプ | 必須 |
     |----------------------|---------------------------------------------------|:------:|:--------:|
-    | `method`             | `oauth`                                           | string |    Y     |
+    | `method` | `oauth` | 文字列 | Y |
 
     ```yaml linenums="1"
     gateway_name:
@@ -380,5 +382,5 @@ gateways:
         catalog: datalake
     ```
 
-    * [Trino Documentation on Oauth Authentication](https://trino.io/docs/current/security/oauth2.html)
-    * [Python Client Oauth Authentication](https://github.com/trinodb/trino-python-client#oauth2-authentication)
+    * [OAuth認証に関するTrinoドキュメント](https://trino.io/docs/current/security/oauth2.html)
+    * [PythonクライアントOAuth認証](https://github.com/trinodb/trino-python-client#oauth2-authentication)

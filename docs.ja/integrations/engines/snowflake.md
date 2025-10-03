@@ -1,69 +1,70 @@
 # Snowflake
 
-This page provides information about how to use SQLMesh with the Snowflake SQL engine.
+このページでは、Snowflake SQL エンジンで SQLMesh を使用する方法について説明します。
 
-It begins with a [Connection Quickstart](#connection-quickstart) that demonstrates how to connect to Snowflake, or you can skip directly to information about using Snowflake with the [built-in](#localbuilt-in-scheduler).
+まずは、Snowflake への接続方法を示す [接続クイックスタート](#connection-quickstart) から始めます。または、[組み込み](#localbuilt-in-scheduler) を使用して Snowflake を使用する方法の情報に直接進むこともできます。
 
-## Connection quickstart
+## 接続クイックスタート
 
-Connecting to cloud warehouses involves a few steps, so this connection quickstart provides the info you need to get up and running with Snowflake.
+クラウドウェアハウスへの接続にはいくつかの手順が必要です。この接続クイックスタートでは、Snowflake を使い始めるために必要な情報を提供します。
 
-It demonstrates connecting to Snowflake with the `snowflake-connector-python` library bundled with SQLMesh.
+SQLMesh にバンドルされている `snowflake-connector-python` ライブラリを使用して Snowflake に接続する方法を説明します。
 
-Snowflake provides multiple methods of authorizing a connection (e.g., password, SSO, etc.). This quickstart demonstrates authorizing with a password, but configurations for other methods are [described below](#snowflake-authorization-methods).
+Snowflake は、接続を認証するための複数の方法（パスワード、SSO など）を提供しています。このクイックスタートではパスワードによる認証方法を説明しますが、その他の方法の設定については[以下で説明](#snowflake-authorization-methods) します。
 
 !!! tip
-    This quickstart assumes you are familiar with basic SQLMesh commands and functionality.
 
-    If you're not, work through the [SQLMesh Quickstart](../../quick_start.md) before continuing!
+    このクイックスタートは、SQLMesh の基本的なコマンドと機能に精通していることを前提としています。
 
-### Prerequisites
+    まだ習得していない場合は、先に [SQLMesh クイックスタート](../../quick_start.md) をお読みください。
 
-Before working through this connection quickstart, ensure that:
+### 前提条件
 
-1. You have a Snowflake account and know your username and password
-2. Your Snowflake account has at least one [warehouse](https://docs.snowflake.com/en/user-guide/warehouses-overview) available for running computations
-3. Your computer has [SQLMesh installed](../../installation.md) with the [Snowflake extra available](../../installation.md#install-extras)
-    - Install from the command line with the command `pip install "sqlmesh[snowflake]"`
-4. You have initialized a [SQLMesh example project](../../quickstart/cli#1-create-the-sqlmesh-project) on your computer
-    - Open a command line interface and navigate to the directory where the project files should go
-    - Initialize the project with the command `sqlmesh init snowflake`
+この接続クイックスタートを実行する前に、以下の点を確認してください。
 
-### Access control permissions
+1. Snowflakeアカウントをお持ちで、ユーザー名とパスワードを把握していること。
+2. Snowflakeアカウントに、計算実行に使用できる[ウェアハウス](https://docs.snowflake.com/en/user-guide/warehouses-overview)が少なくとも1つあること。
+3. コンピューターに[SQLMeshがインストール](../../installation.md)され、[Snowflakeエクストラが利用可能](../../installation.md#install-extras)になっていること。
+    - コマンドラインからコマンド `pip install "sqlmesh[snowflake]"` を使用してインストールすること。
+4. コンピューターで[SQLMeshサンプルプロジェクト](../../quickstart/cli#1-create-the-sqlmesh-project)を初期化していること。
+    - コマンドラインインターフェースを開き、プロジェクトファイルを配置するディレクトリに移動すること。
+    - コマンド `sqlmeshスノーフレークを初期化する
 
-SQLMesh must have sufficient permissions to create and access different types of database objects.
+### アクセス制御権限
 
-SQLMesh's core functionality requires relatively broad permissions, including:
+SQLMesh には、さまざまな種類のデータベースオブジェクトを作成およびアクセスするための十分な権限が必要です。
 
-1. Ability to create and delete schemas in a database
-2. Ability to create, modify, delete, and query tables and views in the schemas it creates
+SQLMesh のコア機能には、次のような比較的広範な権限が必要です。
 
-If your project uses materialized views or dynamic tables, SQLMesh will also need permissions to create, modify, delete, and query those object types.
+1. データベース内のスキーマを作成および削除する権限
+2. 作成したスキーマ内のテーブルとビューを作成、変更、削除、およびクエリする権限
 
-We now describe how to grant SQLMesh appropriate permissions.
+プロジェクトでマテリアライズドビューまたは動的テーブルを使用している場合、SQLMesh にはこれらのオブジェクトタイプを作成、変更、削除、およびクエリする権限も必要です。
 
-#### Snowflake roles
+ここでは、SQLMesh に適切な権限を付与する方法について説明します。
 
-Snowflake allows you to grant permissions directly to a user, or you can create and assign permissions to a "role" that you then grant to the user.
+#### Snowflake のロール
 
-Roles provide a convenient way to bundle sets of permissions and provide them to multiple users. We create and use a role to grant our user permissions in this quickstart.
+Snowflake では、ユーザーに直接権限を付与することも、「ロール」を作成して権限を割り当て、そのロールをユーザーに付与することもできます。
 
-The role must be granted `USAGE` on a warehouse so it can execute computations. We describe other permissions below.
+ロールは、複数のユーザーに権限セットをまとめて付与するための便利な方法です。このクイックスタートでは、ロールを作成してユーザーに権限を付与します。
 
-#### Database permissions
-The top-level object container in Snowflake is a "database" (often called a "catalog" in other engines). SQLMesh does not need permission to create databases; it may use an existing one.
+ロールには、計算を実行できるように、ウェアハウスに対する `USAGE` 権限を付与する必要があります。その他の権限については、以下で説明します。
 
-The simplest way to grant SQLMesh sufficient permissions for a database is to give it `OWNERSHIP` of the database, which includes all the necessary permissions.
+#### データベース権限
+Snowflake の最上位オブジェクトコンテナは「データベース」（他のエンジンでは「カタログ」と呼ばれることが多い）です。SQLMesh はデータベースを作成する権限を必要とせず、既存のデータベースを使用できます。
 
-Alternatively, you may grant SQLMesh granular permissions for all the actions and objects it will work with in the database.
+SQLMesh にデータベースに対する十分な権限を付与する最も簡単な方法は、必要なすべての権限を含むデータベースの `OWNERSHIP` を付与することです。
 
-#### Granting the permissions
+あるいは、SQLMesh がデータベース内で操作するすべてのアクションとオブジェクトに対して、きめ細かな権限を付与することもできます。
 
-This section provides example code for creating a `sqlmesh` role, granting it sufficient permissions, and granting it to a user.
+#### 権限の付与
 
-The code must be executed by a user with `USERADMIN` level permissions or higher. We provide two versions of the code, one that grants database `OWNERSHIP` to the role and another that does not.
+このセクションでは、`sqlmesh` ロールを作成し、適切な権限を付与してユーザーに付与するサンプルコードを示します。
 
-Both examples create a role named `sqlmesh`, grant it usage of the warehouse `compute_wh`, create a database named `demo_db`, and assign the role to the user `demo_user`. The step that creates the database can be omitted if the database already exists.
+このコードは、`USERADMIN` レベル以上の権限を持つユーザーが実行する必要があります。このコードには、ロールにデータベースの `OWNERSHIP` 権限を付与するバージョンと付与しないバージョンの 2 つのバージョンがあります。
+
+どちらの例でも、`sqlmesh` というロールを作成し、ウェアハウス `compute_wh` の使用権限を付与し、`demo_db` というデータベースを作成し、そのロールをユーザー `demo_user` に割り当てます。データベースが既に存在する場合は、データベースを作成する手順は省略できます。
 
 === "With database ownership"
 
@@ -102,43 +103,43 @@ Both examples create a role named `sqlmesh`, grant it usage of the warehouse `co
     ALTER USER demo_user SET DEFAULT ROLE = sqlmesh; -- Make role user's default role
     ```
 
-### Get connection info
+### 接続情報を取得する
 
-Now that our user has sufficient access permissions, we're ready to gather the information needed to configure the SQLMesh connection.
+ユーザーに十分なアクセス権限が付与されたので、SQLMesh 接続を構成するために必要な情報を収集する準備が整いました。
 
-#### Account name
+#### アカウント名
 
-Snowflake connection configurations require the `account` parameter that identifies the Snowflake account SQLMesh should connect to.
+Snowflake の接続構成には、SQLMesh が接続する Snowflake アカウントを識別する `account` パラメーターが必要です。
 
-Snowflake account identifiers have two components: your organization name and your account name. Both are embedded in your Snowflake web interface URL, separated by a `/`.
+Snowflake アカウント識別子は、組織名とアカウント名の 2 つの要素で構成されます。どちらも Snowflake ウェブインターフェースの URL に埋め込まれており、`/` で区切られています。
 
-This shows the default view when you log in to your Snowflake account, where we can see the two components of the account identifier:
+これは、Snowflake アカウントにログインしたときに表示されるデフォルトのビューで、アカウント識別子の 2 つの要素が表示されています。
 
-![Snowflake account info in web URL](./snowflake/snowflake_db-guide_account-url.png){ loading=lazy }
+![ウェブ URL 内の Snowflake アカウント情報](./snowflake/snowflake_db-guide_account-url.png){ loading=lazy }
 
-In this example, our organization name is `idapznw`, and our account name is `wq29399`.
+この例では、組織名は `idapznw`、アカウント名は `wq29399` です。
 
-We concatenate the two components, separated by a `-`, for the SQLMesh `account` parameter: `idapznw-wq29399`.
+SQLMesh の `account` パラメーターでは、2 つの要素を `-` で区切って連結し、`idapznw-wq29399` とします。
 
-#### Warehouse name
+#### ウェアハウス名
 
-Your Snowflake account may have more than one warehouse available - any will work for this quickstart, which runs very few computations.
+Snowflake アカウントでは複数のウェアハウスが利用可能になっている場合があります。このクイックスタートでは計算をほとんど実行しないため、どのウェアハウスでも問題ありません。
 
-Some Snowflake user accounts may have a default warehouse they automatically use when connecting.
+一部の Snowflake ユーザーアカウントでは、接続時に自動的に使用されるデフォルトのウェアハウスが設定されている場合があります。
 
-The connection configuration's `warehouse` parameter is not required, but we recommend specifying the warehouse explicitly in the configuration to ensure SQLMesh's behavior doesn't change if the user's default warehouse changes.
+接続構成の `warehouse` パラメーターは必須ではありませんが、ユーザーのデフォルトのウェアハウスが変更されても SQLMesh の動作が変化しないように、構成でウェアハウスを明示的に指定することをお勧めします。
 
-#### Database name
+#### データベース名
 
-Snowflake user accounts may have a "Default Namespace" that includes a default database they automatically use when connecting.
+Snowflake ユーザーアカウントには、接続時に自動的に使用されるデフォルトのデータベースを含む「デフォルトの名前空間」が設定されている場合があります。
 
-The connection configuration's `database` parameter is not required, but we recommend specifying the database explicitly in the configuration to ensure SQLMesh's behavior doesn't change if the user's default namespace changes.
+接続構成の `database` パラメータは必須ではありませんが、ユーザーのデフォルトの名前空間が変更されても SQLMesh の動作が変化しないように、構成でデータベースを明示的に指定することをお勧めします。
 
-### Configure the connection
+### 接続を構成する
 
-We now have the information we need to configure SQLMesh's connection to Snowflake.
+これで、SQLMesh から Snowflake への接続を構成するために必要な情報が揃いました。
 
-We start the configuration by adding a gateway named `snowflake` to our example project's config.yaml file and making it our `default_gateway`:
+構成を開始するには、まず、サンプル プロジェクトの config.yaml ファイルに `snowflake` という名前のゲートウェイを追加し、それを `default_gateway` にします。
 
 ```yaml linenums="1" hl_lines="2-6"
 gateways:
@@ -153,7 +154,7 @@ model_defaults:
   start: 2024-07-24
 ```
 
-And we specify the `account`, `user`, `password`, `database`, and `warehouse` connection parameters using the information from above:
+上記の情報を使用して、`account`、`user`、`password`、`database`、および `warehouse` 接続パラメータを指定します。
 
 ```yaml linenums="1" hl_lines="5-9"
 gateways:
@@ -174,9 +175,10 @@ model_defaults:
 ```
 
 !!! warning
-    Best practice for storing secrets like passwords is placing them in [environment variables that the configuration file loads dynamically](../../guides/configuration.md#environment-variables). For simplicity, this guide instead places the value directly in the configuration file.
 
-    This code demonstrates how to use the environment variable `SNOWFLAKE_PASSWORD` for the configuration's `password` parameter:
+    パスワードなどのシークレット情報を保存するベストプラクティスは、[設定ファイルが動的に読み込む環境変数](../../guides/configuration.md#environment-variables)に配置することです。簡潔にするため、このガイドでは設定ファイルに直接値を設定します。
+
+    以下のコードは、設定ファイルの「password」パラメータに環境変数「SNOWFLAKE_PASSWORD」を使用する方法を示しています。
 
     ```yaml linenums="1" hl_lines="5"
     gateways:
@@ -186,32 +188,33 @@ model_defaults:
           password: {{ env_var('SNOWFLAKE_PASSWORD') }}
     ```
 
-### Check connection
+### 接続の確認
 
-We have now specified the `snowflake` gateway connection information, so we can confirm that SQLMesh is able to successfully connect to Snowflake. We will test the connection with the `sqlmesh info` command.
+`snowflake` ゲートウェイの接続情報を指定したので、SQLMesh が Snowflake に正常に接続できることを確認できます。`sqlmesh info` コマンドで接続をテストします。
 
-First, open a command line terminal. Now enter the command `sqlmesh info`:
+まず、コマンドラインターミナルを開きます。`sqlmesh info` コマンドを入力します。
 
 ![Run sqlmesh info command in CLI](./snowflake/snowflake_db-guide_sqlmesh-info.png){ loading=lazy }
 
-The output shows that our data warehouse connection succeeded:
+出力は、データ ウェアハウスの接続が成功したことを示しています。
 
 ![Successful data warehouse connection](./snowflake/snowflake_db-guide_sqlmesh-info-succeeded.png){ loading=lazy }
 
-However, the output includes a `WARNING` about using the Snowflake SQL engine for storing SQLMesh state:
+ただし、出力には、SQLMesh の状態を保存するために Snowflake SQL エンジンを使用することに関する  `WARNING` が含まれます。
 
 ![Snowflake state connection warning](./snowflake/snowflake_db-guide_sqlmesh-info-warning.png){ loading=lazy }
 
 !!! warning
-    Snowflake is not designed for transactional workloads and should not be used to store SQLMesh state even in testing deployments.
 
-    Learn more about storing SQLMesh state [here](../../guides/configuration.md#state-connection).
+    Snowflake はトランザクションワークロード向けに設計されていないため、テスト環境であっても SQLMesh の状態を保存するために使用しないでください。
 
-### Specify state connection
+    SQLMesh の状態の保存の詳細については、[こちら](../../guides/configuration.md#state-connection) をご覧ください。
 
-We can store SQLMesh state in a different SQL engine by specifying a `state_connection` in our `snowflake` gateway.
+### 状態接続の指定
 
-This example uses the DuckDB engine to store state in the local `snowflake_state.db` file:
+`snowflake` ゲートウェイで `state_connection` を指定することで、SQLMesh の状態を別の SQL エンジンに保存できます。
+
+この例では、DuckDB エンジンを使用して、ローカルの `snowflake_state.db` ファイルに状態を保存しています。
 
 ```yaml linenums="1" hl_lines="10-12"
 gateways:
@@ -234,64 +237,64 @@ model_defaults:
   start: 2024-07-24
 ```
 
-Now we no longer see the warning when running `sqlmesh info`, and we see a new entry `State backend connection succeeded`:
+これで、`sqlmesh info` の実行時に警告が表示されなくなり、新しいエントリ `State backend connection successful` が表示されます。
 
 ![No state connection warning](./snowflake/snowflake_db-guide_sqlmesh-info-no-warning.png){ loading=lazy }
 
-### Run a `sqlmesh plan`
+### `sqlmesh plan` を実行する
 
-Now we're ready to run a `sqlmesh plan` in Snowflake:
+これで、Snowflake で `sqlmesh plan` を実行する準備が整いました。
 
 ![Run sqlmesh plan in snowflake](./snowflake/snowflake_db-guide_sqlmesh-plan.png){ loading=lazy }
 
-And confirm that our schemas and objects exist in the Snowflake catalog:
+スキーマとオブジェクトが Snowflake カタログに存在することを確認します。
 
 ![Sqlmesh plan objects in snowflake](./snowflake/snowflake_db-guide_sqlmesh-plan-objects.png){ loading=lazy }
 
-Congratulations - your SQLMesh project is up and running on Snowflake!
+おめでとうございます。SQLMesh プロジェクトが Snowflake 上で稼働しています。
 
-### Where are the row counts?
+### 行数はどこに表示されますか？
 
-SQLMesh reports the number of rows processed by each model in its `plan` and `run` terminal output.
+SQLMesh は、各モデルで処理された行数を `plan` および `run` ターミナル出力で報告します。
 
-However, due to limitations in the Snowflake Python connector, row counts cannot be determined for `CREATE TABLE AS` statements. Therefore, SQLMesh does not report row counts for certain model kinds, such as `FULL` models.
+ただし、Snowflake Python コネクタの制限により、`CREATE TABLE AS` ステートメントの行数を特定できません。そのため、SQLMesh は `FULL` モデルなど、特定の種類のモデルの行数を報告しません。
 
-Learn more about the connector limitation [on Github](https://github.com/snowflakedb/snowflake-connector-python/issues/645).
+コネクタの制限の詳細については、[Github](https://github.com/snowflakedb/snowflake-connector-python/issues/645) をご覧ください。
 
-## Local/Built-in Scheduler
-**Engine Adapter Type**: `snowflake`
+## ローカル/組み込みスケジューラ
+**エンジンアダプタタイプ**: `snowflake`
 
-### Installation
+### インストール
 ```
 pip install "sqlmesh[snowflake]"
 ```
 
-### Connection options
+### 接続オプション
 
-| Option                   | Description                                                                                                                                                                    |  Type  | Required |
-|--------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:------:|:--------:|
-| `type`                   | Engine type name - must be `snowflake`                                                                                                                                         | string |    Y     |
-| `account`                | The Snowflake account name                                                                                                                                                     | string |    Y     |
-| `user`                   | The Snowflake username                                                                                                                                                         | string |    N     |
-| `password`               | The Snowflake password                                                                                                                                                         | string |    N     |
-| `authenticator`          | The Snowflake authenticator method                                                                                                                                             | string |    N     |
-| `warehouse`              | The Snowflake warehouse name                                                                                                                                                   | string |    N     |
-| `database`               | The Snowflake database name                                                                                                                                                    | string |    N     |
-| `role`                   | The Snowflake role name                                                                                                                                                        | string |    N     |
-| `token`                  | The Snowflake OAuth 2.0 access token                                                                                                                                           | string |    N     |
-| `private_key`            | The optional private key to use for authentication. Key can be Base64-encoded DER format (representing the key bytes), a plain-text PEM format, or bytes (Python config only). | string |    N     |
-| `private_key_path`       | The optional path to the private key to use for authentication. This would be used instead of `private_key`.                                                                   | string |    N     |
-| `private_key_passphrase` | The optional passphrase to use to decrypt `private_key` (if in PEM format) or `private_key_path`. Keys can be created without encryption so only provide this if needed.       | string |    N     |
-| `session_parameters`     | The optional session parameters to set for the connection.                                                                                                                     | dict   |    N     |
+| オプション | 説明 | タイプ | 必須 |
+|-------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:------:|:--------:|
+| `type` | エンジンタイプ名 - `snowflake` である必要があります | 文字列 | Y |
+| `account` | Snowflake アカウント名 | 文字列 | Y |
+| `user` | Snowflake ユーザー名 | 文字列 | N |
+| `password` | Snowflake パスワード | 文字列 | N |
+| `authenticator` | Snowflake 認証方式 | 文字列 | N |
+| `warehouse` | Snowflake ウェアハウス名 | 文字列 | N |
+| `database` | Snowflake データベース名 | 文字列 | N |
+| `role` | Snowflake ロール名 | 文字列 | N |
+| `token` | Snowflake OAuth 2.0 アクセス トークン | 文字列 | N |
+| `private_key` | 認証に使用するオプションの秘密キー。キーは、Base64 エンコードされた DER 形式 (キー バイトを表す)、プレーンテキストの PEM 形式、またはバイト (Python 構成のみ) にすることができます。 | 文字列 | N |
+| `private_key_path` | 認証に使用する秘密キーへのオプションのパス。これは `private_key` の代わりに使用されます。 | 文字列 | N |
+| `private_key_passphrase` | `private_key` (PEM 形式の場合) または `private_key_path` を復号化するために使用するオプションのパスフレーズ。キーは暗号化なしで作成できるため、必要な場合にのみ指定してください。 | 文字列 | N |
+| `session_parameters` | 接続に設定するオプションのセッション パラメーター。 | dict | N |
 
 
-### Lowercase object names
+### 小文字のオブジェクト名
 
-Snowflake object names are case-insensitive by default, and Snowflake automatically normalizes them to uppercase. For example, the command `CREATE SCHEMA sqlmesh` will generate a schema named `SQLMESH` in Snowflake.
+Snowflakeのオブジェクト名は、デフォルトでは大文字と小文字が区別されず、自動的に大文字に変換されます。たとえば、コマンド `CREATE SCHEMA sqlmesh` は、Snowflake に `SQLMESH` という名前のスキーマを生成します。
 
-If you need to create an object with a case-sensitive lowercase name, the name must be double-quoted in SQL code. In the SQLMesh configuration file, it also requires outer single quotes.
+大文字と小文字が区別される小文字の名前を持つオブジェクトを作成する必要がある場合、SQLコードでは名前を二重引用符で囲む必要があります。SQLMesh設定ファイルでは、外側の単一引用符も必要です。
 
-For example, a connection to the database `"my_db"` would include:
+たとえば、データベース `"my_db"` への接続には次の内容が含まれます。
 
 ``` yaml
 connection:
@@ -300,15 +303,15 @@ connection:
   database: '"my_db"' # outer single and inner double quotes
 ```
 
-### Snowflake authorization methods
+### Snowflake の認証方法
 
-The simplest (but arguably least secure) method of authorizing a connection with Snowflake is with a username and password.
+Snowflake への接続を認証する最も簡単な方法（ただし、安全性は最も低いと言えるでしょう）は、ユーザー名とパスワードを使用することです。
 
-This section describes how to configure other authorization methods.
+このセクションでは、他の認証方法の設定方法について説明します。
 
-#### Snowflake SSO Authorization
+#### Snowflake SSO 認証
 
-SQLMesh supports Snowflake SSO authorization connections using the `externalbrowser` authenticator method. For example:
+SQLMesh は、`externalbrowser` 認証方法を使用した Snowflake SSO 認証接続をサポートしています。例:
 
 ```yaml
 gateways:
@@ -323,9 +326,9 @@ gateways:
       role: ************
 ```
 
-#### Snowflake OAuth Authorization
+#### Snowflake OAuth 認証
 
-SQLMesh supports Snowflake OAuth authorization connections using the `oauth` authenticator method. For example:
+SQLMesh は、`oauth` 認証メソッドを使用した Snowflake OAuth 認証接続をサポートしています。例:
 
 === "YAML"
 
@@ -358,15 +361,15 @@ SQLMesh supports Snowflake OAuth authorization connections using the `oauth` aut
     )
     ```
 
-#### Snowflake Private Key Authorization
+#### Snowflake 秘密キー認証
 
-SQLMesh supports Snowflake private key authorization connections by providing the private key as a path, Base64-encoded DER format (representing the key bytes), a plain-text PEM format, or as bytes (Python Only).
+SQLMesh は、秘密キーをパス、Base64 エンコードされた DER 形式（キーバイトを表す）、プレーンテキストの PEM 形式、またはバイト（Python のみ）として提供することで、Snowflake 秘密キー認証接続をサポートします。
 
-The `account` and `user` parameters are required for each of these methods.
+これらの各メソッドには、`account` および `user` パラメーターが必要です。
 
-__Private Key Path__
+__秘密キーのパス__
 
-Note: `private_key_passphrase` is only needed if the key was encrypted with a passphrase.
+注: `private_key_passphrase` は、キーがパスフレーズで暗号化されている場合にのみ必要です。
 
 === "YAML"
 
@@ -400,9 +403,9 @@ Note: `private_key_passphrase` is only needed if the key was encrypted with a pa
     ```
 
 
-__Private Key PEM__
+__秘密鍵 PEM__
 
-Note: `private_key_passphrase` is only needed if the key was encrypted with a passphrase.
+注: `private_key_passphrase` は、鍵がパスフレーズで暗号化されている場合にのみ必要です。
 
 === "YAML"
 
@@ -442,9 +445,9 @@ Note: `private_key_passphrase` is only needed if the key was encrypted with a pa
     ```
 
 
-__Private Key Base64__
+__秘密鍵 Base64__
 
-Note: This is base64 encoding of the bytes of the key itself and not the PEM file contents.
+注: これは、PEM ファイルの内容ではなく、鍵自体のバイト列を Base64 でエンコードしたものです。
 
 === "YAML"
 
@@ -475,11 +478,11 @@ Note: This is base64 encoding of the bytes of the key itself and not the PEM fil
     )
     ```
 
-__Private Key Bytes__
+__秘密鍵バイト__
 
 === "YAML"
 
-    Base64 encode the bytes and follow [Private Key Base64](#private-key-base64) instructions.
+    バイトを Base64 でエンコードし、[秘密キー Base64](#private-key-base64) の指示に従います。
 
 === "Python"
 
@@ -519,11 +522,11 @@ __Private Key Bytes__
     )
     ```
 
-The authenticator method is assumed to be `snowflake_jwt` when `private_key` is provided, but it can also be explicitly provided in the connection configuration.
+`private_key` が指定された場合、認証方法は `snowflake_jwt` であると想定されますが、接続構成で明示的に指定することもできます。
 
-## Configuring Virtual Warehouses
+## 仮想ウェアハウスの設定
 
-The Snowflake Virtual Warehouse a model should use can be specified in the `session_properties` attribute of the model definition:
+モデルが使用する Snowflake 仮想ウェアハウスは、モデル定義の `session_properties` 属性で指定できます。
 
 ```sql linenums="1"
 MODEL (
@@ -534,13 +537,13 @@ MODEL (
 );
 ```
 
-## Custom View and Table types
+## カスタムビューとテーブルタイプ
 
-SQLMesh supports custom view and table types for Snowflake models. You can apply these modifiers to either the physical layer or virtual layer of a model using the `physical_properties` and `virtual_properties` attributes respectively. For example:
+SQLMesh は、Snowflake モデルのカスタムビューとテーブルタイプをサポートしています。これらの修飾子は、モデルの物理レイヤーまたは仮想レイヤーにそれぞれ `physical_properties` 属性と `virtual_properties` 属性を使用して適用できます。例:
 
-### Secure Views
+### セキュアビュー
 
-A table can be exposed through a `SECURE` view in the virtual layer by specifying the `creatable_type` property and setting it to `SECURE`:
+仮想レイヤーの `SECURE` ビューを通じてテーブルを公開するには、`creatable_type` プロパティを `SECURE` に設定します。
 
 ```sql linenums="1"
 MODEL (
@@ -553,9 +556,9 @@ MODEL (
 SELECT a FROM schema_name.model_b;
 ```
 
-### Transient Tables
+### 一時テーブル
 
-A model can use a `TRANSIENT` table in the physical layer by specifying the `creatable_type` property and setting it to `TRANSIENT`:
+モデルは、`creatable_type` プロパティを `TRANSIENT` に設定することで、物理レイヤーで `TRANSIENT` テーブルを使用できます。
 
 ```sql linenums="1"
 MODEL (
@@ -568,11 +571,11 @@ MODEL (
 SELECT a FROM schema_name.model_b;
 ```
 
-### Iceberg Tables
+### Iceberg テーブル
 
-In order for Snowflake to be able to create an Iceberg table, there must be an [External Volume](https://docs.snowflake.com/en/user-guide/tables-iceberg-configure-external-volume) configured to store the Iceberg table data on.
+Snowflake で Iceberg テーブルを作成するには、Iceberg テーブルのデータを保存するための [外部ボリューム](https://docs.snowflake.com/en/user-guide/tables-iceberg-configure-external-volume) が設定されている必要があります。
 
-Once that is configured, you can create a model backed by an Iceberg table by using `table_format iceberg` like so:
+設定が完了したら、次のように `table_format iceberg` を使用して、Iceberg テーブルを基盤とするモデルを作成できます。
 
 ```sql linenums="1" hl_lines="4 6-7"
 MODEL (
@@ -586,14 +589,12 @@ MODEL (
 );
 ```
 
-To prevent having to specify `catalog = 'snowflake'` and `external_volume = '<external volume name>'` on every model, see the Snowflake documentation for:
+すべてのモデルで `catalog = 'snowflake'` と `external_volume = '<外部ボリューム名>'` を指定する必要がないようにするには、Snowflake のドキュメントで以下の項目を参照してください。
 
-  - [Configuring a default Catalog](https://docs.snowflake.com/en/user-guide/tables-iceberg-configure-catalog-integration#set-a-default-catalog-at-the-account-database-or-schema-level)
-  - [Configuring a default External Volume](https://docs.snowflake.com/en/user-guide/tables-iceberg-configure-external-volume#set-a-default-external-volume-at-the-account-database-or-schema-level)
+- [デフォルトのカタログの設定](https://docs.snowflake.com/en/user-guide/tables-iceberg-configure-catalog-integration#set-a-default-catalog-at-the-account-database-or-schema-level)
+- [デフォルトの外部ボリュームの設定](https://docs.snowflake.com/en/user-guide/tables-iceberg-configure-external-volume#set-a-default-external-volume-at-the-account-database-or-schema-level)
 
-Alternatively you can also use [model defaults](../../guides/configuration.md#model-defaults) to set defaults at the SQLMesh level instead.
-
-To utilize the wide variety of [optional properties](https://docs.snowflake.com/en/sql-reference/sql/create-iceberg-table-snowflake#optional-parameters) that Snowflake makes available for Iceberg tables, simply specify them as `physical_properties`:
+または、[モデルのデフォルト](../../guides/configuration.md#model-defaults) を使用して、SQLMesh レベルでデフォルトを設定することもできます。代わりに、Snowflake が Iceberg テーブルで利用できるさまざまな [オプションのプロパティ](https://docs.snowflake.com/en/sql-reference/sql/create-iceberg-table-snowflake#optional-parameters) を利用するには、それらを `physical_properties` として指定するだけです。
 
 ```sql linenums="1" hl_lines="8"
 MODEL (
@@ -608,19 +609,19 @@ MODEL (
 );
 ```
 
-!!! warning "External catalogs"
+!!! warning "外部カタログ"
 
-    Setting `catalog = 'snowflake'` to use Snowflake's internal catalog is a good default because SQLMesh needs to be able to write to the tables it's managing and Snowflake [does not support](https://docs.snowflake.com/en/user-guide/tables-iceberg#catalog-options) writing to Iceberg tables configured under external catalogs.
+    SQLMesh は管理対象のテーブルに書き込み可能である必要があり、Snowflake は外部カタログで構成された Iceberg テーブルへの書き込みを [サポートしていません](https://docs.snowflake.com/en/user-guide/tables-iceberg#catalog-options) ため、Snowflake の内部カタログを使用するように `catalog = 'snowflake'` を設定するのが適切なデフォルト設定です。
 
-    You can however still reference a table from an external catalog in your model as a normal [external table](../../concepts/models/external_models.md).
+    ただし、モデル内で外部カタログのテーブルを通常の [外部テーブル](../../concepts/models/external_models.md) として参照することは可能です。
 
-## Troubleshooting
+## トラブルシューティング
 
-### Frequent Authentication Prompts
+### 頻繁な認証プロンプト
 
-When using Snowflake with security features like Multi-Factor Authentication (MFA), you may experience repeated prompts for authentication while running SQLMesh commands. This typically occurs when your Snowflake account isn't configured to issue short-lived tokens.
+Snowflake を多要素認証 (MFA) などのセキュリティ機能と組み合わせて使用​​している場合、SQLMesh コマンドの実行中に認証プロンプトが繰り返し表示されることがあります。これは通常、Snowflake アカウントが短期トークンを発行するように設定されていない場合に発生します。
 
-To reduce authentication prompts, you can enable token caching in your Snowflake connection configuration:
+認証プロンプトを減らすには、Snowflake の接続設定でトークンのキャッシュを有効にできます。
 
-- For general authentication, see [Connection Caching Documentation](https://docs.snowflake.com/en/user-guide/admin-security-fed-auth-use#using-connection-caching-to-minimize-the-number-of-prompts-for-authentication-optional)
-- For MFA specifically, see [MFA Token Caching Documentation](https://docs.snowflake.com/en/user-guide/security-mfa#using-mfa-token-caching-to-minimize-the-number-of-prompts-during-authentication-optional).
+- 一般的な認証については、[接続キャッシュに関するドキュメント](https://docs.snowflake.com/en/user-guide/admin-security-fed-auth-use#using-connection-caching-to-minimize-the-number-of-prompts-for-authentication-optional) をご覧ください。
+- MFA について詳しくは、[MFA トークンのキャッシュに関するドキュメント](https://docs.snowflake.com/en/user-guide/security-mfa#using-mfa-token-caching-to-minimize-the-number-of-prompts-during-authentication-optional) をご覧ください。

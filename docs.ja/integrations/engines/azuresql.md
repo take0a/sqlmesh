@@ -1,36 +1,36 @@
 # Azure SQL
 
-[Azure SQL](https://azure.microsoft.com/en-us/products/azure-sql) is "a family of managed, secure, and intelligent products that use the SQL Server database engine in the Azure cloud."
+[Azure SQL](https://azure.microsoft.com/en-us/products/azure-sql) は、「Azure クラウドで SQL Server データベース エンジンを使用する、管理された安全なインテリジェントな製品ファミリです。」
 
-## Local/Built-in Scheduler
-**Engine Adapter Type**: `azuresql`
+## ローカル/組み込みスケジューラー
+**エンジン アダプターの種類**: `azuresql`
 
-### Installation
-#### User / Password Authentication:
+### インストール
+#### ユーザー/パスワード認証:
 ```
 pip install "sqlmesh[azuresql]"
 ```
-#### Microsoft Entra ID / Azure Active Directory Authentication:
+#### Microsoft Entra ID/Azure Active Directory 認証:
 ```
 pip install "sqlmesh[azuresql-odbc]"
 ```
 
-### Connection options
+### 接続オプション
 
-| Option            | Description                                                      |     Type     | Required |
+| オプション | 説明 | 種類 | 必須 |
 | ----------------- | ---------------------------------------------------------------- | :----------: | :------: |
-| `type`            | Engine type name - must be `azuresql`                            |    string    |    Y     |
-| `host`            | The hostname of the Azure SQL server                             |    string    |    Y     |
-| `user`            | The username / client ID to use for authentication with the Azure SQL server |    string    |    N     |
-| `password`        | The password / client secret to use for authentication with the Azure SQL server |    string    |    N     |
-| `port`            | The port number of the Azure SQL server                          |     int      |    N     |
-| `database`        | The target database                                              |    string    |    N     |
-| `charset`         | The character set used for the connection                        |    string    |    N     |
-| `timeout`         | The query timeout in seconds. Default: no timeout                |     int      |    N     |
-| `login_timeout`   | The timeout for connection and login in seconds. Default: 60     |     int      |    N     |
-| `appname`         | The application name to use for the connection                   |    string    |    N     |
-| `conn_properties` | The list of connection properties                                | list[string] |    N     |
-| `autocommit`      | Is autocommit mode enabled. Default: false                       |     bool     |    N     |
-| `driver`         | The driver to use for the connection. Default: pymssql            |    string    |    N     |
-| `driver_name`     | The driver name to use for the connection. E.g., *ODBC Driver 18 for SQL Server* |    string    |    N     |
-| `odbc_properties` | The dict of ODBC connection properties. E.g., authentication: ActiveDirectoryServicePrincipal. See more [here](https://learn.microsoft.com/en-us/sql/connect/odbc/dsn-connection-string-attribute?view=sql-server-ver16). | dict |    N     |
+| `type` | エンジンの種類名 - `azuresql` である必要があります | 文字列 | Y |
+| `host` | Azure SQL Server のホスト名 | 文字列 | Y |
+| `user` | Azure SQL Server での認証に使用するユーザー名 / クライアント ID | 文字列 | N |
+| `password` | Azure SQL Server での認証に使用するパスワード / クライアント シークレット | 文字列 | N |
+| `port` | Azure SQL Server のポート番号 | int | N |
+| `database` | ターゲット データベース | 文字列 | N |
+| `charset` | 接続に使用する文字セット | 文字列 | N |
+| `timeout` | クエリのタイムアウト (秒)。既定値: タイムアウトなし | int | N |
+| `login_timeout` | 接続およびログインのタイムアウト (秒)。既定値: 60 | int | N |
+| `appname` | 接続に使用するアプリケーション名 | 文字列 | N |
+| `conn_properties` | 接続プロパティのリスト | list[string] | N |
+| `autocommit` | 自動コミット モードが有効かどうか。既定値: false | bool | N |
+| `driver` | 接続に使用するドライバー。既定値: pymssql | 文字列 | N |
+| `driver_name` | 接続に使用するドライバー名。例: *ODBC Driver 18 for SQL Server* | 文字列 | N |
+| `odbc_properties` | ODBC 接続プロパティの辞書。例: 認証: ActiveDirectoryServicePrincipal。詳細については、[こちら](https://learn.microsoft.com/en-us/sql/connect/odbc/dsn-connection-string-attribute?view=sql-server-ver16) を参照してください。 | dict | N |

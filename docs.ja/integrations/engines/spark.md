@@ -1,25 +1,25 @@
 # Spark
 
-## Local/Built-in Scheduler
-**Engine Adapter Type**: `spark`
+## ローカル/組み込みスケジューラ
+**エンジンアダプタタイプ**: `spark`
 
-NOTE: Spark may not be used for the SQLMesh [state connection](../../reference/configuration.md#connections).
+注: Spark は SQLMesh の [状態接続](../../reference/configuration.md#connections) には使用できません。
 
-### Connection options
+### 接続オプション
 
-| Option       | Description                                                                                   |  Type  | Required |
-|--------------|-----------------------------------------------------------------------------------------------|:------:|:--------:|
-| `type`       | Engine type name - must be `spark`                                                            | string |    Y     |
-| `config_dir` | Value to set for `SPARK_CONFIG_DIR`                                                           | string |    N     |
-| `catalog`    | The catalog to use when issuing commands. See [Catalog Support](#catalog-support) for details | string |    N     |
-| `config`     | Key/value pairs to set for the Spark Configuration.                                           |  dict  |    N     |
+| オプション | 説明 | タイプ | 必須 |
+|--------------|--------------------------------------------------------------------------------------------------------------|:------:|:--------:|
+| `type` | エンジンタイプ名 - `spark` である必要があります | 文字列 | Y |
+| `config_dir` | `SPARK_CONFIG_DIR` に設定する値 | 文字列 | N |
+| `catalog` | コマンド発行時に使用するカタログ。詳細は [カタログサポート](#catalog-support) を参照してください | 文字列 | N |
+| `config` | Spark 構成に設定するキー/値のペア。 | 辞書 | N |
 
-## Catalog Support
+## カタログのサポート
 
-SQLMesh's Spark integration is only designed/tested with a single catalog usage in mind. 
-Therefore all SQLMesh models must be defined with a single catalog.
+SQLMesh の Spark 統合は、単一のカタログの使用のみを念頭に置いて設計/テストされています。
+そのため、すべての SQLMesh モデルは単一のカタログで定義する必要があります。
 
-If `catalog` is not set, then the behavior changes based on spark release:
+`catalog` が設定されていない場合、Spark のリリースに応じて動作が変わります。
 
-* If >=3.4, then the default catalog is determined at runtime
-* If <3.4, then the default catalog is `spark_catalog` 
+* 3.4 以上の場合、デフォルトのカタログは実行時に決定されます。
+* 3.4 未満の場合、デフォルトのカタログは `spark_catalog` です。

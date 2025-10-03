@@ -1,26 +1,26 @@
 # GCP Postgres
 
-## Local/Built-in Scheduler
-**Engine Adapter Type**: `gcp_postgres`
+## ローカル/組み込みスケジューラ
+**エンジンアダプタタイプ**: `gcp_postgres`
 
-### Installation
+### インストール
 ```
 pip install "sqlmesh[gcppostgres]"
 ```
 
-### Connection options
+### 接続オプション
 
-| Option                       | Description                                                                                            |    Type    | Required |
-|------------------------------|--------------------------------------------------------------------------------------------------------|:----------:|:--------:|
-| `type`                       | Engine type name - must be `gcp_postgres`                                                              |   string   |    Y     |
-| `instance_connection_string` | Connection name for the postgres instance                                                              |   string   |    Y     |
-| `user`                       | The username (postgres or IAM) to use for authentication                                               |   string   |    Y     |
-| `password`                   | The password to use for authentication. Required when connecting as a Postgres user                    |   string   |    N     |
-| `enable_iam_auth`            | Enables IAM authentication. Required when connecting as an IAM user                                    |  boolean   |    N     |
-| `keyfile`                    | Path to the keyfile to be used with enable_iam_auth instead of ADC                                     |   string   |    N     |
-| `keyfile_json`               | Keyfile information provided inline (not recommended)                                                  |    dict    |    N     |
-| `db`                         | The name of the database instance to connect to                                                        |   string   |    Y     |
-| `ip_type`                    | The IP type to use for the connection. Must be one of `public`, `private`, or `psc`. Default: `public` |   string   |    N     |
-| `timeout`                    | The connection timeout in seconds. Default: `30`                                                       |  integer   |    N     |
-| `scopes`                     | The scopes to use for the connection. Default: `(https://www.googleapis.com/auth/sqlservice.admin,)`   | tuple[str] |    N     |
-| `driver`                     | The driver to use for the connection. Default: `pg8000`. Note: only `pg8000` is tested                 |   string   |    N     |
+| オプション | 説明 | タイプ | 必須 |
+|----------------------------|------------------------------------------------------------------------------------------------------|:---------:|:--------:|
+| `type` | エンジンタイプ名 - `gcp_postgres` である必要があります | 文字列 | Y |
+| `instance_connection_string` | Postgres インスタンスの接続名 | 文字列 | Y |
+| `user` | 認証に使用するユーザー名（Postgres または IAM） | 文字列 | Y |
+| `password` | 認証に使用するパスワード。Postgres ユーザーとして接続する場合は必須 | 文字列 | N |
+| `enable_iam_auth` | IAM 認証を有効にします。IAM ユーザーとして接続する場合は必須 | ブール値 | N |
+| `keyfile` | ADC の代わりに enable_iam_auth で使用するキーファイルへのパス | 文字列 | N |
+| `keyfile_json` | キーファイルの情報はインラインで提供されます (非推奨) | dict | N |
+| `db` | 接続先のデータベース インスタンスの名前 | 文字列 | Y |
+| `ip_type` | 接続に使用する IP タイプ。`public`、`private`、または `psc` のいずれかである必要があります。デフォルト: `public` | 文字列 | N |
+| `timeout` | 接続タイムアウト (秒)。デフォルト: `30` | 整数 | N |
+| `scopes` | 接続に使用するスコープ。デフォルト: `(https://www.googleapis.com/auth/sqlservice.admin,)` | tuple[str] | N |
+| `driver` | 接続に使用するドライバ。デフォルト: `pg8000`。注: `pg8000` のみがテストされています | 文字列 | N |

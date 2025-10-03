@@ -1,112 +1,113 @@
 # ClickHouse
 
-This page describes SQLMesh support for the ClickHouse engine, including configuration options specific to ClickHouse.
+このページでは、ClickHouse 固有の構成オプションを含む、ClickHouse エンジンの SQLMesh サポートについて説明します。
 
 !!! note
-    ClickHouse may not be used for the SQLMesh [state connection](../../reference/configuration.md#connections).
 
-## Background
+    ClickHouseはSQLMeshの[状態接続](../../reference/configuration.md#connections)には使用できません。
 
-[ClickHouse](https://clickhouse.com/) is a distributed, column-oriented SQL engine designed to rapidly execute analytical workloads.
+## 背景
 
-It provides users fine-grained control of its behavior, but that control comes at the cost of complex configuration.
+[ClickHouse](https://clickhouse.com/) は、分析ワークロードを迅速に実行するために設計された、分散型の列指向SQLエンジンです。
 
-This section provides background information about ClickHouse, providing context for how to use SQLMesh with the ClickHouse engine.
+ClickHouseは、ユーザーがその動作をきめ細かく制御できますが、そのためには複雑な設定が必要になります。
 
-### Object naming
+このセクションでは、ClickHouseの背景情報を提供し、ClickHouseエンジンでSQLMeshを使用する方法について説明します。
 
-Most SQL engines use a three-level hierarchical naming scheme: tables/views are nested within _schemas_, and schemas are nested within _catalogs_. For example, the full name of a table might be `my_catalog.my_schema.my_table`.
+### オブジェクトの命名
 
-ClickHouse instead uses a two-level hierarchical naming scheme that has no counterpart to _catalog_. In addition, it calls the second level in the hierarchy "databases." SQLMesh and its documentation refer to this second level as "schemas."
+ほとんどのSQLエンジンは、3階層の階層的な命名スキームを使用します。テーブル/ビューは_schemas_内にネストされ、スキーマは_catalogs_内にネストされます。たとえば、テーブルの完全な名前は「my_catalog.my_schema.my_table」のようになります。
 
-SQLMesh fully supports ClickHouse's two-level naming scheme without user action.
+ClickHouseは、_catalog_に相当するものがない2階層の階層的な命名スキームを使用します。さらに、階層の2番目のレベルを「データベース」と呼びます。SQLMeshとそのドキュメントでは、この2番目のレベルを「スキーマ」と呼んでいます。
 
-### Table engines
+SQLMeshは、ユーザーの操作なしにClickHouseの2階層の命名スキームを完全にサポートしています。
 
-Every ClickHouse table is created with a ["table engine" that controls how the table's data is stored and queried](https://clickhouse.com/docs/en/engines/table-engines). ClickHouse's (and SQLMesh's) default table engine is `MergeTree`.
+### テーブルエンジン
 
-The [`MergeTree` engine family](https://clickhouse.com/docs/en/engines/table-engines/mergetree-family/mergetree) requires that every table be created with an `ORDER BY` clause.
+ClickHouse のすべてのテーブルは、[テーブルデータの保存方法とクエリ方法を制御する「テーブルエンジン」](https://clickhouse.com/docs/en/engines/table-engines) を使用して作成されます。ClickHouse (および SQLMesh) のデフォルトのテーブルエンジンは `MergeTree` です。
 
-SQLMesh will automatically inject an empty `ORDER BY` clause into every `MergeTree` family table's `CREATE` statement, or you can specify the columns/expressions by which the table should be ordered.
+[`MergeTree` エンジンファミリー](https://clickhouse.com/docs/en/engines/table-engines/mergetree-family/mergetree) では、すべてのテーブルを `ORDER BY` 句を使用して作成する必要があります。
 
-### ClickHouse modes of operation
+SQLMesh は、すべての `MergeTree` ファミリーテーブルの `CREATE` ステートメントに空の `ORDER BY` 句を自動的に挿入します。または、テーブルを並べ替える列/式を指定することもできます。
 
-Conceptually, it may be helpful to view ClickHouse as having three modes of operation: single server, cluster, and ClickHouse Cloud. SQLMesh supports all three modes.
+### ClickHouse の動作モード
 
-#### Single server mode
+概念的には、ClickHouse にはシングルサーバー、クラスター、ClickHouse Cloud の 3 つの動作モードがあると考えると分かりやすいでしょう。SQLMesh はこれら 3 つのモードすべてをサポートしています。
 
-Single server mode is similar to other SQL engines: aside from choosing each table's engine, you do not need to worry about how computations are executed. You issue standard SQL commands/queries, and ClickHouse executes them.
+#### シングルサーバーモード
 
-#### Cluster mode
+シングルサーバーモードは他のSQLエンジンと同様です。各テーブルのエンジンを選択するだけで、計算の実行方法については気にする必要はありません。標準的なSQLコマンド/クエリを発行すれば、ClickHouseがそれを実行します。
 
-Cluster mode allows you to scale your ClickHouse engine to any number of networked servers. This enables massive workloads, but requires that you specify how computations are executed by the networked servers.
+#### クラスターモード
 
-ClickHouse coordinates the computations on the networked servers with [ClickHouse Keeper](https://clickhouse.com/docs/en/architecture/horizontal-scaling) (it also supports [Apache ZooKeeper](https://zookeeper.apache.org/)).
+クラスターモードでは、ClickHouse エンジンを任意の数のネットワークサーバーに拡張できます。これにより大規模なワークロードが可能になりますが、ネットワークサーバーによる計算の実行方法を指定する必要があります。
 
-You specify named virtual clusters of servers in the Keeper configuration, and those clusters provide namespaces for data objects and computations. For example, you might include all networked servers in the cluster you name `MyCluster`.
+ClickHouse は、[ClickHouse Keeper](https://clickhouse.com/docs/en/architecture/horizo​​ntal-scaling) を使用して、ネットワークサーバー上の計算を調整します（[Apache ZooKeeper](https://zookeeper.apache.org/) もサポートしています）。
 
-In general, you must be connected to a ClickHouse server to execute commands. By default, each command you execute runs in single-server mode on the server you are connected to.
+Keeper の設定で、名前付き仮想サーバークラスターを指定します。これらのクラスターは、データオブジェクトと計算のための名前空間を提供します。例えば、ネットワークに接続されたすべてのサーバーを `MyCluster` という名前でクラスターに含めることができます。
 
-To associate an object with a cluster, DDL commands that create or modify it must include the text `ON CLUSTER [your cluster name]`.
+通常、コマンドを実行するには ClickHouse サーバーに接続している必要があります。デフォルトでは、実行する各コマンドは、接続しているサーバー上でシングルサーバーモードで実行されます。
 
-If you provide a cluster name in your SQLMesh connection configuration, SQLMesh will automatically inject the `ON CLUSTER` statement into the DDL commands for all objects created while executing the project. We provide more information about clusters in SQLMesh [below](#cluster-specification).
+オブジェクトをクラスターに関連付けるには、クラスターを作成または変更するDDLコマンドに「ON CLUSTER [クラスター名]」というテキストを含める必要があります。
 
-#### ClickHouse Cloud mode
+SQLMeshの接続設定でクラスター名を指定すると、SQLMeshはプロジェクト実行中に作成されるすべてのオブジェクトのDDLコマンドに「ON CLUSTER」ステートメントを自動的に挿入します。SQLMeshのクラスターに関する詳細は、[下記](#cluster-specification)で説明しています。
 
-[ClickHouse Cloud](https://clickhouse.com/cloud) is a managed ClickHouse platform. It allows you to scale ClickHouse without administering a cluster yourself or modifying your SQL commands to run on the cluster.
+#### ClickHouse Cloud モード
 
-ClickHouse Cloud automates ClickHouse's cluster controls, which sometimes constrains ClickHouse's flexibility or how you execute SQL commands. For example, creating a table with a `SELECT` command must [occur in two steps on ClickHouse Cloud](https://clickhouse.com/docs/en/sql-reference/statements/create/table#from-select-query). SQLMesh handles this limitation for you.
+[ClickHouse Cloud](https://clickhouse.com/cloud) は、マネージド ClickHouse プラットフォームです。これにより、クラスターを自分で管理したり、クラスター上で実行するために SQL コマンドを変更したりすることなく、ClickHouse を拡張できます。
 
-Aside from those constraints, ClickHouse Cloud mode is similar to single server mode - you run standard SQL commands/queries, and ClickHouse Cloud executes them.
+ClickHouse Cloud は ClickHouse のクラスター制御を自動化しますが、これにより ClickHouse の柔軟性や SQL コマンドの実行方法が制限される場合があります。たとえば、`SELECT` コマンドを使用してテーブルを作成する場合、[ClickHouse Cloud では 2 つの手順で実行する必要があります](https://clickhouse.com/docs/en/sql-reference/statements/create/table#from-select-query)。SQLMesh がこの制限を処理します。
 
-## Permissions
+これらの制約を除けば、ClickHouse Cloud モードはシングルサーバーモードに似ています。つまり、標準の SQL コマンド/クエリを実行すると、ClickHouse Cloud がそれらを実行します。
 
-In the default SQLMesh configuration, users must have sufficient permissions to create new ClickHouse databases.
+## 権限
 
-Alternatively, you can configure specific databases where SQLMesh should create table and view objects.
+デフォルトのSQLMesh設定では、ユーザーは新しいClickHouseデータベースを作成するための十分な権限を持っている必要があります。
 
-### Environment views
+あるいは、SQLMeshがテーブルオブジェクトとビューオブジェクトを作成する特定のデータベースを設定することもできます。
 
-Use the [`environment_suffix_target` key in your project configuration](../../guides/configuration.md#disable-environment-specific-schemas) to specify that environment views should be created within the model's database instead of in a new database:
+### 環境ビュー
+
+[プロジェクト設定の `environment_suffix_target` キー](../../guides/configuration.md#disable-environment-specific-schemas) を使用して、環境ビューを新しいデータベースではなくモデルのデータベース内に作成するように指定します。
 
 ``` yaml
 environment_suffix_target: table
 ```
 
-### Physical tables
+### 物理テーブル
 
-Use the [`physical_schema_mapping` key in your project configuration](../../guides/configuration.md#physical-table-schemas) to specify the databases where physical tables should be created.
+[プロジェクト構成の `physical_schema_mapping` キー](../../guides/configuration.md#physical-table-schemas) を使用して、物理テーブルを作成するデータベースを指定します。
 
-The key accepts a dictionary of regular expressions that map model database names to the corresponding databases where physical tables should be created.
+このキーには、モデルデータベース名と物理テーブルを作成するデータベースをマッピングする正規表現の辞書を指定できます。
 
-SQLMesh will compare a model's database name to each regular expression and use the first match to determine which database a physical table should be created in.
+SQLMesh は、モデルのデータベース名と各正規表現を比較し、最初に一致した表現を使用して物理テーブルを作成するデータベースを決定します。
 
-For example, this configuration places every model's physical table in the `model_physical_tables` database because the regular expression `.*` matches any database name:
+たとえば、次の構成では、正規表現 `.*` が任意のデータベース名に一致するため、すべてのモデルの物理テーブルが `model_physical_tables` データベースに配置されます。
 
 ``` yaml
 physical_schema_mapping:
   '.*': model_physical_tables
 ```
 
-## Cluster specification
+## クラスター仕様
 
-A ClickHouse cluster allows multiple networked ClickHouse servers to operate on the same data object. Every cluster must be named in the ClickHouse configuration files, and that name is passed to a table's DDL statements in the `ON CLUSTER` clause.
+ClickHouse クラスターを使用すると、ネットワークに接続された複数の ClickHouse サーバーが同じデータオブジェクトを操作できます。各クラスターは ClickHouse 設定ファイルで名前を付ける必要があり、その名前はテーブルの DDL ステートメントの `ON CLUSTER` 句に渡されます。
 
-For example, we could create a table `my_schema.my_table` on cluster `TheCluster` like this: `CREATE TABLE my_schema.my_table ON CLUSTER TheCluster (col1 Int8)`.
+例えば、クラスター `TheCluster` にテーブル `my_schema.my_table` を作成するには、`CREATE TABLE my_schema.my_table ON CLUSTER TheCluster (col1 Int8)` と記述します。
 
-To create SQLMesh objects on a cluster, provide the cluster name to the `cluster` key in the SQLMesh connection definition (see all connection parameters [below](#localbuilt-in-scheduler)).
+クラスター上に SQLMesh オブジェクトを作成するには、SQLMesh 接続定義の `cluster` キーにクラスター名を指定します（すべての接続パラメータについては [下記](#localbuilt-in-scheduler) を参照してください）。
 
-SQLMesh will automatically inject the `ON CLUSTER` clause and cluster name you provide into all project DDL statements.
+SQLMesh は、指定した `ON CLUSTER` 句とクラスター名をすべてのプロジェクトの DDL ステートメントに自動的に挿入します。
 
-## Model definition
+## モデル定義
 
-This section describes how you control a table's engine and other ClickHouse-specific functionality in SQLMesh models.
+このセクションでは、SQLMesh モデルにおけるテーブルエンジンとその他の ClickHouse 固有の機能の制御方法について説明します。
 
-### Table engine
+### テーブルエンジン
 
-SQLMesh uses the `MergeTree` table engine with an empty `ORDER BY` clause by default.
+SQLMesh は、デフォルトで空の `ORDER BY` 句を持つ `MergeTree` テーブルエンジンを使用します。
 
-Specify a different table engine by passing the table engine definition to the model DDL's `storage_format` parameter. For example, you could specify the `Log` table engine like this:
+別のテーブルエンジンを指定するには、モデル DDL の `storage_format` パラメータにテーブルエンジン定義を渡します。例えば、`Log` テーブルエンジンは次のように指定できます。
 
 ``` sql linenums="1" hl_lines="4"
 MODEL (
@@ -120,7 +121,7 @@ select
 from other_schema.other_table;
 ```
 
-You may also specify more complex table engine definitions. For example:
+より複雑なテーブルエンジン定義を指定することもできます。例:
 
 ``` sql linenums="1" hl_lines="4"
 MODEL (
@@ -136,13 +137,13 @@ from other_schema.other_table;
 
 #### ORDER BY
 
-`MergeTree` family engines require that a table's `CREATE` statement include the `ORDER BY` clause.
+`MergeTree` ファミリーのエンジンでは、テーブルの `CREATE` 文に `ORDER BY` 句が含まれている必要があります。
 
-SQLMesh will automatically inject an empty `ORDER BY ()` when creating a table with an engine in the `MergeTree` family. This creates the table without any ordering.
+SQLMesh は、`MergeTree` ファミリーのエンジンを使用してテーブルを作成する際に、空の `ORDER BY()` 句を自動的に挿入します。これにより、順序付けのないテーブルが作成されます。
 
-You may specify columns/expressions to `ORDER BY` by passing them to the model `physical_properties` dictionary's `order_by` key.
+`ORDER BY` 句で指定する列/式は、モデルの `physical_properties` ディクショナリの `order_by` キーに渡すことができます。
 
-For example, you could order by columns `col1` and `col2` like this:
+例えば、列 `col1` と `col2` で並べ替える場合は、次のようにします。
 
 ``` sql linenums="1" hl_lines="4-6"
 MODEL (
@@ -158,13 +159,13 @@ select
 from other_schema.other_table;
 ```
 
-Note that there is an `=` between the `order_by` key name and value `(col1, col2)`.
+`order_by` のキー名と値 `(col1, col2)` の間に `=` があることに注意してください。
 
-Complex `ORDER BY` expressions may need to be passed in single quotes, with interior single quotes escaped by the `\` character.
+複雑な `ORDER BY` 式は、一重引用符で囲んで渡す必要がある場合があります。その場合、一重引用符内の引用符は `\` 文字でエスケープする必要があります。
 
 #### PRIMARY KEY
 
-Table engines may also accept a `PRIMARY KEY` specification. Similar to `ORDER BY`, specify a primary key in the model DDL's `physical_properties` dictionary. For example:
+テーブルエンジンは `PRIMARY KEY` 指定も受け入れる場合があります。`ORDER BY` と同様に、モデル DDL の `physical_properties` ディクショナリで主キーを指定します。例:
 
 ``` sql linenums="1" hl_lines="6"
 MODEL (
@@ -181,13 +182,13 @@ select
 from other_schema.other_table;
 ```
 
-Note that there is an `=` between the `primary_key` key name and value `col1`.
+`primary_key` キー名と値 `col1` の間に `=` があることに注意してください。
 
 ### TTL
 
-ClickHouse tables accept a [TTL expression that triggers actions](https://clickhouse.com/docs/en/guides/developer/ttl) like deleting rows after a certain amount of time has passed.
+ClickHouse テーブルは、一定時間経過後に行を削除するなどの[アクションをトリガーする TTL 式](https://clickhouse.com/docs/en/guides/developer/ttl) を受け入れます。
 
-Similar to `ORDER_BY` and `PRIMARY_KEY`, specify a TTL key in the model DDL's `physical_properties` dictionary. For example:
+`ORDER_BY` や `PRIMARY_KEY` と同様に、モデル DDL の `physical_properties` ディクショナリに TTL キーを指定します。例:
 
 ``` sql linenums="1" hl_lines="6"
 MODEL (
@@ -205,13 +206,13 @@ select
 from other_schema.other_table;
 ```
 
-Note that there is an `=` between the `ttl` key name and value `timestamp + INTERVAL 1 WEEK`.
+`ttl` キー名と値 `timestamp + INTERVAL 1 WEEK` の間に `=` があることに注意してください。
 
-### Partitioning
+### パーティショニング
 
-Some ClickHouse table engines support partitioning. Specify the partitioning columns/expressions in the model DDL's `partitioned_by` key.
+一部の ClickHouse テーブルエンジンはパーティショニングをサポートしています。モデル DDL の `partitioned_by` キーでパーティショニングする列/式を指定します。
 
-For example, you could partition by columns `col1` and `col2` like this:
+例えば、次のように `col1` と `col2` 列でパーティション分割できます。
 
 ``` sql linenums="1" hl_lines="4"
 MODEL (
@@ -225,19 +226,19 @@ select
 from other_schema.other_table;
 ```
 
-Learn more below about how SQLMesh uses [partitioned tables to improve performance](#performance-considerations).
+SQLMesh が [パーティション化されたテーブルを使用してパフォーマンスを向上させる](#performance-considerations) 方法については、以下で詳しく説明します。
 
-## Settings
+## 設定
 
-ClickHouse supports an [immense number of settings](https://clickhouse.com/docs/en/operations/settings), many of which can be altered in multiple places: ClickHouse configuration files, Python client connection arguments, DDL statements, SQL queries, and others.
+ClickHouse は [膨大な数の設定](https://clickhouse.com/docs/en/operations/settings) をサポートしており、その多くは ClickHouse 設定ファイル、Python クライアント接続引数、DDL 文、SQL クエリなど、複数の場所で変更できます。
 
-This section discusses how to control ClickHouse settings in SQLMesh.
+このセクションでは、SQLMesh で ClickHouse 設定を制御する方法について説明します。
 
-### Connection settings
+### 接続設定
 
-SQLMesh connects to Python with the [`clickhouse-connect` library](https://clickhouse.com/docs/en/integrations/python). Its connection method accepts a dictionary of arbitrary settings that are passed to ClickHouse.
+SQLMesh は [`clickhouse-connect` ライブラリ](https://clickhouse.com/docs/en/integrations/python) を使用して Python に接続します。この接続メソッドは、ClickHouse に渡される任意の設定のディクショナリを受け入れます。
 
-Specify these settings in the `connection_settings` key. This example demonstrates how to set the `distributed_ddl_task_timeout` setting to `300`:
+これらの設定は `connection_settings` キーで指定します。次の例は、`distributed_ddl_task_timeout` 設定を `300` に設定する方法を示しています。
 
 ``` yaml linenums="1" hl_lines="8-9"
 clickhouse_gateway:
@@ -253,13 +254,13 @@ clickhouse_gateway:
     type: duckdb
 ```
 
-### DDL settings
+### DDL 設定
 
-ClickHouse settings may also be specified in DDL commands like `CREATE`.
+ClickHouse 設定は、`CREATE` などの DDL コマンドでも指定できます。
 
-Specify these settings in a model DDL's [`physical_properties` key](https://sqlmesh.readthedocs.io/en/stable/concepts/models/overview/?h=physical#physical_properties) (where the [`order_by`](#order-by) and [`primary_key`](#primary-key) values are specified, if present).
+これらの設定は、モデル DDL の [`physical_properties` キー](https://sqlmesh.readthedocs.io/en/stable/concepts/models/overview/?h=physical#physical_properties) で指定します（[`order_by`](#order-by) と [`primary_key`](#primary-key) の値が存在する場合は、それらも指定します）。
 
-This example demonstrates how to set the `index_granularity` setting to `128`:
+次の例は、`index_granularity` 設定を `128` に設定する方法を示しています。
 
 ``` sql linenums="1" hl_lines="4-6"
 MODEL (
@@ -275,13 +276,13 @@ select
 from other_schema.other_table;
 ```
 
-Note that there is an `=` between the `index_granularity` key name and value `128`.
+`index_granularity` キー名と値 `128` の間に `=` があることに注意してください。
 
-### Query settings
+### クエリ設定
 
-ClickHouse settings may be specified directly in a model's query with the `SETTINGS` keyword.
+ClickHouse の設定は、モデルのクエリ内で `SETTINGS` キーワードを使用して直接指定できます。
 
-This example demonstrates setting the `join_use_nulls` setting to `1`:
+次の例では、`join_use_nulls` 設定を `1` に設定しています。
 
 ``` sql linenums="1" hl_lines="9"
 MODEL (
@@ -295,155 +296,149 @@ from other_schema.other_table
 SETTINGS join_use_nulls = 1;
 ```
 
-Multiple settings may be specified in a query with repeated use of the `SETTINGS` keyword: `SELECT * FROM other_table SETTINGS first_setting = 1 SETTINGS second_setting = 2;`.
+`SETTINGS` キーワードを繰り返し使用することで、クエリ内で複数の設定を指定できます。例: `SELECT * FROM other_table SETTINGS first_setting = 1 SETTINGS second_setting = 2;`
 
-#### Usage by SQLMesh
+#### SQLMesh での使用法
 
-The ClickHouse setting `join_use_nulls` affects the behavior of SQLMesh SCD models and table diffs. This section describes how SQLMesh uses query settings to control that behavior.
+ClickHouse 設定の `join_use_nulls` は、SQLMesh SCD モデルとテーブル差分の動作に影響します。このセクションでは、SQLMesh がクエリ設定を使用してその動作を制御する方法について説明します。
 
-^^Background^^
+^^背景^^
 
-In general, table `JOIN`s can return empty cells for rows not present in both tables.
+一般的に、テーブルの `JOIN` は、両方のテーブルに存在しない行に対して空のセルを返すことがあります。
 
-For example, consider `LEFT JOIN`ing two tables `left` and `right`, where the column `right_column` is only present in the `right` table. Any rows only present in the `left` table will have no value for `right_column` in the joined table.
+例えば、2つのテーブル `left` と `right` を `LEFT JOIN` で結合するとします。ここで、列 `right_column` は `right` テーブルにのみ存在します。`left` テーブルにのみ存在する行は、結合後のテーブルの `right_column` に値を持ちません。
 
-In other SQL engines, those empty cells are filled with `NULL`s.
+他のSQLエンジンでは、これらの空のセルには `NULL` が設定されます。
 
-In contrast, ClickHouse fills the empty cells with data type-specific default values (e.g., 0 for integer column types). It will instead fill the cells with `NULL`s if you set the `join_use_nulls` setting to `1`.
+一方、ClickHouse は空のセルにデータ型固有のデフォルト値（例：整数列の場合は 0）を設定します。`join_use_nulls` 設定を `1` に設定すると、セルには `NULL` が設定されます。
 
 ^^SQLMesh^^
 
-SQLMesh automatically generates SQL queries for both SCD Type 2 models and table diff comparisons. These queries include table `JOIN`s and calculations based on the presence of `NULL` values.
+SQLMesh は、SCD タイプ 2 モデルとテーブル比較の両方に対して SQL クエリを自動的に生成します。これらのクエリには、テーブルの `JOIN` と `NULL` 値の存在に基づく計算が含まれます。
 
-Because those queries expect `NULL` values in empty cells, SQLMesh automatically adds `SETTINGS join_use_nulls = 1` to the generated SCD and table diff SQL code.
+これらのクエリは空のセルに `NULL` 値が入ることを想定しているため、SQLMesh は生成された SCD およびテーブル比較 SQL コードに `SETTINGS join_use_nulls = 1` を自動的に追加します。
 
-The SCD model definition query is embedded as a CTE in the full SQLMesh-generated query. If run alone, the model definition query would use the ClickHouse server's current `join_use_nulls` value.
+SCD モデル定義クエリは、SQLMesh によって生成された完全なクエリに CTE として埋め込まれます。単独で実行した場合、モデル定義クエリは ClickHouse サーバーの現在の `join_use_nulls` 値を使用します。
 
-If that value is not `1`, the SQLMesh setting on the outer query would override the server value and produce incorrect results.
+この値が `1` でない場合、外部クエリの SQLMesh 設定がサーバーの値を上書きし、誤った結果が生成されます。
 
-Therefore, SQLMesh uses the following procedure to ensure the model definition query runs with the correct `join_use_nulls` value:
+そのため、SQLMesh はモデル定義クエリが正しい `join_use_nulls` 値で実行されるように、以下の手順に従います。
 
-- If the model query sets `join_use_nulls` itself, do nothing
-- If the model query does not set `join_use_nulls` and the current server `join_use_nulls` value is `1`, do nothing
-- If the model query does not set `join_use_nulls` and the current server `join_use_nulls` value is `0`, add `SETTINGS join_use_nulls = 0` to the CTE model query
-    - All other CTEs and the outer query will still execute with a `join_use_nulls` value of `1`
+- モデルクエリ自体が `join_use_nulls` を設定している場合は何も行いません。
+- モデルクエリが `join_use_nulls` を設定せず、現在のサーバーの `join_use_nulls` 値が `1` の場合は何も行いません。
+- モデルクエリが `join_use_nulls` を設定せず、現在のサーバーの `join_use_nulls` 値が `0` の場合は、CTE モデルクエリに `SETTINGS join_use_nulls = 0` を追加します。
+    - その他のすべての CTE と外部クエリは、引き続き `join_use_nulls` 値が `1` の状態で実行されます。
 
-## Performance considerations
+## パフォーマンスに関する考慮事項
 
-ClickHouse is optimized for writing/reading records, so deleting/replacing records can be extremely slow.
+ClickHouse はレコードの書き込み/読み取りに最適化されているため、レコードの削除/置換に非常に時間がかかる場合があります。
 
-This section describes why SQLMesh needs to delete/replace records and how the ClickHouse engine adapter works around the limitations.
+このセクションでは、SQLMesh がレコードの削除/置換を必要とする理由と、ClickHouse エンジンアダプタがこれらの制限をどのように回避するかについて説明します。
 
-### Why delete or replace?
+### なぜ削除または置換するのですか？
 
-SQLMesh "materializes" model kinds in a number of ways, such as:
+SQLMesh は、モデルの種類を以下のように様々な方法で「具体化」します。
 
-- Replacing an entire table ([`FULL` models](../../concepts/models/model_kinds.md#full))
-- Replacing records in a specific time range ([`INCREMENTAL_BY_TIME_RANGE` models](../../concepts/models/model_kinds.md#incremental_by_time_range))
-- Replacing records with specific key values ([`INCREMENTAL_BY_UNIQUE_KEY` models](../../concepts/models/model_kinds.md#incremental_by_unique_key))
-- Replacing records in specific partitions ([`INCREMENTAL_BY_PARTITION` models](../../concepts/models/model_kinds.md#incremental_by_partition))
+- テーブル全体を置換する ([`FULL` モデル](../../concepts/models/model_kinds.md#full))
+- 特定の時間範囲のレコードを置換する ([`INCREMENTAL_BY_TIME_RANGE` モデル](../../concepts/models/model_kinds.md#incremental_by_time_range))
+- 特定のキー値を持つレコードを置換する ([`INCREMENTAL_BY_UNIQUE_KEY` モデル](../../concepts/models/model_kinds.md#incremental_by_unique_key))
+- 特定のパーティション内のレコードを置換する ([`INCREMENTAL_BY_PARTITION` モデル])モデル](../../concepts/models/model_kinds.md#incremental_by_partition))
 
-Different SQL engines provide different methods for performing record replacement.
+SQLエンジンによって、レコードの置換方法は異なります。
 
-Some engines natively support updating or inserting ("upserting") records. For example, in some engines you can `merge` a new table into an existing table based on a key. Records in the new table whose keys are already in the existing table will update/replace the existing records. Records in the new table without keys in the existing table will be inserted into the existing table.
+一部のエンジンは、レコードの更新または挿入（「アップサート」）をネイティブでサポートしています。例えば、一部のエンジンでは、キーに基づいて新しいテーブルを既存のテーブルに「マージ」できます。新しいテーブルのレコードのうち、既存のテーブルに既にキーが存在するレコードは、既存のレコードを更新/置換します。新しいテーブルのレコードのうち、既存のテーブルにキーが存在しないレコードは、既存のテーブルに挿入されます。
 
-Other engines do not natively support upserts, so SQLMesh replaces records in two steps: delete the records to update/replace from the existing table, then insert the new records.
+他のエンジンはアップサートをネイティブでサポートしていないため、SQLMeshはレコードを2段階で置換します。まず、既存のテーブルから更新/置換するレコードを削除し、次に新しいレコードを挿入します。
 
-ClickHouse does not support upserts, and it performs the two step delete/insert operation so slowly as to be unusable. Therefore, SQLMesh uses a different method for replacing records.
+ClickHouseはアップサートをサポートしておらず、この2段階の削除/挿入操作は非常に遅く、実用的ではありません。そのため、SQLMeshはレコードの置換に別の方法を使用します。
 
-### Temp table swap
+### 一時テーブルスワップ
 
-SQLMesh uses what we call the "temp table swap" method of replacing records in ClickHouse.
+SQLMeshは、ClickHouseのレコードを置き換える際に、「一時テーブルスワップ」と呼ばれる手法を使用します。
 
-Because ClickHouse is optimized for writing and reading records, it is often faster to copy most of a table than to delete a small portion of its records. That is the approach used by the temp table swap method (with optional performance improvements [for partitioned tables](#partition-swap)).
+ClickHouseはレコードの書き込みと読み取りに最適化されているため、テーブルの大部分をコピーする方が、レコードの一部を削除するよりも高速になる場合が多くあります。これが、一時テーブルスワップ手法で採用されているアプローチです（パーティションテーブルの場合は、オプションでパフォーマンスを向上できます）。
 
-The temp table swap has four steps:
+一時テーブルスワップには4つのステップがあります。
 
-1. Make an empty temp copy of the existing table that has the same structure (columns, data types, table engine, etc.)
-2. Insert new records into the temp table
-3. Insert the existing records that should be **kept** into the temp table
-4. Swap the table names, such that the temp table now has the existing table's name
+1. 既存のテーブルと同じ構造（列、データ型、テーブルエンジンなど）を持つ空の一時コピーを作成します。
+2. 一時テーブルに新しいレコードを挿入します。
+3. **保持** する必要がある既存のレコードを一時テーブルに挿入します。
+4. テーブル名を交換し、一時テーブルの名前を既存のテーブルと同じにします。
 
-Figure 1 illustrates these four steps:
+図1は、これらの4つのステップを示しています。
 <br></br>
 
 ![ClickHouse table swap steps](./clickhouse/clickhouse_table-swap-steps.png){ loading=lazy }
-_Figure 1: steps to execute a temp table swap_
+_図1: 一時テーブルスワップの実行手順_
 <br></br>
 
-The weakness of this method is that it requires copying all existing rows to keep (step three), which can be problematic for large tables.
+この方法の弱点は、既存のすべての行をコピーして保持する必要があることです（手順3）。これは、大規模なテーブルでは問題となる可能性があります。
 
-To address this weakness, SQLMesh instead uses *partition* swapping if a table is partitioned.
+この弱点に対処するため、SQLMeshはテーブルがパーティション分割されている場合、代わりに*パーティション*スワップを使用します。
 
-### Partition swap
+### パーティションスワップ
 
-ClickHouse supports *partitioned* tables, which store groups of records in separate files, or "partitions."
+ClickHouse は、レコードのグループを別々のファイル（つまり「パーティション」）に保存する「パーティション化された」テーブルをサポートしています。
 
-A table is partitioned based on a table column or SQL expression - the "partitioning key." All records with the same value for the partitioning key are stored together in a partition.
+テーブルは、テーブル列または SQL 式（「パーティションキー」）に基づいてパーティション化されます。パーティションキーの値が同じすべてのレコードは、同じパーティションにまとめて保存されます。
 
-For example, consider a table containing each record's creation date in a datetime column. If we partition the table by month, all the records whose timestamp was in January will be stored in one partition, records from February in another partition, and so on.
+例えば、各レコードの作成日を datetime 列に格納するテーブルを考えてみましょう。テーブルを月ごとにパーティション化すると、タイムスタンプが 1 月のレコードはすべて 1 つのパーティションに保存され、2 月のレコードは別のパーティションに保存される、といった具合になります。
 
-Table partitioning provides a major benefit for improving swap performance: records can be inserted, updated, or deleted in individual partitions.
+テーブルパーティション化は、スワップパフォーマンスを向上させる上で大きなメリットをもたらします。レコードは個々のパーティションで挿入、更新、または削除できます。
 
-SQLMesh leverages this to avoid copying large numbers of existing records into a temp table. Instead, it only copies the records that are in partitions affected by a load's newly ingested records.
+SQLMesh はこれを利用して、大量の既存レコードを一時テーブルにコピーすることを回避します。代わりに、ロードによって新たに取り込まれたレコードの影響を受けるパーティション内のレコードのみをコピーします。
 
-SQLMesh automatically uses partition swapping for any incremental model that specifies the [`partitioned_by`](../../concepts/models/overview.md#partitioned_by) key.
+SQLMesh は、[`partitioned_by`](../../concepts/models/overview.md#partitioned_by) キーを指定する増分モデルに対してパーティション スワッピングを自動的に使用します。
 
-#### Choosing a partitioning key
+#### パーティションキーの選択
 
-The first step of partitioning a table is choosing its partitioning key (columns or expression). The primary consideration for a key is the total number of partitions it will generate, which affects table performance.
+テーブルをパーティション分割する最初のステップは、パーティションキー（列または式）を選択することです。キーを選択する際に最も考慮すべき点は、生成されるパーティションの総数です。これはテーブルのパフォーマンスに影響します。
 
-Too many partitions can drastically decrease performance because the overhead of handling partition files swamps the benefits of copying fewer records. Too few partitions decreases swap performance because many existing records must still be copied in each incremental load.
+パーティションが多すぎると、パーティションファイルの処理にかかるオーバーヘッドが、コピーするレコード数が少ないことによるメリットを相殺してしまうため、パフォーマンスが大幅に低下する可能性があります。パーティションが少なすぎると、増分ロードのたびに多くの既存レコードをコピーする必要があるため、スワップパフォーマンスが低下します。
 
-!!! question "How many partitions is too many?"
+!!! question "パーティションが多すぎるとしたら何個でしょうか?"
 
-    ClickHouse's documentation [specifically warns against tables having too many partitions](https://clickhouse.com/docs/en/engines/table-engines/mergetree-family/custom-partitioning-key), suggesting a maximum of 1000.
+    ClickHouse のドキュメントでは、[テーブルのパーティションが多すぎる場合](https://clickhouse.com/docs/en/engines/table-engines/mergetree-family/custom-partitioning-key) という警告が出ており、最大 1000 が推奨されています。
 
-The total number of partitions in a table is determined by the actual data in the table, not by the partition column/expression alone.
+テーブル内のパーティションの総数は、パーティション列/式のみではなく、テーブル内の実際のデータによって決まります。
 
-For example, consider a table partitioned by date. If we insert records created on `2024-10-23`, the table will have one partition. If we then insert records from `2024-10-24`, the table will have two partitions. One partition is created for each unique value of the key.
+例えば、日付でパーティション分割されたテーブルを考えてみましょう。`2024-10-23` に作成されたレコードを挿入すると、テーブルには 1 つのパーティションが含まれます。次に `2024-10-24` からのレコードを挿入すると、テーブルには 2 つのパーティションが作成されます。キーの一意の値ごとに1つのパーティションが作成されます。
 
-For each partitioned table in your project, carefully consider the number of partitions created by the combination of your partitioning expression and the characteristics of your data.
+プロジェクト内のパーティション分割されたテーブルごとに、パーティション分割式とデータの特性の組み合わせによって作成されるパーティションの数を慎重に検討してください。
 
-#### Incremental by time models
+#### 時間による増分モデル
 
-`INCREMENTAL_BY_TIME_RANGE` kind models must be partitioned by time. If the model's `time_column` is not present in any `partitioned_by` expression, SQLMesh will automatically add it as the first partitioning expression.
+`INCREMENTAL_BY_TIME_RANGE` タイプのモデルは、時間でパーティション分割する必要があります。モデルの `time_column` がどの `partitioned_by` 式にも指定されていない場合、SQLMesh はそれを最初のパーティション分割式として自動的に追加します。
 
-By default, `INCREMENTAL_BY_TIME_RANGE` models partition by week, so the maximum recommended 1000 partitions corresponds to about 19 years of data. SQLMesh projects have widely varying time ranges and data sizes, so you should choose a model's partitioning key based on the data your system will process.
+デフォルトでは、`INCREMENTAL_BY_TIME_RANGE` モデルは週ごとにパーティション分割されるため、推奨される最大 1,000 パーティションは約 19 年分のデータに相当します。SQLMesh プロジェクトでは時間範囲とデータサイズが大きく異なるため、システムが処理するデータに基づいてモデルのパーティション分割キーを選択する必要があります。
 
-If a model has many records in each partition, you may see additional performance benefits by including the time column in the model's [`ORDER_BY` expression](#order-by).
+モデルの各パーティションに多数のレコードが含まれる場合、モデルの [`ORDER_BY` 式](#order-by) に時間列を含めることで、パフォーマンスがさらに向上する可能性があります。
 
-!!! info "Partitioning by time"
-    `INCREMENTAL_BY_TIME_RANGE` models must be partitioned by time.
+!!! info "時間による分割"
 
-    SQLMesh will automatically partition them by **week** unless the `partitioned_by` configuration key includes the time column or an expression based on it.
+    `INCREMENTAL_BY_TIME_RANGE` モデルは時間でパーティション分割する必要があります。
 
-    Choose a model's time partitioning granularity based on the characteristics of the data it will process, making sure the total number of partitions is 1000 or fewer.
+    SQLMesh は、`partitioned_by` 構成キーに時間列またはそれに基づく式が含まれていない限り、モデルを **週** で自動的にパーティション分割します。
 
-## Local/Built-in Scheduler
+    処理するデータの特性に基づいてモデルの時間パーティション分割の粒度を選択し、パーティションの総数が 1,000 以下になるようにしてください。
 
-**Engine Adapter Type**: `clickhouse`
+ローカル/組み込みスケジューラ
 
-| Option                    | Description                                                                                                                                                                                                                                                                     |  Type  | Required |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | :------: |
-| `type`                    | Engine type name - must be `clickhouse`                                                                                                                                                                                                                                         | string |    Y     |
-| `host`                    | ClickHouse server hostname or IP address                                                                                                                                                                                                                                        | string |    Y     |
-| `username`                | ClickHouse user name                                                                                                                                                                                                                                                            | string |    Y     |
-| `password`                | ClickHouse user password                                                                                                                                                                                                                                                        | string |    N     |
-| `port`                    | The ClickHouse HTTP or HTTPS port (Default: `8123`)                                                                                                                                                                                                                             |  int   |    N     |
-| `cluster`                 | ClickHouse cluster name                                                                                                                                                                                                                                                         | string |    N     |
-| `connect_timeout`         | Connection timeout in seconds (Default: `10`)                                                                                                                                                                                                                                   |  int   |    N     |
-| `send_receive_timeout`    | Send/receive timeout in seconds (Default: `300`)                                                                                                                                                                                                                                |  int   |    N     |
-| `query_limit`             | Query result limit (Default: `0` - no limit)                                                                                                                                                                                                                                    |  int   |    N     |
-| `use_compression`         | Whether to use compression (Default: `True`)                                                                                                                                                                                                                                    |  bool  |    N     |
-| `compression_method`      | Compression method to use                                                                                                                                                                                                                                                       | string |    N     |
-| `http_proxy`              | HTTP proxy address (equivalent to setting the HTTP_PROXY environment variable)                                                                                                                                                                                                  | string |    N     |
-| `verify`                  | Verify server TLS/SSL certificate (Default: `True`)                                                                                                                                                                                                                             |  bool  |    N     |
-| `ca_cert`                 | Ignored if verify is `False`. If verify is `True`, the file path to Certificate Authority root to validate ClickHouse server certificate, in .pem format. Not necessary if the ClickHouse server certificate is a globally trusted root as verified by the operating system.    | string |    N     |
-| `client_cert`             | File path to a TLS Client certificate in .pem format (for mutual TLS authentication). The file should contain a full certificate chain, including any intermediate certificates.                                                                                                | string |    N     |
-| `client_cert_key`         | File path to the private key for the Client Certificate. Required if the private key is not included the Client Certificate key file.                                                                                                                                           | string |    N     |
-| `https_proxy`             | HTTPS proxy address (equivalent to setting the HTTPS_PROXY environment variable)                                                                                                                                                                                                | string |    N     |
-| `server_host_name`        | The ClickHouse server hostname as identified by the CN or SNI of its TLS certificate. Set this to avoid SSL errors when connecting through a proxy or tunnel with a different hostname.                                                                                         | string |    N     |
-| `tls_mode`                | Controls advanced TLS behavior. proxy and strict do not invoke ClickHouse mutual TLS connection, but do send client cert and key. mutual assumes ClickHouse mutual TLS auth with a client certificate.                                                                          | string |    N     |
-| `connection_settings`     | Additional [connection settings](https://clickhouse.com/docs/integrations/python#settings-argument)                                                                                                                                                                             |  dict  |    N     |
-| `connection_pool_options` | Additional [options](https://clickhouse.com/docs/integrations/python#customizing-the-http-connection-pool)                                                                                                                                         for the HTTP connection pool |  dict  |    N     |
+**エンジンアダプタタイプ**: `clickhouse`
+
+| オプション | 説明 | タイプ | 必須 |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | :------: |
+| `type` | エンジンタイプ名 - `clickhouse` である必要があります | 文字列 | Y |
+| `host` | ClickHouse サーバーのホスト名または IP アドレス | 文字列 | Y |
+| `username` | ClickHouse ユーザー名 | 文字列 | Y |
+| `password` | ClickHouse ユーザーパスワード | 文字列 | N |
+| `port` | ClickHouse HTTP または HTTPS ポート (デフォルト: `8123`) | 整数 | N |
+| `cluster` | ClickHouse クラスター名 | 文字列 | N |
+| `connect_timeout` |接続タイムアウト（秒）（デフォルト: `10`）| int | N |
+| `send_receive_timeout` | 送受信タイムアウト（秒）（デフォルト: `300`）| int | N |
+| `query_limit` | クエリ結果の制限（デフォルト: `0` - 制限なし）| int | N |
+| `use_compression` | 圧縮を使用するかどうか（デフォルト: `True`）| bool | N |
+| `compression_method` | 使用する圧縮方法 | 文字列 | N |
+| `http_proxy` | HTTP プロキシ アドレス（HTTP_PROXY 環境変数の設定に相当）| 文字列 | N |
+| `verify` | サーバーの TLS/SSL 証明書を検証する（デフォルト: `True`）| bool | N |
+| `ca_cert` | verify が `False` の場合は無視されます。verify が `T

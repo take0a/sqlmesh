@@ -1,643 +1,593 @@
 # CLI
 
 ```
-Usage: sqlmesh [OPTIONS] COMMAND [ARGS]...
+使用方法: sqlmesh [オプション] コマンド [引数]...
 
-  SQLMesh command line tool.
+  SQLMesh コマンドラインツール。
 
-Options:
-  --version            Show the version and exit.
-  -p, --paths TEXT     Path(s) to the SQLMesh config/project.
-  --config TEXT        Name of the config object. Only applicable to
-                       configuration defined using Python script.
-  --gateway TEXT       The name of the gateway.
-  --ignore-warnings    Ignore warnings.
-  --debug              Enable debug mode.
-  --log-to-stdout      Display logs in stdout.
-  --log-file-dir TEXT  The directory to write log files to.
-  --help               Show this message and exit.
+オプション:
+  --version           バージョンを表示して終了します。
+  -p, --paths TEXT    SQLMesh 設定/プロジェクトへのパス。
+  --config TEXT       設定オブジェクトの名前。
+                      Python スクリプトを使用して定義された設定にのみ適用されます。
+  --gateway TEXT      ゲートウェイの名前。
+  --ignore-warnings   警告を無視します。
+  --debug             デバッグモードを有効にします。
+  --log-to-stdout     ログを標準出力に表示します。
+  --log-file-dir TEXT ログファイルを書き込むディレクトリ。
+  --help              このメッセージを表示して終了します。
 
-Commands:
-  audit                   Run audits for the target model(s).
-  clean                   Clears the SQLMesh cache and any build artifacts.
-  create_external_models  Create a schema file containing external model...
-  create_test             Generate a unit test fixture for a given model.
-  dag                     Render the DAG as an html file.
-  destroy                 The destroy command removes all project resources.
-  diff                    Show the diff between the local state and the...
-  dlt_refresh             Attaches to a DLT pipeline with the option to...
-  environments            Prints the list of SQLMesh environments with...
-  evaluate                Evaluate a model and return a dataframe with a...
-  fetchdf                 Run a SQL query and display the results.
-  format                  Format all SQL models and audits.
-  info                    Print information about a SQLMesh project.
-  init                    Create a new SQLMesh repository.
-  invalidate              Invalidate the target environment, forcing its...
-  janitor                 Run the janitor process on-demand.
-  migrate                 Migrate SQLMesh to the current running version.
-  plan                    Apply local changes to the target environment.
-  prompt                  Uses LLM to generate a SQL query from a prompt.
-  render                  Render a model's query, optionally expanding...
-  rewrite                 Rewrite a SQL expression with semantic...
-  rollback                Rollback SQLMesh to the previous migration.
-  run                     Evaluate missing intervals for the target...
-  state                   Commands for interacting with state
-  table_diff              Show the diff between two tables.
-  table_name              Prints the name of the physical table for the...
-  test                    Run model unit tests.
-  ui                      Start a browser-based SQLMesh UI.
-  lint                    Run the linter for the target model(s).
+コマンド:
+  audit                   対象モデルの監査を実行します。
+  clean                   SQLMesh キャッシュとビルドアーティファクトをすべてクリアします。
+  create_external_models  外部モデルを含むスキーマファイルを作成します...
+  create_test             指定されたモデルのユニットテストフィクスチャを生成します。
+  dag                     DAG を HTML ファイルとしてレンダリングします。
+  destroy                 destroy コマンドは、すべてのプロジェクト リソースを削除します。
+  diff                    ローカル状態と... の差分を表示します。
+  dlt_refresh             DLT パイプラインにアタッチし、次のオプションを指定します。
+  environments            SQLMesh 環境のリストを出力します。
+  evaluate                モデルを評価し、... を含むデータフレームを返します。
+  fetchdf                 SQL クエリを実行し、結果を表示します。
+  format                  すべての SQL モデルと監査をフォーマットします。
+  info                    SQLMesh プロジェクトに関する情報を出力します。
+  init                    新しい SQLMesh リポジトリを作成します。
+  invalidate              ターゲット環境を無効化し、... を強制的に適用します。
+  janitor                 janitor プロセスをオンデマンドで実行します。
+  migrate                 SQLMesh を現在実行中のバージョンに移行します。
+  plan                    ローカルの変更をターゲット環境に適用します。
+  prompt                  LLM を使用して、プロンプトから SQL クエリを生成します。
+  render                  モデルのクエリをレンダリングします。オプションで拡張します...
+  rewrite                 セマンティックを使用して SQL 式を書き換えます...
+  rollback                SQLMesh を以前のマイグレーションにロールバックします。
+  run                     ターゲットの欠落区間を評価します...
+  state                   状態を操作するためのコマンド
+  table_diff              2 つのテーブル間の差分を表示します。
+  table_name              物理テーブルの名前を出力します...
+  test                    モデルの単体テストを実行します。
+  ui                      ブラウザベースの SQLMesh UI を起動します。
+  lint                    ターゲットモデルのリンターを実行します。
 ```
 
 ## audit
 
 ```
-Usage: sqlmesh audit [OPTIONS]
+使用方法: sqlmesh audit [オプション]
 
-  Run audits for the target model(s).
+  対象モデルの監査を実行します。
 
-Options:
-  --model TEXT           A model to audit. Multiple models can be audited.
-  -s, --start TEXT       The start datetime of the interval for which this
-                         command will be applied.
-  -e, --end TEXT         The end datetime of the interval for which this
-                         command will be applied.
-  --execution-time TEXT  The execution time (defaults to now).
-  --help                 Show this message and exit.
+オプション:
+  --model TEXT          監査するモデル。複数のモデルを監査できます。
+  -s, --start TEXT      このコマンドを適用する期間の開始日時。
+  -e, --end TEXT        このコマンドを適用する期間の終了日時。
+  --execution-time TEXT 実行時刻（デフォルトは現在）。
+  --help                このメッセージを表示して終了します。
 ```
 
 ## check_intervals
 
 ```
-Usage: sqlmesh check_intervals [OPTIONS] [ENVIRONMENT]
+使用方法: sqlmesh check_intervals [オプション] [環境]
 
-  Show missing intervals in an environment, respecting signals.
+  シグナルを考慮し、環境内の欠損区間を表示します。
 
-Options:
-  --no-signals         Disable signal checks and only show missing intervals.
-  --select-model TEXT  Select specific models to show missing intervals for.
-  -s, --start TEXT     The start datetime of the interval for which this
-                       command will be applied.
-  -e, --end TEXT       The end datetime of the interval for which this command
-                       will be applied.
-  --help               Show this message and exit.
+オプション:
+  --no-signals          シグナルチェックを無効にし、欠損区間のみを表示します。
+  --select-model TEXT   欠損区間を表示するモデルを選択します。
+  -s, --start TEXT      このコマンドが適用される区間の開始日時。
+  -e, --end TEXT        このコマンドが適用される区間の終了日時。
+  --help                このメッセージを表示して終了します。
 ```
-
 
 ## clean
 
 ```
-Usage: sqlmesh clean [OPTIONS]
+使用方法: sqlmesh clean [オプション]
 
-  Clears the SQLMesh cache and any build artifacts.
+  SQLMesh キャッシュとビルドアーティファクトをクリアします。
 
-Options:
-  --help  Show this message and exit.
+オプション:
+  --help  このメッセージを表示して終了します。
 ```
 
 ## create_external_models
 
 ```
-Usage: sqlmesh create_external_models [OPTIONS]
+使用方法: sqlmesh create_external_models [OPTIONS]
 
-  Create a schema file containing external model schemas.
+  外部モデルスキーマを含むスキーマファイルを作成します。
 
-Options:
-  --help  Show this message and exit.
+オプション:
+  --help  このメッセージを表示して終了します。
 ```
 
 ## create_test
 
 ```
-Usage: sqlmesh create_test [OPTIONS] MODEL
+使用方法: sqlmesh create_test [OPTIONS] MODEL
 
-  Generate a unit test fixture for a given model.
+  指定されたモデルのユニットテストフィクスチャを生成します。
 
-Options:
-  -q, --query <TEXT TEXT>...  Queries that will be used to generate data for
-                              the model's dependencies.
-  -o, --overwrite             When true, the fixture file will be overwritten
-                              in case it already exists.
-  -v, --var <TEXT TEXT>...    Key-value pairs that will define variables
-                              needed by the model.
-  -p, --path TEXT             The file path corresponding to the fixture,
-                              relative to the test directory. By default, the
-                              fixture will be created under the test directory
-                              and the file name will be inferred based on the
-                              test's name.
-  -n, --name TEXT             The name of the test that will be created. By
-                              default, it's inferred based on the model's
-                              name.
-  --include-ctes              When true, CTE fixtures will also be generated.
-  --help                      Show this message and exit.
+オプション:
+  -q, --query <TEXT TEXT>...  モデルの依存関係のデータを生成するために使用するクエリ。
+  -o, --overwrite             true の場合、フィクスチャファイルが既に存在する場合は上書きされます。
+  -v, --var <TEXT TEXT>...    モデルに必要な変数を定義するキーと値のペア。
+  -p, --path TEXT             フィクスチャに対応するファイルパス（テストディレクトリからの相対パス）。
+                              デフォルトでは、フィクスチャはテストディレクトリの下に作成され、
+                              ファイル名はテスト名に基づいて推測されます。
+  -n, --name TEXT             作成されるテストの名前。
+                              デフォルトでは、モデル名に基づいて推測されます。
+  --include-ctes              true の場合、CTE フィクスチャも生成されます。
+  --help                      このメッセージを表示して終了します。
 ```
 
 ## dag
 
 ```
-Usage: sqlmesh dag [OPTIONS] FILE
+使用方法: sqlmesh dag [OPTIONS] FILE
 
-  Render the DAG as an html file.
+  DAG を HTML ファイルとしてレンダリングします。
 
-Options:
-  --select-model TEXT  Select specific models to include in the dag.
-  --help               Show this message and exit.
+オプション:
+  --select-model TEXT   DAG に含める特定のモデルを選択します。
+  --help                このメッセージを表示して終了します。
 ```
 
 ## destroy
 
 ```
-Usage: sqlmesh destroy
+使用方法: sqlmesh destroy
 
-  Removes all state tables, the SQLMesh cache and all project resources, including warehouse objects. This includes all tables, views and schemas managed by SQLMesh, as well as any external resources that may have been created by other tools within those schemas.
+  すべての状態テーブル、SQLMesh キャッシュ、およびウェアハウスオブジェクトを含む
+  すべてのプロジェクトリソースを削除します。
+  これには、SQLMesh によって管理されるすべてのテーブル、ビュー、スキーマ、および
+  それらのスキーマ内で他のツールによって作成された可能性のある外部リソースが含まれます。
 
-Options:
-  --help               Show this message and exit.
+オプション:
+  --help    このメッセージを表示して終了します。
 ```
 
 ## dlt_refresh
 
 ```
-Usage: dlt_refresh PIPELINE [OPTIONS]
+使用方法: dlt_refresh PIPELINE [OPTIONS]
 
-  Attaches to a DLT pipeline with the option to update specific or all models of the SQLMesh project.
+  SQLMesh プロジェクトの特定のモデルまたはすべてのモデルを更新するオプション付きで、
+  DLT パイプラインに接続します。
 
-Options:
-  -t, --table TEXT  The DLT tables to generate SQLMesh models from. When none specified, all new missing tables will be generated.
-  -f, --force       If set it will overwrite existing models with the new generated models from the DLT tables.
-  --help            Show this message and exit.
+オプション:
+  -t, --table TEXT  SQLMesh モデルを生成する DLT テーブル。
+                    指定しない場合は、不足しているすべての新しいテーブルが生成されます。
+  -f, --force       設定すると、既存のモデルが DLT テーブルから生成された新しいモデルで上書きされます。
+  --help            このメッセージを表示して終了します。
 ```
 
 ## diff
 
 ```
-Usage: sqlmesh diff [OPTIONS] ENVIRONMENT
+使用方法: sqlmesh diff [OPTIONS] ENVIRONMENT
 
-  Show the diff between the local state and the target environment.
+  ローカル状態とターゲット環境の差分を表示します。
 
-Options:
-  --help  Show this message and exit.
+オプション:
+  --help    このメッセージを表示して終了します。
 ```
 
 ## environments
 ```
-Usage: sqlmesh environments [OPTIONS]
+使用方法: sqlmesh environments [OPTIONS]
 
-  Prints the list of SQLMesh environments with its expiry datetime.
+  SQLMesh 環境のリストとその有効期限を出力します。
 
-Options:
-  --help             Show this message and exit.
+オプション:
+  --help    このメッセージを表示して終了します。
 ```
 
 ## evaluate
 
 ```
-Usage: sqlmesh evaluate [OPTIONS] MODEL
+使用方法: sqlmesh evaluate [OPTIONS] MODEL
 
-  Evaluate a model and return a dataframe with a default limit of 1000.
+  モデルを評価し、デフォルトの制限値 1000 のデータフレームを返します。
 
-Options:
-  -s, --start TEXT       The start datetime of the interval for which this
-                         command will be applied.
-  -e, --end TEXT         The end datetime of the interval for which this
-                         command will be applied.
-  --execution-time TEXT  The execution time (defaults to now).
-  --limit INTEGER        The number of rows which the query should be limited
-                         to.
-  --help                 Show this message and exit.
+オプション:
+  -s, --start TEXT      このコマンドが適用される期間の開始日時。
+  -e, --end TEXT        このコマンドが適用される期間の終了日時。
+  --execution-time TEXT 実行時刻 (デフォルトは現在)。
+  --limit INTEGER       クエリの制限行数。
+  --help                このメッセージを表示して終了します。
 ```
 
 ## fetchdf
 
 ```
-Usage: sqlmesh fetchdf [OPTIONS] SQL
+使用方法: sqlmesh fetchdf [OPTIONS] SQL
 
-  Run a SQL query and display the results.
+  SQLクエリを実行し、結果を表示します。
 
-Options:
-  --help  Show this message and exit.
+オプション:
+  --help                このメッセージを表示して終了します。
 ```
 
 ## format
 
 ```
-Usage: sqlmesh format [OPTIONS]
+使用方法: sqlmesh format [OPTIONS]
 
-  Format all SQL models and audits.
+  すべてのSQLモデルと監査をフォーマットします。
 
-Options:
-  -t, --transpile TEXT        Transpile project models to the specified
-                              dialect.
-  --append-newline            Include a newline at the end of each file.
-  --no-rewrite-casts          Preserve the existing casts, without rewriting
-                              them to use the :: syntax.
-  --normalize                 Whether or not to normalize identifiers to
-                              lowercase.
-  --pad INTEGER               Determines the pad size in a formatted string.
-  --indent INTEGER            Determines the indentation size in a formatted
-                              string.
-  --normalize-functions TEXT  Whether or not to normalize all function names.
-                              Possible values are: 'upper', 'lower'
-  --leading-comma             Determines whether or not the comma is leading
-                              or trailing in select expressions. Default is
-                              trailing.
-  --max-text-width INTEGER    The max number of characters in a segment before
-                              creating new lines in pretty mode.
-  --check                     Whether or not to check formatting (but not
-                              actually format anything).
-  --help                      Show this message and exit.
+オプション:
+  -t, --transpile TEXT        プロジェクトモデルを指定された方言にトランスパイルします。
+  --append-newline            各ファイルの末尾に改行を挿入します。
+  --no-rewrite-casts          既存のキャストを、:: 構文に書き換えずに保持します。
+  --normalize                 識別子を小文字に正規化するかどうかを指定します。
+  --pad INTEGER               フォーマットされた文字列のパディングサイズを指定します。
+  --indent INTEGER            フォーマットされた文字列のインデントサイズを指定します。
+  --normalize-functions TEXT  すべての関数名を正規化するかどうかを指定します。
+                              指定可能な値: 'upper'、'lower'
+  --leading-comma             select 式において、カンマを先頭にするか末尾にするかを指定します。
+                              デフォルトは末尾です。
+  --max-text-width INTEGER    プリティモードで改行する前のセグメントの最大文字数。
+  --check                     フォーマットをチェックするかどうか
+                              （ただし、実際にフォーマットするわけではありません）。
+  --help                      このメッセージを表示して終了します。
 ```
 
 ## info
 
 ```
-Usage: sqlmesh info [OPTIONS]
+使用方法: sqlmesh info [OPTIONS]
 
-  Print information about a SQLMesh project.
+  SQLMesh プロジェクトに関する情報を出力します。
 
-  Includes counts of project models and macros and connection tests for the
-  data warehouse.
+  プロジェクトモデルとマクロの数、およびデータウェアハウスの接続テストが含まれます。
 
-Options:
-  --skip-connection  Skip the connection test.
-  -v, --verbose      Verbose output.
-  --help  Show this message and exit.
+オプション:
+  --skip-connection   接続テストをスキップします。
+  -v, --verbose       詳細出力を表示します。
+  --help              このメッセージを表示して終了します。
 ```
 
 ## init
 
 ```
-Usage: sqlmesh init [OPTIONS] [ENGINE]
+使用方法: sqlmesh init [OPTIONS] [ENGINE]
 
-  Create a new SQLMesh repository.
+  新しいSQLMeshリポジトリを作成します。
 
-Options:
-  -t, --template TEXT  Project template. Supported values: dbt, dlt, default,
-                       empty.
-  --dlt-pipeline TEXT  DLT pipeline for which to generate a SQLMesh project.
-                       Use alongside template: dlt
-  --dlt-path TEXT      The directory where the DLT pipeline resides. Use
-                       alongside template: dlt
-  --help               Show this message and exit.
+オプション:
+  -t, --template TEXT   プロジェクトテンプレート。
+                        サポートされる値: dbt、dlt、default、empty。
+  --dlt-pipeline TEXT   SQLMeshプロジェクトを生成するDLTパイプライン。
+                        テンプレート: dlt と一緒に使用します。
+  --dlt-path TEXT       DLTパイプラインが存在するディレクトリ。
+                        テンプレート: dlt と一緒に使用します。
+  --help                このメッセージを表示して終了します。
 ```
 
 ## invalidate
 
 ```
-Usage: sqlmesh invalidate [OPTIONS] ENVIRONMENT
+使用方法: sqlmesh invalidate [OPTIONS] ENVIRONMENT
 
-  Invalidate the target environment, forcing its removal during the next run
-  of the janitor process.
+  ターゲット環境を無効化し、janitor プロセスの次回実行時に強制的に削除します。
 
-Options:
-  -s, --sync  Wait for the environment to be deleted before returning. If not
-              specified, the environment will be deleted asynchronously by the
-              janitor process. This option requires a connection to the data
-              warehouse.
-  --help      Show this message and exit.
+オプション:
+  -s, --sync  環境が削除されるまで待機してから戻ります。
+              指定しない場合は、janitor プロセスによって非同期的に環境が削除されます。
+              このオプションを使用するには、データウェアハウスへの接続が必要です。
+  --help      このメッセージを表示して終了します。
 ```
 
 ## janitor
 
 ```
-Usage: sqlmesh janitor [OPTIONS]
+使用方法: sqlmesh janitor [OPTIONS]
 
-  Run the janitor process on-demand.
+  janitor プロセスをオンデマンドで実行します。
 
-  The janitor cleans up old environments and expired snapshots.
+  janitor は古い環境と期限切れのスナップショットをクリーンアップします。
 
-Options:
-  --ignore-ttl  Cleanup snapshots that are not referenced in any environment,
-                regardless of when they're set to expire
-  --help        Show this message and exit.
+オプション:
+  --ignore-ttl  どの環境からも参照されていないスナップショットを、
+                有効期限の設定に関係なくクリーンアップします。
+  --help        このメッセージを表示して終了します。
 ```
 
 ## migrate
 
 ```
-Usage: sqlmesh migrate [OPTIONS]
+使用方法: sqlmesh migrate [OPTIONS]
 
-  Migrate SQLMesh to the current running version.
+  SQLMesh を現在実行中のバージョンに移行します。
 
-Options:
-  --help  Show this message and exit.
+オプション:
+  --help    このメッセージを表示して終了します。
 ```
 
 !!! danger "Caution"
 
-    The `migrate` command affects all SQLMesh users. Contact your SQLMesh administrator before running.
+    `migrate` コマンドはすべての SQLMesh ユーザーに影響します。実行する前に SQLMesh 管理者に問い合わせてください。
 
 ## plan
 
 ```
-Usage: sqlmesh plan [OPTIONS] [ENVIRONMENT]
+使用方法: sqlmesh plan [OPTIONS] [ENVIRONMENT]
 
-  Apply local changes to the target environment.
+  ローカルの変更をターゲット環境に適用します。
 
-Options:
-  -s, --start TEXT                The start datetime of the interval for which
-                                  this command will be applied.
-  -e, --end TEXT                  The end datetime of the interval for which
-                                  this command will be applied.
-  --execution-time TEXT           The execution time (defaults to now).
-  --create-from TEXT              The environment to create the target
-                                  environment from if it doesn't exist.
-                                  Default: prod.
-  --skip-tests                    Skip tests prior to generating the plan if
-                                  they are defined.
-  --skip-linter                   Skip linting prior to generating the plan if
-                                  the linter is enabled.
-  -r, --restate-model TEXT        Restate data for specified models and models
-                                  downstream from the one specified. For
-                                  production environment, all related model
-                                  versions will have their intervals wiped,
-                                  but only the current versions will be
-                                  backfilled. For development environment,
-                                  only the current model versions will be
-                                  affected.
-  --no-gaps                       Ensure that new snapshots have no data gaps
-                                  when comparing to existing snapshots for
-                                  matching models in the target environment.
-  --skip-backfill, --dry-run      Skip the backfill step and only create a
-                                  virtual update for the plan.
-  --empty-backfill                Produce empty backfill. Like --skip-backfill
-                                  no models will be backfilled, unlike --skip-
-                                  backfill missing intervals will be recorded
-                                  as if they were backfilled.
-  --forward-only                  Create a plan for forward-only changes.
-  --allow-destructive-model TEXT  Allow destructive forward-only changes to
-                                  models whose names match the expression.
-  --allow-additive-model TEXT     Allow additive forward-only changes to
-                                  models whose names match the expression.
-  --effective-from TEXT           The effective date from which to apply
-                                  forward-only changes on production.
-  --no-prompts                    Disable interactive prompts for the backfill
-                                  time range. Please note that if this flag is
-                                  set and there are uncategorized changes,
-                                  plan creation will fail.
-  --auto-apply                    Automatically apply the new plan after
-                                  creation.
-  --no-auto-categorization        Disable automatic change categorization.
-  --include-unmodified            Include unmodified models in the target
-                                  environment.
-  --select-model TEXT             Select specific model changes that should be
-                                  included in the plan.
-  --backfill-model TEXT           Backfill only the models whose names match
-                                  the expression.
-  --no-diff                       Hide text differences for changed models.
-  --run                           Run latest intervals as part of the plan
-                                  application (prod environment only).
-  --enable-preview                Enable preview for forward-only models when
-                                  targeting a development environment.
-  --diff-rendered                 Output text differences for the rendered
-                                  versions of the models and standalone
-                                  audits.
-  --explain                       Explain the plan instead of applying it.
-  -v, --verbose                   Verbose output. Use -vv for very verbose
-                                  output.
-  --help                          Show this message and exit.
+オプション:
+  -s, --start TEXT                このコマンドが適用される間隔の開始日時。
+  -e, --end TEXT                  このコマンドが適用される間隔の終了日時。
+  --execution-time TEXT           実行時刻（デフォルトは現在）。
+  --create-from TEXT              ターゲット環境が存在しない場合、その環境を作成する環境。
+                                  デフォルト: prod。
+  --skip-tests                    テストが定義されている場合、プラン生成前にテストをスキップします。
+  --skip-linter                   リンターが有効な場合、プラン生成前にリンティングをスキップします。
+  -r, --restate-model TEXT        指定されたモデルと、指定されたモデルの下流にあるモデルのデータを
+                                  再ステートします。
+                                  本番環境では、関連するすべてのモデルバージョンの間隔が消去されますが、
+                                  現在のバージョンのみがバックフィルされます。
+                                  開発環境では、現在のモデルバージョンのみが影響を受けます。
+  --no-gaps                       ターゲット環境の一致するモデルの既存のスナップショットと比較する際に、
+                                  新しいスナップショットにデータギャップがないことを確認します。
+  --skip-backfill, --dry-run      バックフィル手順をスキップし、プランの仮想更新のみを作成します。
+  --empty-backfill                空のバックフィルを生成します。
+                                  --skip-backfill と同様にモデルはバックフィルされませんが、
+                                  --skip-backfill とは異なり、バックフィルされていない間隔は
+                                  バックフィルされたかのように記録されます。
+  --forward-only                  フォワードのみの変更のプランを作成します。
+  --allow-destructive-model TEXT  式に一致する名前のモデルに対して、破壊的なフォワードのみの変更を許可します。
+  --allow-additive-model TEXT     式に一致する名前のモデルに対して、追加的なフォワードのみの変更を許可します。
+  --effective-from TEXT           本番環境でフォワードのみの変更を適用する有効日。
+  --no-prompts                    バックフィルの時間範囲に対する対話型プロンプトを無効にします。
+                                  このフラグが設定されていて、分類されていない変更がある場合、
+                                  プランの作成は失敗することに注意してください。
+  --auto-apply                    作成後に新しいプランを自動的に適用します。
+  --no-auto-categorization        変更の自動分類を無効にします。
+  --include-unmodified            ターゲット環境に変更されていないモデルを含めます。
+  --select-model TEXT             プランに含める特定のモデル変更を選択します。
+  --backfill-model TEXT           式に一致する名前のモデルのみをバックフィルします。
+  --no-diff                       変更されたモデルのテキスト差分を非表示にします。
+  --run                           プラン適用の一部として最新の間隔を実行します（本番環境のみ）。
+  --enable-preview                開発環境をターゲットとする場合、順方向のみのモデルのプレビューを有効にします。
+  --diff-rendered                 レンダリングされたモデルとスタンドアロン監査のテキスト差分を出力します。
+  --explain                       プランを適用する代わりに、プランを説明します。
+  -v, --verbose                   詳細出力。非常に詳細な出力には -vv を使用します。
+  --help                          このメッセージを表示して終了します。
 ```
 
 ## prompt
 
 ```
-Usage: sqlmesh prompt [OPTIONS] PROMPT
+使用方法: sqlmesh prompt [OPTIONS] PROMPT
 
-  Uses LLM to generate a SQL query from a prompt.
+  LLM を使用してプロンプトから SQL クエリを生成します。
 
-Options:
-  -e, --evaluate           Evaluate the generated SQL query and display the
-                           results.
-  -t, --temperature FLOAT  Sampling temperature. 0.0 - precise and
-                           predictable, 0.5 - balanced, 1.0 - creative.
-                           Default: 0.7
-  -v, --verbose            Verbose output.
-  --help                   Show this message and exit.
+オプション:
+  -e, --evaluate          生成された SQL クエリを評価し、結果を表示します。
+  -t, --temperature FLOAT サンプリング温度。
+                          0.0 - 正確で予測可能、
+                          0.5 - バランスが取れている、
+                          1.0 - クリエイティブ。
+                          デフォルト: 0.7
+  -v, --verbose           詳細出力。
+  --help                  このメッセージを表示して終了します。
 ```
 
 ## render
 
 ```
-Usage: sqlmesh render [OPTIONS] MODEL
+使用方法: sqlmesh render [OPTIONS] MODEL
 
-  Render a model's query, optionally expanding referenced models.
+  モデルのクエリをレンダリングします。オプションで参照モデルを拡張することもできます。
 
-Options:
-  -s, --start TEXT            The start datetime of the interval for which
-                              this command will be applied.
-  -e, --end TEXT              The end datetime of the interval for which this
-                              command will be applied.
-  --execution-time TEXT       The execution time (defaults to now).
-  --expand TEXT               Whether or not to expand materialized models
-                              (defaults to False). If True, all referenced
-                              models are expanded as raw queries. Multiple
-                              model names can also be specified, in which case
-                              only they will be expanded as raw queries.
-  --dialect TEXT              The SQL dialect to render the query as.
-  --no-format                 Disable fancy formatting of the query.
-  --max-text-width INTEGER    The max number of characters in a segment before
-                              creating new lines in pretty mode.
-  --leading-comma             Determines whether or not the comma is leading
-                              or trailing in select expressions. Default is
-                              trailing.
-  --normalize-functions TEXT  Whether or not to normalize all function names.
-                              Possible values are: 'upper', 'lower'
-  --indent INTEGER            Determines the indentation size in a formatted
-                              string.
-  --pad INTEGER               Determines the pad size in a formatted string.
-  --normalize                 Whether or not to normalize identifiers to
-                              lowercase.
-  --help                      Show this message and exit.
+オプション:
+  -s, --start TEXT            このコマンドが適用される期間の開始日時。
+  -e, --end TEXT              このコマンドが適用される期間の終了日時。
+  --execution-time TEXT       実行時刻（デフォルトは現在）。
+  --expand TEXT               マテリアライズドモデルを拡張するかどうか。（デフォルトはFalse）。
+                              Trueの場合、参照されているすべてのモデルが生のクエリとして拡張されます。
+                              複数のモデル名を指定することもできます。
+                              その場合は、それらのモデルのみが生のクエリとして拡張されます。
+  --dialect TEXT              クエリをレンダリングするSQL方言。
+  --no-format                 クエリの特殊フォーマットを無効にします。
+  --max-text-width INTEGER    プリティーモードで改行する前のセグメントの最大文字数。
+  --leading-comma             選択した式において、カンマが先頭か末尾かを決定します。
+                              デフォルトは末尾です。
+  --normalize-functions TEXT  すべての関数名を正規化するかどうかを指定します。
+                              指定可能な値は「upper」、「lower」です。
+  --indent INTEGER            フォーマットされた文字列のインデントサイズを決定します。
+  --pad INTEGER               フォーマットされた文字列のパディングサイズを決定します。
+  --normalize                 識別子を小文字に正規化するかどうかを指定します。
+  --help                      このメッセージを表示して終了します。
 ```
 
 ## rewrite
 
 ```
-Usage: sqlmesh rewrite [OPTIONS] SQL
+使用方法: sqlmesh rewrite [OPTIONS] SQL
 
-  Rewrite a SQL expression with semantic references into an executable query.
+  セマンティック参照を含むSQL式を実行可能なクエリに書き換えます。
 
   https://sqlmesh.readthedocs.io/en/latest/concepts/metrics/overview/
 
-Options:
-  --read TEXT   The input dialect of the sql string.
-  --write TEXT  The output dialect of the sql string.
-  --help        Show this message and exit.
+オプション:
+  --read TEXT   SQL文字列の入力言語。
+  --write TEXT  SQL文字列の出力言語。
+  --help        このメッセージを表示して終了します。
 ```
 
 ## rollback
 
 ```
-Usage: sqlmesh rollback [OPTIONS]
+使用方法: sqlmesh rollback [OPTIONS]
 
-  Rollback SQLMesh to the previous migration.
+  SQLMesh を以前の移行状態にロールバックします。
 
-Options:
-  --help  Show this message and exit.
+オプション:
+  --help    このメッセージを表示して終了します。
 ```
 
 !!! danger "Caution"
 
-    The `rollback` command affects all SQLMesh users. Contact your SQLMesh administrator before running.
+    `rollback` コマンドはすべての SQLMesh ユーザーに影響します。実行する前に SQLMesh 管理者に問い合わせてください。
 
 ## run
 
 ```
-Usage: sqlmesh run [OPTIONS] [ENVIRONMENT]
+使用方法: sqlmesh run [OPTIONS] [ENVIRONMENT]
 
-  Evaluate missing intervals for the target environment.
+  ターゲット環境の欠落した間隔を評価します。
 
-Options:
-  -s, --start TEXT              The start datetime of the interval for which
-                                this command will be applied.
-  -e, --end TEXT                The end datetime of the interval for which
-                                this command will be applied.
-  --skip-janitor                Skip the janitor task.
-  --ignore-cron                 Run for all missing intervals, ignoring
-                                individual cron schedules.
-  --select-model TEXT           Select specific models to run. Note: this
-                                always includes upstream dependencies.
-  --exit-on-env-update INTEGER  If set, the command will exit with the
-                                specified code if the run is interrupted by an
-                                update to the target environment.
-  --no-auto-upstream            Do not automatically include upstream models.
-                                Only applicable when --select-model is used.
-                                Note: this may result in missing / invalid
-                                data for the selected models.
-  --help                        Show this message and exit.
+オプション:
+  -s, --start TEXT              このコマンドが適用される間隔の開始日時。
+  -e, --end TEXT                このコマンドが適用される間隔の終了日時。
+  --skip-janitor                管理タスクをスキップします。
+  --ignore-cron                 個々の cron スケジュールを無視し、
+                                すべての欠落した間隔で実行します。
+  --select-model TEXT           実行する特定のモデルを選択します。
+                                注: これは常に上流の依存関係を含みます。
+  --exit-on-env-update INTEGER  設定されている場合、
+                                ターゲット環境の更新によって実行が中断された場合、
+                                コマンドは指定されたコードで終了します。
+  --no-auto-upstream            上流モデルを自動的に含めません。
+                                --select-model が使用されている場合にのみ適用されます。
+                                注: これにより、選択したモデルのデータが欠落または
+                                無効になる可能性があります。
+  --help                        このメッセージを表示して終了します。
 ```
 
 ## state
 
 ```
-Usage: sqlmesh state [OPTIONS] COMMAND [ARGS]...
+使用方法: sqlmesh state [OPTIONS] COMMAND [ARGS]...
 
-  Commands for interacting with state
+  状態を操作するためのコマンド
 
-Options:
-  --help  Show this message and exit.
+オプション:
+  --help  このメッセージを表示して終了します。
 
-Commands:
-  export  Export the state database to a file
-  import  Import a state export file back into the state database
+コマンド:
+  export  状態データベースをファイルにエクスポートします。
+  import  状態エクスポートファイルを状態データベースにインポートします。
 ```
 
 ### export
 
 ```
-Usage: sqlmesh state export [OPTIONS]
+使用方法: sqlmesh state export [OPTIONS]
 
-  Export the state database to a file
+  状態データベースをファイルにエクスポートします。
 
-Options:
-  -o, --output-file FILE  Path to write the state export to  [required]
-  --environment TEXT      Name of environment to export. Specify multiple
-                          --environment arguments to export multiple
-                          environments
-  --local                 Export local state only. Note that the resulting
-                          file will not be importable
-  --no-confirm            Do not prompt for confirmation before exporting
-                          existing state
-  --help                  Show this message and exit.
+オプション:
+  -o, --output-file FILE  状態エクスポートの出力先パス [必須]
+  --environment TEXT      エクスポートする環境名。
+                          複数の環境をエクスポートするには、
+                          --environment 引数を複数指定します。
+  --local                 ローカル状態のみをエクスポートします。
+                          出力ファイルはインポートできませんのでご注意ください。
+  --no-confirm            既存の状態をエクスポートする前に確認メッセージを表示しません。
+  --help                  このメッセージを表示して終了します。
 ```
 
 ### import
 
 ```
-Usage: sqlmesh state import [OPTIONS]
+使用方法: sqlmesh state import [OPTIONS]
 
-  Import a state export file back into the state database
+  状態エクスポートファイルを状態データベースにインポートします。
 
-Options:
-  -i, --input-file FILE  Path to the state file  [required]
-  --replace              Clear the remote state before loading the file. If
-                         omitted, a merge is performed instead
-  --no-confirm           Do not prompt for confirmation before updating
-                         existing state
-  --help                 Show this message and exit.
+オプション:
+  -i, --input-file FILE 状態ファイルへのパス [必須]
+  --replace             ファイルをロードする前にリモート状態をクリアします。
+                        省略した場合は、代わりにマージが実行されます。
+  --no-confirm          既存の状態を更新する前に確認メッセージを表示しません。
+  --help                このメッセージを表示して終了します。
 ```
 
 ## table_diff
 
 ```
-Usage: sqlmesh table_diff [OPTIONS] SOURCE:TARGET [MODEL]
+使用方法: sqlmesh table_diff [OPTIONS] SOURCE:TARGET [MODEL]
 
-  Show the diff between two tables or multiple models across two environments.
+  2つの環境にわたる2つのテーブルまたは複数のモデル間の差分を表示します。
 
-Options:
-  -o, --on TEXT            The column to join on. Can be specified multiple
-                           times. The model grain will be used if not
-                           specified.
-  -s, --skip-columns TEXT  The column(s) to skip when comparing the source and
-                           target table.
-  --where TEXT             An optional where statement to filter results.
-  --limit INTEGER          The limit of the sample dataframe.
-  --show-sample            Show a sample of the rows that differ. With many
-                           columns, the output can be very wide.
-  -d, --decimals INTEGER   The number of decimal places to keep when comparing
-                           floating point columns. Default: 3
-  --skip-grain-check       Disable the check for a primary key (grain) that is
-                           missing or is not unique.
-  --warn-grain-check       Warn if any selected model is missing a grain,
-                           and compute diffs for the remaining models.
-  --temp-schema TEXT       Schema used for temporary tables. It can be
-                           `CATALOG.SCHEMA` or `SCHEMA`. Default:
-                           `sqlmesh_temp`
-  -m, --select-model TEXT  Select specific models to table diff.
-  --help                   Show this message and exit.
+オプション:
+  -o, --on TEXT           結合する列。複数回指定できます。
+                          指定がない場合は、モデルの粒度が使用されます。
+  -s, --skip-columns TEXT ソーステーブルとターゲットテーブルを比較する際にスキップする列。
+  --where TEXT            結果をフィルタリングするためのオプションのwhere文。
+  --limit INTEGER         サンプルデータフレームの制限。
+  --show-sample           差異のある行のサンプルを表示します。
+                          列数が多い場合、出力が非常に長くなる可能性があります。
+  -d, --decimals INTEGER  浮動小数点列を比較する際に保持する小数点以下の桁数。
+                          デフォルト: 3
+  --skip-grain-check      主キー（粒度）が欠落しているか一意でない場合のチェックを無効にします。
+  --warn-grain-check      選択したモデルにグレインが欠落している場合に警告を発し、
+                          残りのモデルの差分を計算します。
+  --temp-schema TEXT      一時テーブルに使用するスキーマ。
+                          指定できる値は `CATALOG.SCHEMA` または `SCHEMA` です。
+                          デフォルト: `sqlmesh_temp`
+  -m, --select-model TEXT 差分テーブルを作成するモデルを選択します。
+  --help                  このメッセージを表示して終了します。
 ```
 
 ## table_name
 
 ```
-Usage: sqlmesh table_name [OPTIONS] MODEL_NAME
+使用方法: sqlmesh table_name [OPTIONS] MODEL_NAME
 
-  Prints the name of the physical table for the given model.
+  指定されたモデルの物理テーブル名を出力します。
 
-Options:
-  --environment, --env TEXT  The environment to source the model version from.
-  --prod                     If set, return the name of the physical table
-                             that will be used in production for the model
-                             version promoted in the target environment.
-  --help                     Show this message and exit.
+オプション:
+  --environment, --env TEXT モデルバージョンの取得元となる環境。
+  --prod                    設定されている場合、ターゲット環境で昇格されたモデルバージョンで
+                            本番環境で使用される物理テーブル名を返します。
+  --help                    このメッセージを表示して終了します。
 ```
 
 ## test
 
 ```
-Usage: sqlmesh test [OPTIONS] [TESTS]...
+使用方法: sqlmesh test [OPTIONS] [TESTS]...
 
-  Run model unit tests.
+  モデルの単体テストを実行します。
 
-Options:
-  -k TEXT              Only run tests that match the pattern of substring.
-  -v, --verbose        Verbose output.
-  --preserve-fixtures  Preserve the fixture tables in the testing database,
-                       useful for debugging.
-  --help               Show this message and exit.
+オプション:
+  -k TEXT             部分文字列のパターンに一致するテストのみを実行します。
+  -v, --verbose       詳細出力を表示します。
+  --preserve-fixtures テストデータベース内のフィクスチャテーブルを保存します。
+                      デバッグに役立ちます。
+  --help              このメッセージを表示して終了します。
 ```
 
 ## ui
 
 ```
-Usage: sqlmesh ui [OPTIONS]
+使用方法: sqlmesh ui [OPTIONS]
 
-  Start a browser-based SQLMesh UI.
+  ブラウザベースの SQLMesh UI を起動します。
 
-Options:
-  --host TEXT                     Bind socket to this host. Default: 127.0.0.1
-  --port INTEGER                  Bind socket to this port. Default: 8000
-  --mode [ide|catalog|docs|plan]  Mode to start the UI in. Default: ide
-  --help                          Show this message and exit.
+オプション:
+  --host TEXT                     ソケットをこのホストにバインドします。
+                                  デフォルト: 127.0.0.1
+  --port INTEGER                  ソケットをこのポートにバインドします。
+                                  デフォルト: 8000
+  --mode [ide|catalog|docs|plan]  UI を起動するモード。デフォルト: ide
+  --help                          このメッセージを表示して終了します。
 ```
 
 ## lint
+
 ```
-Usage: sqlmesh lint [OPTIONS]
-  Run linter for the target model(s).
+使用方法: sqlmesh lint [OPTIONS]
 
-Options:
-  --model TEXT           A model to lint. Multiple models can be linted.  If no models are specified, every model will be linted.
-  --help                 Show this message and exit.
+  対象モデルに対してリンターを実行します。
 
+オプション:
+  --model TEXT  リンターを実行するモデル。
+                複数のモデルをリンターできます。
+                モデルを指定しない場合は、すべてのモデルがリンターされます。
+  --help        このメッセージを表示して終了します。
 ```

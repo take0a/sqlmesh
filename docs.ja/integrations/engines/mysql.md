@@ -1,21 +1,21 @@
 # MySQL
 
-## Local/Built-in Scheduler
-**Engine Adapter Type**: `mysql`
+## ローカル/組み込みスケジューラ
+**エンジンアダプタタイプ**: `mysql`
 
-### Installation
+### インストール
 ```
 pip install "sqlmesh[mysql]"
 ```
 
-### Connection options
+### 接続オプション
 
-| Option         | Description                                                  | Type   | Required |
+| オプション | 説明 | タイプ | 必須 |
 |----------------|--------------------------------------------------------------|:------:|:--------:|
-| `type`         | Engine type name - must be `mysql`                           | string | Y        |
-| `host`         | The hostname of the MysQL server                             | string | Y        |
-| `user`         | The username to use for authentication with the MySQL server | string | Y        |
-| `password`     | The password to use for authentication with the MySQL server | string | Y        |
-| `port`         | The port number of the MySQL server                          | int    | N        |
-| `charset`      | The character set used for the connection                    | string | N        |
-| `ssl_disabled` | Is SSL disabled                                              | bool   | N        |
+| `type` | エンジンタイプ名 - `mysql` である必要があります | 文字列 | Y |
+| `host` | MysQL サーバーのホスト名 | 文字列 | Y |
+| `user` | MySQL サーバーでの認証に使用するユーザー名 | 文字列 | Y |
+| `password` | MySQL サーバーでの認証に使用するパスワード | 文字列 | Y |
+| `port` | MySQL サーバーのポート番号 | int | N |
+| `charset` | 接続に使用する文字セット | 文字列 | N |
+| `ssl_disabled` | SSL が無効になっています | bool | N |

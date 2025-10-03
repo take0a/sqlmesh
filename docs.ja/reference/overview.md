@@ -1,3 +1,3 @@
-# Overview
+# 概要
 
-SQLMesh can be used with a [CLI](cli.md), [Notebook](notebook.md), or directly through [Python](python.md). Each interface aims to have parity in both functionality and arguments.
+SQLMesh は、[CLI](cli.md)、[Notebook](notebook.md)、または [Python](python.md) から直接使用できます。各インターフェースは、機能と引数の両方において同等であることを目指しています。

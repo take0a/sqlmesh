@@ -1,42 +1,43 @@
 # MotherDuck
 
-This page provides information about how to use SQLMesh with MotherDuck.
+このページでは、MotherDuck で SQLMesh を使用する方法について説明します。
 
-It begins with a [Connection Quickstart](#connection-quickstart) that demonstrates how to connect to MotherDuck, or you can skip directly to information about using MotherDuck with the built-in scheduler.
+[接続クイックスタート](#connection-quickstart) では、MotherDuck への接続方法を説明します。また、組み込みスケジューラを使用して MotherDuck を使用する方法についての解説に直接進むこともできます。
 
-## Connection quickstart
+## 接続クイックスタート
 
-Connecting to cloud warehouses involves a few steps, so this connection quickstart provides the info you need to get up and running with MotherDuck.
+クラウドウェアハウスへの接続にはいくつかの手順が必要です。この接続クイックスタートでは、MotherDuck を使い始めるために必要な情報を提供します。
 
-It demonstrates connecting to MotherDuck with the `duckdb` library bundled with SQLMesh.
+SQLMesh にバンドルされている `duckdb` ライブラリを使用して MotherDuck に接続する方法を説明します。
 
-MotherDuck provides a single way to authorize a connection. This quickstart demonstrates authenticating with a token.
+MotherDuck は接続を承認する単一の方法を提供します。このクイックスタートでは、トークンを使用した認証方法を説明します。
 
 !!! tip
-    This quick start assumes you are familiar with basic SQLMesh commands and functionality.
 
-    If you’re not familiar, work through the [SQLMesh Quickstart](../../quick_start.md) before continuing.
+    このクイックスタートは、SQLMeshの基本的なコマンドと機能に精通していることを前提としています。
 
-### Prerequisites
+    まだよく知らない場合は、先に[SQLMeshクイックスタート](../../quick_start.md)をお読みください。
 
-Before working through this quickstart guide, ensure that:
+### 前提条件
 
-1. You have a motherduck account and an access token.
-2. Your computer has SQLMesh installed with the DuckDB extra available.
-   1. Install from command line with the command `pip install “sqlmesh[duckdb]”`
-3. You have initialized a SQLMesh example project on your computer
-   1. Open a command line interface and navigate to the directory where the project files should go.
-   2. Initialize the project with the command `sqlmesh init duckdb`, since `duckdb` is the dialect.
+このクイックスタートガイドを進める前に、以下の点を確認してください。
 
-#### Access control permissions
+1. motherduck アカウントとアクセストークンがあること。
+2. お使いのコンピュータに SQLMesh がインストールされており、DuckDB エクストラが利用可能であること。
+    1. コマンドラインからコマンド `pip install “sqlmesh[duckdb]”` でインストールすること。
+3. お使いのコンピュータで SQLMesh サンプルプロジェクトを初期化しておくこと。
+    1. コマンドラインインターフェースを開き、プロジェクトファイルを配置するディレクトリに移動します。
+    2. `duckdb` が方言であるため、コマンド `sqlmesh init duckdb` でプロジェクトを初期化すること。
 
-SQLMesh must have sufficient permissions to create and access your MotherDuck databases. Since permission is granted to specific databases for a specific user, you should create a service account for SQLMesh that will contain the credentials for writing to MotherDuck.
+#### アクセス制御権限
 
-### Configure the connection
+SQLMesh には、MotherDuck データベースの作成とアクセスに必要な権限が必要です。権限は特定のユーザーに特定のデータベースに対して付与されるため、MotherDuck への書き込みに必要な資格情報を含む SQLMesh 用のサービスアカウントを作成する必要があります。
 
-We now have what is required to configure SQLMesh’s connection to MotherDuck.
+### 接続を構成する
 
-We start the configuration by adding a gateway named `motherduck` to our example project’s config.yaml file and making it our `default gateway`, as well as adding our token, persistent, and ephemeral catalogs.
+これで、SQLMesh と MotherDuck の接続を構成するために必要な準備が整いました。
+
+まず、サンプルプロジェクトの config.yaml ファイルに「motherduck」という名前のゲートウェイを追加し、「デフォルトゲートウェイ」として設定します。また、トークン、永続カタログ、およびエフェメラルカタログも追加します。
 
 ```yaml
 gateways:
@@ -51,12 +52,13 @@ gateways:
 default_gateway: motherduck
 ```
 
-Catalogs can be defined to connect to anything that [DuckDB can be attached to](./duckdb.md#other-connection-catalogs-example).
+カタログは、[DuckDB を接続できるもの](./duckdb.md#other-connection-catalogs-example) すべてに接続するように定義できます。
 
 !!! warning
-    Best practice for storing secrets like tokens is placing them in [environment variables that the configuration file loads dynamically](../../guides/configuration.md#environment-variables). For simplicity, this guide instead places the value directly in the configuration file.
 
-    This code demonstrates how to use the environment variable `MOTHERDUCK_TOKEN` for the configuration's `token` parameter:
+    トークンなどのシークレットを保存するベストプラクティスは、[設定ファイルが動的に読み込む環境変数](../../guides/configuration.md#environment-variables)に配置することです。簡潔にするため、このガイドでは設定ファイルに直接値を設定します。
+
+    以下のコードは、設定ファイルの `token` パラメータに環境変数 `MOTHERDUCK_TOKEN` を使用する方法を示しています。
 
     ```yaml linenums="1" hl_lines="5"
     gateways:
@@ -66,42 +68,42 @@ Catalogs can be defined to connect to anything that [DuckDB can be attached to](
           token: {{ env_var('MOTHERDUCK_TOKEN') }}
     ```
 
-### Check connection
+### 接続を確認
 
-We have now specified the `motherduck` gateway connection information, so we can confirm that SQLMesh is able to successfully connect to MotherDuck. We will test the connection with the `sqlmesh info` command.
+`motherduck` ゲートウェイの接続情報を指定したので、SQLMesh が MotherDuck に正常に接続できることを確認できます。`sqlmesh info` コマンドで接続をテストします。
 
-First, open a command line terminal. Now enter the command `sqlmesh info`:
+まず、コマンドラインターミナルを開きます。`sqlmesh info` コマンドを入力します。
 
 ![](./motherduck/sqlmesh_info.png)
 
-The output shows that our data warehouse connection succeeded:
+出力は、データ ウェアハウスの接続が成功したことを示しています。
 
 ![](./motherduck/info_output.png)
 
-### Run a `sqlmesh plan`
+### `sqlmesh plan` を実行する
 
-Now we're ready to run a `sqlmesh plan` in MotherDuck:
+これで、MotherDuck で `sqlmesh plan` を実行する準備が整いました。
 
 ![](./motherduck/sqlmesh_plan.png)
 
-And confirm that our schemas and objects exist in the MotherDuck catalog:
+スキーマとオブジェクトが MotherDuck カタログに存在することを確認します。
 
 ![](./motherduck/motherduck_ui.png)
 
-Congratulations \- your SQLMesh project is up and running on MotherDuck\!
+おめでとうございます。SQLMesh プロジェクトが MotherDuck 上で稼働しています。
 
 
-## Local/Built-in Scheduler
+## ローカル/組み込みスケジューラ
 
-**Engine Adapter Type**: `motherduck`
+**エンジンアダプタタイプ**: `motherduck`
 
-### Connection options
+### 接続オプション
 
-| Option             | Description                                                                                                 | Type   | Required |
-|--------------------|-------------------------------------------------------------------------------------------------------------|:------:|:--------:|
-| `type`             | Engine type name - must be `motherduck`                                                                     | string | Y        |
-| `database`         | The database name.                                                                                          | string | Y        |
-| `token`            | The optional MotherDuck token. If not specified, the user will be prompted to login with their web browser. | string | N        |
-| `extensions`       | Extension to load into duckdb. Only autoloadable extensions are supported.                                  | list   | N        |
-| `connector_config` | Configuration to pass into the duckdb connector.                                                            | dict   | N        |
-| `secrets`   | Configuration for authenticating external sources (e.g. S3) using DuckDB secrets.                           | dict   | N        |
+| オプション | 説明 | タイプ | 必須 |
+|--------------------|----------------------------------------------------------------------------------------------------------------------------|:-------:|:--------:|
+| `type` | エンジンタイプ名 - `motherduck` である必要があります | 文字列 | Y |
+| `database` | データベース名。 | 文字列 | Y |
+| `token` | オプションの MotherDuck トークン。指定されていない場合、ユーザーは Web ブラウザでログインするよう求められます。 | 文字列 | N |
+| `extensions` | duckdb に読み込む拡張機能。自動読み込み可能な拡張機能のみがサポートされています。 | リスト | N |
+| `connector_config` | duckdb コネクタに渡す設定。 | dict | N |
+| `secrets` | DuckDB シークレットを使用して外部ソース (例: S3) を認証するための設定。 | dict | N |

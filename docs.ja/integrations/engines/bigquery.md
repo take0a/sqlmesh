@@ -1,62 +1,62 @@
 # BigQuery
 
-## Introduction
+## はじめに
 
-This guide provides step-by-step instructions on how to connect SQLMesh to the BigQuery SQL engine.
+このガイドでは、SQLMesh を BigQuery SQL エンジンに接続する方法について、段階的に説明します。
 
-It will walk you through the steps of installing SQLMesh and BigQuery connection libraries locally, configuring the connection in SQLMesh, and running the [quickstart project](../../quick_start.md).
+SQLMesh と BigQuery 接続ライブラリをローカルにインストールし、SQLMesh で接続を構成し、[クイックスタート プロジェクト](../../quick_start.md) を実行する手順を詳しく説明します。
 
-## Prerequisites
+## 前提条件
 
-This guide assumes the following about the BigQuery project being used with SQLMesh:
+このガイドでは、SQLMesh で使用する BigQuery プロジェクトについて、以下の条件を満たしていることを前提としています。
 
-- The project already exists
-- Project [CLI/API access is enabled](https://cloud.google.com/endpoints/docs/openapi/enable-api)
-- Project [billing is configured](https://cloud.google.com/billing/docs/how-to/manage-billing-account) (i.e. it's not a sandbox project)
-- SQLMesh can authenticate using an account with permissions to execute commands against the project
+- プロジェクトが既に存在していること
+- プロジェクトで [CLI/API アクセスが有効](https://cloud.google.com/endpoints/docs/openapi/enable-api) であること
+- プロジェクトで [課金が設定されている](https://cloud.google.com/billing/docs/how-to/manage-billing-account) こと (つまり、サンドボックス プロジェクトではないこと)
+- SQLMesh が、プロジェクトに対してコマンドを実行する権限を持つアカウントを使用して認証できること
 
-## Installation
+## インストール
 
-Follow the [quickstart installation guide](../../installation.md) up to the step that [installs SQLMesh](../../installation.md#install-sqlmesh-core), where we deviate to also install the necessary BigQuery libraries.
+[クイックスタート インストール ガイド](../../installation.md) の [SQLMesh のインストール](../../installation.md#install-sqlmesh-core) まで実行してください。この手順では、必要な BigQuery ライブラリもインストールします。
 
-Instead of installing just SQLMesh core, we will also include the BigQuery engine libraries:
+SQLMesh コアだけでなく、BigQuery エンジン ライブラリもインストールします。
 
 ```bash
 > pip install "sqlmesh[bigquery]"
 ```
 
-### Install Google Cloud SDK
+### Google Cloud SDK をインストールします
 
-SQLMesh connects to BigQuery via the Python [`google-cloud-bigquery` library](https://pypi.org/project/google-cloud-bigquery/), which uses the [Google Cloud SDK `gcloud` tool](https://cloud.google.com/sdk/docs) for [authenticating with BigQuery](https://googleapis.dev/python/google-api-core/latest/auth.html).
+SQLMesh は Python [`google-cloud-bigquery` ライブラリ](https://pypi.org/project/google-cloud-bigquery/) を介して BigQuery に接続します。このライブラリは、[BigQuery の認証](https://googleapis.dev/python/google-api-core/latest/auth.html) に [Google Cloud SDK `gcloud` ツール](https://cloud.google.com/sdk/docs) を使用します。
 
-Follow these steps to install and configure the Google Cloud SDK on your computer:
+Google Cloud SDK をコンピュータにインストールして設定するには、以下の手順に従ってください。
 
-- Download the appropriate installer for your system from the [Google Cloud installation guide](https://cloud.google.com/sdk/docs/install)
-- Unpack the downloaded file with the `tar` command:
+- [Google Cloud インストール ガイド](https://cloud.google.com/sdk/docs/install) から、お使いのシステムに適したインストーラをダウンロードします。
+- ダウンロードしたファイルを `tar` コマンドで解凍します。
 
     ```bash
     > tar -xzvf google-cloud-cli-{SYSTEM_SPECIFIC_INFO}.tar.gz
     ```
 
-- Run the installation script:
+- インストール スクリプトを実行します。
 
     ```bash
     > ./google-cloud-sdk/install.sh
     ```
 
-- Reload your shell profile (e.g., for zsh):
+- シェル プロファイルを再読み込みします (例: zsh の場合):
 
     ```bash
     > source $HOME/.zshrc
     ```
 
-- Run [`gcloud init` to setup authentication](https://cloud.google.com/sdk/gcloud/reference/init)
+- [`gcloud init` を実行して認証を設定します](https://cloud.google.com/sdk/gcloud/reference/init)
 
-## Configuration
+## 構成
 
-### Configure SQLMesh for BigQuery
+### BigQuery 用に SQLMesh を構成する
 
-Add the following gateway specification to your SQLMesh project's `config.yaml` file:
+SQLMesh プロジェクトの `config.yaml` ファイルに次のゲートウェイ仕様を追加します。
 
 ```yaml
 bigquery:
@@ -67,41 +67,41 @@ bigquery:
 default_gateway: bigquery
 ```
 
-This creates a gateway named `bigquery` and makes it your project's default gateway.
+これにより、`bigquery` という名前のゲートウェイが作成され、プロジェクトのデフォルトゲートウェイになります。
 
-It uses the [`oauth` authentication method](#authentication-methods), which does not specify a username or other information directly in the connection configuration. Other authentication methods are [described below](#authentication-methods).
+[`oauth` 認証方式](#authentication-methods) を使用します。この認証方式では、接続構成でユーザー名やその他の情報を直接指定しません。その他の認証方法については[後述](#authentication-methods)で説明します。
 
-In BigQuery, navigate to the dashboard and select the BigQuery project your SQLMesh project will use. From the Google Cloud dashboard, use the arrow to open the pop-up menu:
+BigQuery でダッシュボードに移動し、SQLMesh プロジェクトで使用する BigQuery プロジェクトを選択します。Google Cloud ダッシュボードで、矢印を使用してポップアップ メニューを開きます。
 
 ![BigQuery Dashboard](./bigquery/bigquery-1.png)
 
-Now we can identify the project ID needed in the `config.yaml` gateway specification above. Select the project that you want to work with, the project ID that you need to add to your yaml file is the ID label from the pop-up menu.
+これで、上記の `config.yaml` ゲートウェイ仕様に必要なプロジェクトIDを特定できます。作業対象のプロジェクトを選択してください。ポップアップメニューからIDラベルを選択すると、yamlファイルに追加する必要があるプロジェクトIDが表示されます。
 
 ![BigQuery Dashboard: selecting your project](./bigquery/bigquery-2.png)
 
-For this guide, the Docs-Demo is the one we will use, thus the project ID for this example is `healthy-life-440919-s0`.
+このガイドでは、Docs-Demo を使用するため、この例のプロジェクト ID は `healthy-life-440919-s0` になります。
 
-## Usage
+## 使用方法
 
-### Test the connection
+### 接続をテストする
 
-Run the following command to verify that SQLMesh can connect to BigQuery:
+SQLMesh が BigQuery に接続できることを確認するには、次のコマンドを実行します。
 
 ```bash
 > sqlmesh info
 ```
 
-The output will look something like this:
+出力は次のようになります。
 
 ![Terminal Output](./bigquery/bigquery-3.png)
 
-- **Set quota project (optional)**
+- **クォータプロジェクトの設定（オプション）**
 
-    You may see warnings like this when you run `sqlmesh info`:
+    `sqlmesh info` を実行すると、次のような警告が表示される場合があります。
 
-    ![Terminal Output with warnings](./bigquery/bigquery-4.png)
+    ![警告を含むターミナル出力](./bigquery/bigquery-4.png)
 
-    You can avoid these warnings about quota projects by running:
+    クォータプロジェクトに関するこれらの警告を回避するには、次のコマンドを実行します。
 
     ```bash
     > gcloud auth application-default set-quota-project <your_project_id>
@@ -109,92 +109,92 @@ The output will look something like this:
     ```
 
 
-### Create and run a plan
+### プランを作成して実行する
 
-We've verified our connection, so we're ready to create and execute a plan in BigQuery:
+接続を確認したので、BigQuery でプランを作成して実行する準備が整いました。
 
 ```bash
 > sqlmesh plan
 ```
 
-### View results in BigQuery Console
+### BigQuery コンソールで結果を表示
 
-Let's confirm that our project models are as expected.
+プロジェクトモデルが期待どおりに動作していることを確認しましょう。
 
-First, navigate to the BigQuery Studio Console:
+まず、BigQuery Studio コンソールに移動します。
 
-![Steps to the Studio](./bigquery/bigquery-5.png)
+![Studio へのアクセス手順](./bigquery/bigquery-5.png)
 
-Then use the left sidebar to find your project and the newly created models:
+次に、左側のサイドバーからプロジェクトと新しく作成されたモデルを見つけます。
 
-![New Models](./bigquery/bigquery-6.png)
+![新しいモデル](./bigquery/bigquery-6.png)
 
-We have confirmed that our SQLMesh project is running properly in BigQuery!
+SQLMesh プロジェクトが BigQuery で正常に動作していることを確認しました。
 
-## Local/Built-in Scheduler
+## ローカル/組み込みスケジューラ
 
-**Engine Adapter Type**: `bigquery`
+**エンジンアダプタタイプ**: `bigquery`
 
-### Installation
+### インストール
 ```
 pip install "sqlmesh[bigquery]"
 ```
 
-### Connection options
+### 接続オプション
 
-| Option                          | Description                                                                                                                                                       |  Type  | Required |
-|---------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|:------:|:--------:|
-| `type`                          | Engine type name - must be `bigquery`                                                                                                                             | string |    Y     |
-| `method`                        | Connection methods - see [allowed values below](#authentication-methods). Default: `oauth`.                                                                           | string |    N     |
-| `project`                       | The ID of the GCP project                                                                                                                                       | string |    N     |
-| `location`                      | The location of for the datasets (can be regional or multi-regional)                                                                                              | string |    N     |
-| `execution_project`             | The name of the GCP project to bill for the execution of the models. If not set, the project associated with the model will be used.                              | string |    N     |
-| `quota_project`                 | The name of the GCP project used for the quota. If not set, the `quota_project_id` set within the credentials of the account is used to authenticate to BigQuery. | string |    N     |
-| `keyfile`                       | Path to the keyfile to be used with service-account method                                                                                                        | string |    N     |
-| `keyfile_json`                  | Keyfile information provided inline (not recommended)                                                                                                             |  dict  |    N     |
-| `token`                         | OAuth 2.0 access token                                                                                                                                            | string |    N     |
-| `refresh_token`                 | OAuth 2.0 refresh token                                                                                                                                           | string |    N     |
-| `client_id`                     | OAuth 2.0 client ID                                                                                                                                               | string |    N     |
-| `client_secret`                 | OAuth 2.0 client secret                                                                                                                                           | string |    N     |
-| `token_uri`                     | OAuth 2.0 authorization server's token endpoint URI                                                                                                                | string |    N     |
-| `scopes`                        | The scopes used to obtain authorization                                                                                                                           |  list  |    N     |
-| `impersonated_service_account`  | If set, SQLMesh will attempt to impersonate this service account                                                                                                                                | string |    N     |
-| `job_creation_timeout_seconds`  | The maximum amount of time, in seconds, to wait for the underlying job to be created.                                                                             |  int   |    N     |
-| `job_execution_timeout_seconds` | The maximum amount of time, in seconds, to wait for the underlying job to complete.                                                                               |  int   |    N     |
-| `job_retries`                   | The number of times to retry the underlying job if it fails. (Default: `1`)                                                                                       |  int   |    N     |
-| `priority`                      | The priority of the underlying job. (Default: `INTERACTIVE`)                                                                                                      | string |    N     |
-| `maximum_bytes_billed`          | The maximum number of bytes to be billed for the underlying job.                                                                                                  |  int   |    N     |
+| オプション | 説明 | タイプ | 必須 |
+|---------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-------:|:--------:|
+| `type` | エンジンタイプ名 - `bigquery` である必要があります | 文字列 | Y |
+| `method` | 接続方法 - [使用可能な値](#authentication-methods)を参照してください。デフォルト: `oauth`。 | 文字列 | N |
+| `project` | GCP プロジェクトの ID | 文字列 | N |
+| `location` | データセットのロケーション (リージョンまたはマルチリージョン) | 文字列 | N |
+| `execution_project` | モデルの実行に対して課金する GCP プロジェクトの名前。設定されていない場合は、モデルに関連付けられたプロジェクトが使用されます。 | 文字列 | N |
+| `quota_project` |割り当てに使用される GCP プロジェクトの名前。設定されていない場合は、アカウントの認証情報内に設定されている `quota_project_id` を使用して BigQuery への認証が行われます。| 文字列 | N |
+| `keyfile` | サービス アカウント メソッドで使用されるキーファイルへのパス | 文字列 | N |
+| `keyfile_json` | キーファイル情報はインラインで提供されます (非推奨) | 辞書 | N |
+| `token` | OAuth 2.0 アクセス トークン | 文字列 | N |
+| `refresh_token` | OAuth 2.0 リフレッシュ トークン | 文字列 | N |
+| `client_id` | OAuth 2.0 クライアント ID | 文字列 | N |
+| `client_secret` | OAuth 2.0 クライアント シークレット | 文字列 | N |
+| `token_uri` | OAuth 2.0 認可サーバーのトークン エンドポイント URI | 文字列 | N |
+| `scopes` |承認を取得するために使用されるスコープ | リスト | N |
+| `impersonated_service_account` | 設定されている場合、SQLMesh はこのサービス アカウントの偽装を試みます | 文字列 | N |
+| `job_creation_timeout_seconds` | 基になるジョブが作成されるのを待機する最大時間 (秒)。 | int | N |
+| `job_execution_timeout_seconds` | 基になるジョブが完了するまでを待機する最大時間 (秒)。 | int | N |
+| `job_retries` | 基になるジョブが失敗した場合に再試行する回数。(既定値: `1`) | int | N |
+| `priority` | 基になるジョブの優先度。(既定値: `INTERACTIVE`) | 文字列 | N |
+| `maximum_bytes_billed` | 基になるジョブに対して課金される最大バイト数。 | int | N |
 
-## Authentication Methods
-- [oauth](https://google-auth.readthedocs.io/en/master/reference/google.auth.html#google.auth.default) (default)
-    - Related Credential Configuration:
-        - `scopes` (Optional)
+## 認証方法
+- [oauth](https://google-auth.readthedocs.io/en/master/reference/google.auth.html#google.auth.default) (デフォルト)
+    - 関連する認証情報の設定:
+        - `scopes` (オプション)
 - [oauth-secrets](https://google-auth.readthedocs.io/en/stable/reference/google.oauth2.credentials.html)
-    - Related Credential Configuration:
-        - `token` (Optional): Can be None if refresh information is provided.
-        - `refresh_token` (Optional): If specified, credentials can be refreshed.
-        - `client_id` (Optional): Must be specified for refresh, can be left as None if the token can not be refreshed.
-        - `client_secret` (Optional): Must be specified for refresh, can be left as None if the token can not be refreshed.
-        - `token_uri` (Optional): Must be specified for refresh, can be left as None if the token can not be refreshed.
-        - `scopes` (Optional): OAuth 2.0 credentials can not request additional scopes after authorization. The scopes must be derivable from the refresh token if refresh information is provided (e.g. The refresh token scopes are a superset of this or contain a wild card scope like 'https://www.googleapis.com/auth/any-api')
+    - 関連する認証情報の設定:
+        - `token` (オプション): リフレッシュ情報が提供されている場合は None を指定できます。
+        - `refresh_token` (オプション): 指定すると、認証情報を更新できます。
+        - `client_id` (オプション): リフレッシュの場合は必ず指定してください。トークンを更新できない場合は None のままにできます。
+        - `client_secret` (オプション): リフレッシュの場合は必ず指定してください。トークンを更新できない場合は None のままにできます。
+        - `token_uri` (オプション): リフレッシュのために指定する必要があります。トークンをリフレッシュできない場合は None のままにできます。
+        - `scopes` (オプション): OAuth 2.0 認証情報は、認可後に追加のスコープを要求できません。リフレッシュ情報が提供されている場合、スコープはリフレッシュトークンから導出可能である必要があります（例：リフレッシュトークンのスコープは、このスコープのスーパーセットであるか、「https://www.googleapis.com/auth/any-api」のようなワイルドカードスコープを含む）。
 - [service-account](https://google-auth.readthedocs.io/en/master/reference/google.oauth2.service_account.html#google.oauth2.service_account.IDTokenCredentials.from_service_account_file)
-    - Related Credential Configuration:
-        - `keyfile` (Required)
-        - `scopes` (Optional)
+    - 関連する認証情報の設定：
+        - `keyfile`（必須）
+        - `scopes`（オプション）
 - [service-account-json](https://google-auth.readthedocs.io/en/master/reference/google.oauth2.service_account.html#google.oauth2.service_account.IDTokenCredentials.from_service_account_info)
-    - Related Credential Configuration:
-        - `keyfile_json` (Required)
-        - `scopes` (Optional)
+    - 関連する認証情報の設定：
+        - `keyfile_json` (必須)
+        - `scopes` (オプション)
 
-If the `impersonated_service_account` argument is set, SQLMesh will:
+`impersonated_service_account` 引数が設定されている場合、SQLMesh は次の処理を実行します。
 
-1. Authenticate user account credentials with one of the methods above
-2. Attempt to impersonate the service account with those credentials
+1. 上記のいずれかの方法でユーザーアカウントの認証情報を認証します。
+2. その認証情報を使用してサービスアカウントの権限借用を試みます。
 
-The user account must have [sufficient permissions to impersonate the service account](https://cloud.google.com/docs/authentication/use-service-account-impersonation).
+ユーザーアカウントには、[サービスアカウントの権限借用に必要な権限](https://cloud.google.com/docs/authentication/use-service-account-impersonation) が必要です。
 
-## Permissions Required
-With any of the above connection methods, ensure these BigQuery permissions are enabled to allow SQLMesh to work correctly.
+## 必要な権限
+上記のいずれの接続方法を使用する場合でも、SQLMesh が正しく動作するために、以下の BigQuery 権限が有効になっていることを確認してください。
 
-- [`BigQuery Data Owner`](https://cloud.google.com/bigquery/docs/access-control#bigquery.dataOwner)
-- [`BigQuery User`](https://cloud.google.com/bigquery/docs/access-control#bigquery.user)
+- [`BigQuery データオーナー`](https://cloud.google.com/bigquery/docs/access-control#bigquery.dataOwner)
+- [`BigQuery ユーザー`](https://cloud.google.com/bigquery/docs/access-control#bigquery.user)
