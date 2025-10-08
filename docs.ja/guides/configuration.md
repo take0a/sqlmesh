@@ -1452,7 +1452,7 @@ def grant_select_privileges(evaluator):
         ]
 ```
 
-コメント `/* sqlglot.meta replace=false */` を含めることで、レンダリング中に評価者がビュー名を物理テーブル名に置き換えないようにすることができます。
+コメント `/* sqlglot.meta replace=false */` を含めることで、レンダリング中に evaluator がビュー名を物理テーブル名に置き換えないようにすることができます。
 
 ##### 例: スキーマ権限の付与
 

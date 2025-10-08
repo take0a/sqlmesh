@@ -8,7 +8,7 @@ SQLMesh は複数のリポジトリをネイティブにサポートしており
 
 複数のリポジトリでSQLMeshを設定するのは非常に簡単です。このサンプル[マルチリポジトリプロジェクト](https://github.com/TobikoData/sqlmesh/tree/main/examples/multi)の内容をコピーしてください。
 
-プロジェクトをブートストラップするには、SQLMeshを両方のプロジェクトに指定します。
+プロジェクトをブートストラップするには、SQLMesh に両方のプロジェクトを指定します。
 
 ```
 $ sqlmesh -p examples/multi/repo_1 -p examples/multi/repo_2/ plan

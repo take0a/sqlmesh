@@ -1,282 +1,282 @@
-# Browser UI guide
+# ブラウザUIガイド
 
 !!! warning
 
     ブラウザUIは非推奨です。代わりに[VSCode拡張機能](vscode.md)をご利用ください。
 
 
-SQLMesh's free, open-source browser user interface (UI) makes it easy to understand, explore, and modify your SQLMesh project.
+SQLMesh の無料のオープンソース ブラウザ ユーザー インターフェース (UI) を使用すると、SQLMesh プロジェクトを簡単に理解、調査、変更することができます。
 
-This page describes the UI's components and how they work.
+このページでは、UI のコンポーネントとその動作について説明します。
 
-## Purpose
+## 目的
 
-Modifying SQLMesh projects involves changing code, creating environments, and applying plans. The browser UI facilitates this process with a graphical interface for executing SQLMesh commands.
+SQLMesh プロジェクトの変更には、コードの変更、環境の作成、プランの適用が含まれます。ブラウザ UI は、SQLMesh コマンドを実行するためのグラフィカルインターフェースを備えており、このプロセスを容易にします。
 
-However, not all SQLMesh commands can be executed - for example, `sqlmesh run` must be executed via the [CLI](../reference/cli.md) or [Python](../reference/python.md) interfaces.
+ただし、すべての SQLMesh コマンドを実行できるわけではありません。たとえば、`sqlmesh run` は [CLI](../reference/cli.md) または [Python](../reference/python.md) インターフェース経由で実行する必要があります。
 
-### Editing code
+### コード編集
 
-Editing code is the primary activity when modifying SQLMesh projects.
+SQLMesh プロジェクトを変更する際、コード編集は主要な作業です。
 
-Many developers edit code in an integrated development environment (IDE), such as [VSCode](https://code.visualstudio.com/) or [PyCharm](https://www.jetbrains.com/pycharm/). IDEs include extensive editing functionality like auto-completion, customized key mappings, code validation, and embedded terminals.
+多くの開発者は、[VSCode](https://code.visualstudio.com/) や [PyCharm](https://www.jetbrains.com/pycharm/) などの統合開発環境 (IDE) でコードを編集します。IDE には、オートコンプリート、キーマッピングのカスタマイズ、コード検証、組み込みターミナルなど、豊富な編集機能が備わっています。
 
-The SQLMesh UI editor is not an IDE; it is a code editor for quickly updating models and writing ad-hoc SQL queries.
+SQLMesh UI エディターは IDE ではなく、モデルを迅速に更新したり、アドホック SQL クエリを記述したりするためのコードエディターです。
 
-For development work, we recommend using the SQLMesh UI alongside an IDE. The UI's modular design lets you mix and match UI components while you edit code in the IDE. Learn more [below](#working-with-an-ide).
+開発作業では、SQLMesh UI を IDE と併用することをお勧めします。UI はモジュール設計になっているため、IDE でコードを編集しながら UI コンポーネントを組み合わせることができます。詳しくは [下記](#working-with-an-ide) をご覧ください。
 
-## Setup
+## セットアップ
 
-Before beginning, ensure that you meet all the [prerequisites](../prerequisites.md) for using SQLMesh. The SQLMesh browser UI requires additional Python libraries not included in the base SQLMesh installation.
+始める前に、SQLMesh を使用するための [前提条件](../prerequisites.md) をすべて満たしていることを確認してください。SQLMesh ブラウザ UI を使用するには、SQLMesh の基本インストールには含まれていない追加の Python ライブラリが必要です。
 
-To use the UI, install SQLMesh with the `web` add-on. First, if using a python virtual environment, ensure it's activated by running `source .venv/bin/activate` command from the folder used during [installation](../installation.md).
+UI を使用するには、`web` アドオンを使用して SQLMesh をインストールします。まず、Python 仮想環境を使用している場合は、[インストール](../installation.md) 時に使用したフォルダから `source .venv/bin/activate` コマンドを実行して、仮想環境がアクティブ化されていることを確認してください。
 
-Next, install the UI with `pip`:
+次に、`pip` を使用して UI をインストールします。
 
 ```bash
 pip install "sqlmesh[web]"
 ```
 
-## Start the Browser UI
+## ブラウザ UI を起動します
 
-Open the UI by running the `sqlmesh ui` command from within the project directory:
+プロジェクトディレクトリ内から `sqlmesh ui` コマンドを実行して UI を開きます。
 
 ```bash
 sqlmesh ui
 ```
 
-After starting up, the SQLMesh web UI is served at `http://127.0.0.1:8000` by default:
+起動後、SQLMesh Web UI はデフォルトで `http://127.0.0.1:8000` で提供されます。
 
 ![SQLMesh web UI startup on CLI](./ui/ui-quickstart_cli.png){ loading=lazy }
 
-Navigate to the URL by clicking the link in your terminal (if supported) or copy-pasting it into your web browser:
+ターミナルでリンクをクリックするか (サポートされている場合)、Web ブラウザにコピーして貼り付けて、URL に移動します。
 
 ![SQLMesh web UI startup in browser](./ui/ui-quickstart_ui-startup.png){ loading=lazy }
 
-## Modules
+## モジュール
 
-The UI consists of modules that contain different functionality, and sets of modules are grouped into "modes" (learn more about modes [below](#modes)).
+UI は、さまざまな機能を備えたモジュールで構成されており、モジュールのセットは「モード」にグループ化されています（モードの詳細については、[下記](#modes) をご覧ください）。
 
-The UI modules are:
+UI モジュールは次のとおりです。
 
-- [Code editor](#editor-module)
-- [Plan builder](#plan-module)
-- [Data catalog](#data-catalog-module)
-- [Table and column lineage](#lineage-module)
+- [コードエディター](#editor-module)
+- [プランビルダー](#plan-module)
+- [データカタログ](#data-catalog-module)
+- [テーブルと列のリネージ](#lineage-module)
 
-The screenshots in most examples below use the default `editor` mode.
+以下のほとんどの例のスクリーンショットでは、デフォルトの「エディター」モードを使用しています。
 
-### Editor module
+### エディターモジュール {#editor-module}
 
-The `editor` module will appear by default if the UI is started without specifying a mode. Its default view contains five panes:
+モードを指定せずに UI を起動すると、デフォルトで `editor` モジュールが表示されます。デフォルトのビューには 5 つのペインがあります。
 
-1. Project directory allows navigation of project directories and files.
-2. Editor tabs displays open code editors.
-3. Code editor allows viewing and editing code files.
-4. Inspector provides settings and information based on recent actions and the currently active pane. (Note: inspector pane is collapsed by default. Expand it by clicking the hamburger button at the top of the collapsed pane - see previous image.)
-5. Details displays column-level lineage for models open in the editor and results of queries. (Note: details pane is collapsed by default. It will automatically expand upon opening a model in the editor or running a query.)
+1. プロジェクトディレクトリでは、プロジェクトディレクトリとファイル間を移動できます。
+2. エディタータブでは、開いているコードエディターが表示されます。
+3. コードエディターでは、コードファイルの表示と編集ができます。
+4. インスペクターでは、最近の操作と現在アクティブなペインに基づいて設定と情報が表示されます。(注: インスペクターペインはデフォルトで折りたたまれています。折りたたまれたペインの上部にあるハンバーガーボタンをクリックすると展開します (前の画像を参照)。)
+5. 詳細では、エディターで開いているモデルの列レベルの系統とクエリの結果が表示されます。(注: 詳細ペインはデフォルトで折りたたまれています。エディターでモデルを開いたり、クエリを実行したりすると、自動的に展開されます。)
 
 ![SQLMesh browser UI panes](./ui/ui-quickstart_ui-startup-panes.png){ loading=lazy }
 
-It also contains nine buttons:
+また、次の9つのボタンがあります。
 
-1. Toggle Editor/Data Catalog/Errors/Plan toggles among the editor module (default), data catalog module, errors view, and plan module. Errors view is only available if an error has occurred.
-2. History navigation returns to previous views, similar to the back button in a web browser.
-3. Add new tab opens a new code editor window.
-4. Plan opens the plan module.
-5. Documentation links to the SQLMesh documentation website.
-6. The crescent moon toggles between page light and dark modes.
-7. Run SQL query executes the [`sqlmesh fetchdf` command](../reference/cli.md#fetchdf).
-8. Format SQL query reformats a SQL query using SQLGlot's pretty layout.
-9. Change SQL dialect specifies the SQL dialect of the current tab for custom SQL queries. It does not affect the SQL dialect for the project.
+1. エディター/データカタログ/エラー/プランの切り替えは、エディターモジュール（デフォルト）、データカタログモジュール、エラービュー、プランモジュールを切り替えます。エラービューは、エラーが発生した場合にのみ表示されます。
+2. 履歴ナビゲーションは、Webブラウザの戻るボタンと同様に、前のビューに戻ります。
+3. 新しいタブの追加は、新しいコードエディターウィンドウを開きます。
+4. プランは、プランモジュールを開きます。
+5. ドキュメントは、SQLMeshドキュメントウェブサイトへのリンクです。
+6. 三日月は、ページのライトモードとダークモードを切り替えます。
+7. SQLクエリの実行は、[`sqlmesh fetchdf` コマンド](../reference/cli.md#fetchdf)を実行します。
+8. SQLクエリのフォーマットは、SQLGlotのきれいなレイアウトを使用してSQLクエリを再フォーマットします。
+9. SQLダイアレクトの変更は、カスタムSQLクエリの現在のタブのSQLダイアレクトを指定します。プロジェクトのSQLダイアレクトには影響しません。
 
 ![SQLMesh browser UI buttons](./ui/ui-guide_ui-startup-buttons.png){ loading=lazy }
 
-And it contains four status indicators:
+また、4つのステータスインジケーターがあります。
 
-1. Editor tab language displays the programming language of the current code editor tab (SQL or Python).
-2. Current environment displays the currently selected environment
-3. Change indicator displays a summary of the changes in the project files relative to the most recently run SQLMesh plan in the selected environment.
-4. Error indicator displays the count of errors in the project.
+1. エディタータブの言語には、現在のコードエディタータブのプログラミング言語（SQLまたはPython）が表示されます。
+2. 現在の環境には、現在選択されている環境が表示されます。
+3. 変更インジケーターには、選択した環境で最後に実行されたSQLMeshプランと比較したプロジェクトファイルの変更の概要が表示されます。
+4. エラーインジケーターには、プロジェクト内のエラーの数が表示されます。
 
 ![SQLMesh web UI status indicators](./ui/ui-quickstart_ui-startup-status.png){ loading=lazy }
 
-#### Edit models
+#### モデルの編集
 
-Open a model in a new tab by clicking its file name in the left-hand project directory pane.
+左側のプロジェクトディレクトリペインでファイル名をクリックすると、新しいタブでモデルが開きます。
 
-The tab will show the model definition, and the details pane at the bottom will display the model in the project's table and column lineage.
+タブにはモデル定義が表示され、下部の詳細ペインにはプロジェクトのテーブルと列の系統内のモデルが表示されます。
 
-![Incremental model open in editor](./ui/ui-quickstart_incremental-model.png){ loading=lazy }
+![エディターで増分モデルを開く](./ui/ui-quickstart_incremental-model.png){ loading=lazy }
 
-The lineage display will update as model modifications are saved. For example, you might modify the incremental SQL model by adding a new column to the query. Press `Cmd + S` (`Ctrl + S` on Windows) to save the modified model file and display the updated lineage:
+モデルの変更が保存されると、系統の表示が更新されます。例えば、クエリに新しい列を追加することで、増分SQLモデルを変更することができます。`Cmd + S` (Windowsの場合は `Ctrl + S`) を押すと、変更されたモデルファイルが保存され、更新された系統が表示されます。
 
-![Incremental model modified in editor](./ui/ui-quickstart_incremental-model-modified.png){ loading=lazy }
+![エディターで変更された増分モデル](./ui/ui-quickstart_incremental-model-modified.png){ loading=lazy }
 
-The `Changes` indicator in the top right now shows blue and orange circles that reflect our model update.
+右上の「変更」インジケーターに、モデルの更新を反映した青とオレンジの円が表示されます。
 
-#### Run SQL queries
+#### SQL クエリの実行
 
-Run SQL queries by executing them from custom SQL editor tabs.
+カスタム SQL エディターのタブから SQL クエリを実行します。
 
-For example, we might add a SQL query `select * from sqlmesh_example.incremental_model` to the Custom SQL 1 tab. To run the query, first click the hamburger icon to open the explorer pane:
+例えば、「カスタム SQL 1」タブに SQL クエリ「select * from sqlmesh_example.incremental_model」を追加します。クエリを実行するには、まずハンバーガーアイコンをクリックしてエクスプローラーペインを開きます。
 
-![Querying `dev` incremental model with SQL query in editor](./ui/ui-guide_fetchdf-prod-query.png){ loading=lazy }
+![エディターで SQL クエリを使用して `dev` 増分モデルをクエリ](./ui/ui-guide_fetchdf-prod-query.png){ loading=lazy }
 
-Then click the `Run Query` button in the bottom right to execute the query:
+次に、右下の「クエリ実行」ボタンをクリックしてクエリを実行します。
 
-![Results from querying dev incremental model with SQL query in editor](./ui/ui-guide_fetchdf-prod.png){ loading=lazy }
+![エディターで SQL クエリを使用して `dev` 増分モデルをクエリした結果](./ui/ui-guide_fetchdf-prod.png){ loading=lazy }
 
-The results appear in an interactive table in the details pane below the editor.
+結果は、エディターの下の詳細ペインにあるインタラクティブなテーブルに表示されます。
 
-### Plan module
+### プランモジュール {#plan-module}
 
-The plan module provides a graphical interface for the `sqlmesh plan` command. Its actions change based on the current state of your SQLMesh project. For example, it will auto-update impact analysis based on the latest saved changes to a SQL model.
+プランモジュールは、`sqlmesh plan` コマンド用のグラフィカルインターフェースを提供します。このモジュールの動作は、SQLMesh プロジェクトの現在の状態に基づいて変化します。例えば、SQL モデルに最後に保存された変更に基づいて、影響分析を自動更新します。
 
-Open the plan module by clicking the green circle button on the left-hand pane or the green Plan button on the top bar next to the environment dropdown.
+プランモジュールを開くには、左側のペインにある緑色の丸いボタン、または環境ドロップダウンの横にある上部バーの緑色のプランボタンをクリックします。
 
-The sections below use the SQLMesh [quickstart project](../quick_start.md) to demonstrate the module.
+以下のセクションでは、SQLMesh [クイックスタートプロジェクト](../quick_start.md) を使用してモジュールのデモを行います。
 
-#### New project
+#### 新規プロジェクト
 
-In a brand new project, the only environment is the empty `prod` environment. The first SQLMesh plan must execute every model to populate the production environment.
+新規プロジェクトでは、環境は空の「prod」環境のみです。最初のSQLMeshプランでは、すべてのモデルを実行して本番環境にデータを投入する必要があります。
 
-When you open the plan module, it contains multiple pieces of information about the project's first plan:
+プランモジュールを開くと、プロジェクトの最初のプランに関する複数の情報が表示されます。
 
-- The `Initializing Prod Environment` section shows that the plan is initializing the `prod` environment.
-- The Start and End date sections are grayed out because they are not allowed when running a plan in the `prod` environment.
-- The `Changes` section shows that SQLMesh detected three models added relative to the current empty environment.
-- The `Backfills` section shows that backfills will occur for all three of the added models.
+- 「Initializing Prod Environment（本番環境の初期化）」セクションには、プランが「prod」環境を初期化していることがわかります。
+- 「Start date（開始日）」と「End date（終了日）」セクションは、プランを「prod」環境で実行する際に許可されないため、グレー表示になっています。
+- 「Changes（変更）」セクションには、SQLMeshが現在の空の環境に対して追加された3つのモデルを検出したことがわかります。
+- 「Backfills（バックフィル）」セクションには、追加された3つのモデルすべてに対してバックフィルが行われることがわかります。
 
-![Plan module - new project](./ui/ui-quickstart_run-plan.png){ loading=lazy }
+![プランモジュール - 新規プロジェクト](./ui/ui-quickstart_run-plan.png){ loading=lazy }
 
-SQLMesh will apply the plan and initiate backfill when you click the blue button labeled `Apply Changes And Backfill`.
+「変更を適用してバックフィル」というラベルの付いた青いボタンをクリックすると、SQLMesh はプランを適用し、バックフィルを開始します。
 
-The page will update and new output sections will appear. Each section reflects a stage in the plan application and will be green if the step succeeded.
+ページが更新され、新しい出力セクションが表示されます。各セクションはプラン適用の各段階を反映しており、ステップが成功すると緑色になります。
 
-The `Tests Completed` section indicates that the project's [unit tests](../concepts/tests.md) ran successfully.
+「テスト完了」セクションは、プロジェクトの[ユニットテスト](../concepts/tests.md)が正常に実行されたことを示します。
 
-The `Snapshot Tables Created` indicates that [snapshots](../concepts/architecture/snapshots.md) of the added and modified models were created successfully.
+「スナップショットテーブル作成」セクションは、追加および変更されたモデルの[スナップショット](../concepts/architecture/snapshots.md)が正常に作成されたことを示します。
 
-The `Backfilled` section shows progress indicators for the backfill operations. The first progress indicator shows the total number of tasks and completion percentage for the entire backfill operation. The remaining progress bars show completion percentage and run time for each model (very fast in this simple example).
+「バックフィル完了」セクションには、バックフィル操作の進行状況インジケーターが表示されます。最初の進行状況インジケーターは、バックフィル操作全体のタスクの合計数と完了率を示します。残りの進行状況バーには、各モデルの完了率と実行時間が表示されます (この単純な例では非常に高速です)。
 
 ![Plan module - plan applied](./ui/ui-quickstart_apply-plan.png){ loading=lazy }
 
-#### New environment
+#### 新しい環境
 
-To create a new environment, open the environment menu by clicking the drop-down labeled `Environment: prod \/` next to the green `Plan` button on the top right.
+新しい環境を作成するには、右上の緑色の「プラン」ボタンの横にある「環境: prod \/」というドロップダウンをクリックして、環境メニューを開きます。
 
-To create an environment named "dev," type `dev` into the Environment field and click the blue `Add` button.
+「dev」という名前の環境を作成するには、「環境」フィールドに「dev」と入力し、青い「追加」ボタンをクリックします。
 
-![Open environment menu](./ui/ui-quickstart_create-dev.png){ loading=lazy }
+![環境メニューを開く](./ui/ui-quickstart_create-dev.png){ loading=lazy }
 
-The drop-down now shows that the SQLMesh UI is working in the `dev` environment:
+ドロップダウンには、SQLMesh UI が `dev` 環境で動作していることが表示されます。
 
-![Working in dev environment](./ui/ui-quickstart_plan-dev.png){ loading=lazy }
+![開発環境で動作中](./ui/ui-quickstart_plan-dev.png){ loading=lazy }
 
-To populate the environment with views of the production environment, click the green `Plan` button to open the plan module:
+本番環境のビューを環境に取り込むには、緑色の「プラン」ボタンをクリックしてプランモジュールを開きます。
 
-![Run plan on dev pane](./ui/ui-quickstart_run-plan-dev.png){ loading=lazy }
+![開発ペインでプランを実行](./ui/ui-quickstart_run-plan-dev.png){ loading=lazy }
 
-The output section does not list any added/modified models or backfills because `dev` is being created from the existing `prod` environment without modification.
+`dev` は既存の `prod` 環境から変更を加えずに作成されているため、出力セクションには追加/変更されたモデルやバックフィルは表示されません。
 
-Clicking the blue `Apply Virtual Update` button applies the new plan:
+青色の「仮想更新を適用」ボタンをクリックすると、新しいプランが適用されます。
 
 ![Run plan on dev pane output](./ui/ui-quickstart_run-plan-dev-output.png){ loading=lazy }
 
 
-#### Existing environment
+#### 既存の環境
 
-If you modify the project files, you will want to apply the changes to an existing environment. In this example, we have changed the project's `incremental_model` and are applying the changes to the `dev` environment.
+プロジェクトファイルを変更する場合は、既存の環境に変更を適用する必要があります。この例では、プロジェクトの `incremental_model` を変更し、その変更を `dev` 環境に適用しています。
 
-The plan module will summarize the changes when you open it:
+プランモジュールを開くと、変更内容の概要が表示されます。
 
-![Plan pane after opening plan module with modified model](./ui/ui-quickstart_run-plan-dev-modified.png){ loading=lazy }
+![モデルを変更したプランモジュールを開いた後のプランペイン](./ui/ui-quickstart_run-plan-dev-modified.png){ loading=lazy }
 
-The `Changes` section detects that `incremental_model` was directly modified and that `full_model` was indirectly modified because it selects from the incremental model.
+`Changes` セクションでは、`incremental_model` が直接変更され、`full_model` は増分モデルから選択されているため間接的に変更されたことが検出されます。
 
-Click the blue `Apply Changes And Backfill` button to apply the plan and execute the backfill:
+青い「変更を適用してバックフィルを実行」ボタンをクリックして、プランを適用し、バックフィルを実行します。
 
 ![Plan after applying updated plan with modified model](./ui/ui-quickstart_apply-plan-dev-modified.png){ loading=lazy }
 
-### Data Catalog module
+### データカタログモジュール {#data-catalog-module}
 
-The data catalog module displays information about all your project's models in one interface.
+データカタログモジュールは、プロジェクトのすべてのモデルに関する情報を 1 つのインターフェースに表示します。
 
-A list of all models is displayed in the left-hand pane. You can filter models by name by typing in the field at the top of the pane.
+左側のペインにすべてのモデルのリストが表示されます。ペイン上部のフィールドにモデル名を入力すると、モデルをフィルタリングできます。
 
-When you choose a model, its query, lineage, and attributes are displayed. This example shows information from the [quickstart project](../quick_start.md) incremental model:
+モデルを選択すると、そのクエリ、系統、属性が表示されます。この例は、[クイックスタートプロジェクト](../quick_start.md) の増分モデルの情報を示しています。
 
-![Data Catalog with incremental model selected](./ui/ui-guide_docs.png){ loading=lazy }
+![増分モデルが選択されたデータカタログ](./ui/ui-guide_docs.png){ loading=lazy }
 
-By default, the model definition source code is displayed. If you toggle to `Compiled Query`, it will display an example of the model query rendered with macro values substituted:
+デフォルトでは、モデル定義のソースコードが表示されます。「コンパイル済みクエリ」に切り替えると、マクロ値が置き換えられたモデルクエリの例が表示されます。
 
 ![Data Catalog with compiled incremental model query](./ui/ui-guide_docs-compiled-query.png){ loading=lazy }
 
-### Lineage module
+### リネージモジュール {#lineage-module}
 
-The lineage module displays a graphical representation of the project's table and column lineage.
+リネージモジュールは、プロジェクトのテーブルと列のリネージをグラフィカルに表示します。
 
-Click a model in the left-hand pane to view its lineage. By default, only the model's upstream parents and downstream children are displayed:
+左側のペインでモデルをクリックすると、そのリネージが表示されます。デフォルトでは、モデルの上流の親と下流の子のみが表示されます。
 
-![Lineage module](./ui/ui-guide_lineage.png){ loading=lazy }
+![リネージモジュール](./ui/ui-guide_lineage.png){ loading=lazy }
 
-You may include all a project's models by clicking `All` in the Show drop-down on the upper right. In this example, two additional models appear:
+右上の「表示」ドロップダウンで「すべて」をクリックすると、プロジェクトのすべてのモデルを含めることができます。この例では、2つのモデルが追加されています。
 
-![Lineage module - all models](./ui/ui-guide_lineage-all.png){ loading=lazy }
+![リネージモジュール - すべてのモデル](./ui/ui-guide_lineage-all.png){ loading=lazy }
 
-Click `Connected` in the Show drop-down menu to highlight edges between upstream parents and downstream children in blue. This may be helpful when when a project contains many models:
+「表示」ドロップダウンメニューで「接続済み」をクリックすると、上流の親と下流の子の間のエッジが青色で強調表示されます。これは、プロジェクトに多数のモデルが含まれている場合に役立ちます。
 
 ![Lineage module - all models, connected edges](./ui/ui-guide_lineage-all-connected.png){ loading=lazy }
 
-## Modes
+## モード
 
-The SQLMesh UI consists of the four modules described above, grouped into three different "modes." Modes allow you to maintain a clean interface by suppressing UI features you don't plan to use during a session.
+SQLMesh UI は、上記の 4 つのモジュールで構成され、3 つの異なる「モード」にグループ化されています。モードを使用すると、セッション中に使用する予定のない UI 機能を非表示にすることで、すっきりとしたインターフェースを維持できます。
 
-You may specify the UI mode as an option when you [start the UI on the command line](#start-the-browser-ui). For example, to run the UI in plan mode issue the CLI command `sqlmesh ui --mode plan` from within the project directory.
+[コマンドラインで UI を起動](#ブラウザの UI を起動) する際に、オプションとして UI モードを指定できます。たとえば、UI をプランモードで実行するには、プロジェクトディレクトリ内から CLI コマンド `sqlmesh ui --mode plan` を実行します。
 
-The UI modes contain these modules:
+UI モードには、以下のモジュールが含まれています。
 
-- `editor`: code editor, plan builder, data catalog, table and column lineage
-- `plan`: plan builder, data catalog, table and column lineage
-- `catalog`: data catalog, table and column lineage
+- `editor`: コードエディター、プランビルダー、データカタログ、テーブルと列のリネージ
+- `plan`: プランビルダー、データカタログ、テーブルと列のリネージ
+- `catalog`: データカタログ、テーブルと列のリネージ
 
-### Working with an IDE
+### IDE での作業
 
-The SQLMesh browser UI complements an IDE by rapidly surfacing the implications of changes to project code.
+SQLMesh ブラウザ UI は、プロジェクトコードへの変更の影響を迅速に表示することで IDE を補完します。
 
-This section demonstrates one way to use the UI while editing in VSCode; the UI's `plan` mode suppresses the code editor module so it's not in the way.
+このセクションでは、VSCode での編集中に UI を使用する方法の 1 つを紹介します。UI の「プラン」モードでは、コードエディターモジュールが非表示になり、作業の邪魔になりません。
 
-VSCode natively supports [opening a web browser in a VSCode window](https://dev.to/equiman/vscode-browser-inside-2b06). We can open the browser UI in that window and see the effects of our code updates in real time.
+VSCode は、[VSCode ウィンドウでの Web ブラウザの起動](https://dev.to/equiman/vscode-browser-inside-2b06) をネイティブでサポートしています。このウィンドウでブラウザ UI を開き、コード更新の効果をリアルタイムで確認できます。
 
-To use this workflow, first open a terminal in VSCode and navigate to your project directory. Then follow these steps:
+このワークフローを使用するには、まず VSCode でターミナルを開き、プロジェクトディレクトリに移動します。次に、次の手順を実行します。
 
-<b>1.</b> Start the browser UI in `plan` mode with the command `sqlmesh ui --mode plan`:
+<b>1.</b> コマンド「sqlmesh ui --mode plan」を使用して、ブラウザ UI を「プラン」モードで起動します。
 
 ![VSCode - start the UI](./ui/ui-guide_vscode-start-ui.png){ loading=lazy }
 
 <br></br>
-<b>2.</b> In VSCode, type the shortcut `cmd+shift+p` to open the search menu:
+<b>2.</b> VSCode では、ショートカット「cmd+shift+p」を入力して検索メニューを開きます。
 
 ![VSCode - open search menu](./ui/ui-guide_vscode-open-search.png){ loading=lazy }
 
 <br></br>
-<b>3.</b> Type `simple browser` into the search menu and click the entry `Simple browser: Show`:
+<b>3.</b> 検索メニューに `simple browser` と入力し、 `Simple browser: Show` というエントリをクリックします。
 
 ![VSCode - open simple browser](./ui/ui-guide_vscode-start-browser.png){ loading=lazy }
 
 <br></br>
-<b>4.</b> Copy the web address printed by the command output (`http://127.0.0.1:8000` by default), paste it into the menu, and click enter:
+<b>4.</b> コマンド出力に表示される Web アドレス (デフォルトでは `http://127.0.0.1:8000`) をコピーし、メニューに貼り付けて Enter キーを押します。
 
 ![VSCode - navigate to UI](./ui/ui-guide_vscode-browser-url.png){ loading=lazy }
 
 <br></br>
-<b>5.</b> The UI will now appear in a VSCode tab:
+<b>5.</b> UI が VSCode タブに表示されます。
 
 ![VSCode - UI in browser tab](./ui/ui-guide_vscode-browser-ui.png){ loading=lazy }
 
 <br></br>
-<b>6.</b> Split the VSCode window to open a code editor alongside the UI. As you update models, the UI plan and lineage interfaces will update to reflect the changes in real time:
+<b>6.</b> VSCodeウィンドウを分割して、UIと並行してコードエディタを開きます。モデルを更新すると、UIプランと系統インターフェースがリアルタイムで更新され、変更が反映されます。
 
 ![VSCode - update model plan](./ui/ui-guide_vscode-update-plan.png){ loading=lazy }
 

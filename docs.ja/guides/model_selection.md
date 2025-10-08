@@ -202,7 +202,7 @@ Models:
 
 #### `*items` を選択
 
-`--select-model` オプションにワイルドカード `*` を指定して `"sushi.*items` を選択すると、ワイルドカードに一致するため `sushi.items` と `sushi.order_items` の両方が選択されます。
+`--select-model` オプションにワイルドカード `*` を指定して `"sushi.*items"` を選択すると、ワイルドカードに一致するため `sushi.items` と `sushi.order_items` の両方が選択されます。
 
 ```bash
 ❯ sqlmesh plan dev --select-model "sushi.*items"

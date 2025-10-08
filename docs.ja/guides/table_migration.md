@@ -125,11 +125,11 @@ SQLMesh の時間増分モデルは、[間隔アプローチ](https://sqlmesh.re
 2. `my_schema.existing_table` の名前を、`my_schema.existing_table_temp` など、任意の名前に変更します。
 3. `my_schema.existing_table` という空の増分モデルを作成し、初期化します。
 
-a. `MODEL` DDL `kind` の `forward_only` キーを `true` に設定して、モデルを [forward only](./incremental_time.md#forward-only-models) にします。
+    a. `MODEL` DDL `kind` の `forward_only` キーを `true` に設定して、モデルを [forward only](./incremental_time.md#forward-only-models) にします。
 
-b. SQLMesh が追跡する最初の時間間隔の開始日を `MODEL` DDL の `start` キーで指定します (例では "2024-01-01" を使用)。
+    b. SQLMesh が追跡する最初の時間間隔の開始日を `MODEL` DDL の `start` キーで指定します (例では "2024-01-01" を使用)。
 
-c. `sqlmesh plan [environment name] --empty-backfill --start 2024-01-01` を実行し、データのバックフィルを行わずに SQLMesh プロジェクトにモデルを作成します。[environment name] を `prod` 以外の環境名に置き換え、手順 3b の `MODEL` DDL と同じ開始日を使用します。
+    c. `sqlmesh plan [environment name] --empty-backfill --start 2024-01-01` を実行し、データのバックフィルを行わずに SQLMesh プロジェクトにモデルを作成します。[environment name] を `prod` 以外の環境名に置き換え、手順 3b の `MODEL` DDL と同じ開始日を使用します。
 
 4. `sqlmesh table_name --env [environment name] --prod my_schema.existing_table` を実行し、モデルのスナップショット物理テーブルの名前を確認します。たとえば、`sqlmesh__my_schema.existing_table_123456` が返されます。
 5. 元のテーブル「my_schema.existing_table_temp」の名前を「sqlmesh__my_schema.existing_table_123456」に変更します。
