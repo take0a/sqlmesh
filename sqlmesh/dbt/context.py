@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import typing as t
 from dataclasses import dataclass, field, replace
 from pathlib import Path
@@ -28,6 +29,8 @@ if t.TYPE_CHECKING:
     from sqlmesh.dbt.seed import SeedConfig
     from sqlmesh.dbt.source import SourceConfig
 
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class DbtContext:
@@ -48,6 +51,7 @@ class DbtContext:
     _project_name: t.Optional[str] = None
     _variables: t.Dict[str, t.Any] = field(default_factory=dict)
     _models: t.Dict[str, ModelConfig] = field(default_factory=dict)
+    _model_fqns: t.Set[str] = field(default_factory=set)
     _seeds: t.Dict[str, SeedConfig] = field(default_factory=dict)
     _sources: t.Dict[str, SourceConfig] = field(default_factory=dict)
     _refs: t.Dict[str, t.Union[ModelConfig, SeedConfig]] = field(default_factory=dict)
@@ -125,7 +129,7 @@ class DbtContext:
             try:
                 rendered_variables[k] = _render_var(v)
             except Exception as ex:
-                raise ConfigError(f"Failed to render variable '{k}', value '{v}': {ex}") from ex
+                logger.warning(f"Failed to render variable '{k}', value '{v}': {ex}")
 
         self.variables = rendered_variables
 
@@ -141,12 +145,19 @@ class DbtContext:
     def models(self, models: t.Dict[str, ModelConfig]) -> None:
         self._models = {}
         self._refs = {}
+        self._model_fqns = set()
         self.add_models(models)
 
     def add_models(self, models: t.Dict[str, ModelConfig]) -> None:
         self._refs = {}
         self._models.update(models)
         self._jinja_environment = None
+
+    @property
+    def model_fqns(self) -> t.Set[str]:
+        if not self._model_fqns:
+            self._model_fqns = {model.fqn for model in self._models.values()}
+        return self._model_fqns
 
     @property
     def seeds(self) -> t.Dict[str, SeedConfig]:

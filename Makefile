@@ -36,10 +36,15 @@ install-dev-dbt-%:
 	if [ "$$version" = "1.10.0" ]; then \
 		echo "Applying special handling for dbt 1.10.0"; \
 		$(SED_INPLACE) -E 's/"(dbt-core)[^"]*"/"\1~='"$$version"'"/g' pyproject.toml; \
-		$(SED_INPLACE) -E 's/"(dbt-(bigquery|duckdb|snowflake|athena-community|clickhouse|databricks|redshift|trino))[^"]*"/"\1"/g' pyproject.toml; \
+		$(SED_INPLACE) -E 's/"(dbt-(bigquery|duckdb|snowflake|athena-community|clickhouse|redshift|trino))[^"]*"/"\1"/g' pyproject.toml; \
+		$(SED_INPLACE) -E 's/"(dbt-databricks)[^"]*"/"\1~='"$$version"'"/g' pyproject.toml; \
 	else \
 		echo "Applying version $$version to all dbt packages"; \
 		$(SED_INPLACE) -E 's/"(dbt-[^"><=~!]+)[^"]*"/"\1~='"$$version"'"/g' pyproject.toml; \
+	fi; \
+	if printf '%s\n' "$$version" | awk -F. '{ if ($$1 == 1 && (($$2 >= 3 && $$2 <= 5) || $$2 == 10)) exit 0; exit 1 }'; then \
+		echo "Applying numpy<2 constraint for dbt $$version"; \
+		$(SED_INPLACE) 's/"numpy"/"numpy<2"/g' pyproject.toml; \
 	fi; \
 	$(MAKE) install-dev; \
 	if [ "$$version" = "1.6.0" ]; then \
@@ -49,6 +54,10 @@ install-dev-dbt-%:
 	if [ "$$version" = "1.7.0" ]; then \
 		echo "Applying overrides for dbt 1.7.0"; \
 		$(PIP) install 'databricks-sdk==0.28.0' --reinstall; \
+	fi; \
+	if [ "$$version" = "1.5.0" ]; then \
+		echo "Applying overrides for dbt 1.5.0"; \
+		$(PIP) install 'dbt-databricks==1.5.6' 'numpy<2' --reinstall; \
 	fi; \
 	mv pyproject.toml.backup pyproject.toml; \
 	echo "Restored original pyproject.toml"
@@ -98,6 +107,9 @@ ui-build:
 clean-build:
 	rm -rf build/ && rm -rf dist/ && rm -rf *.egg-info
 
+clear-caches:
+	find . -type d -name ".cache" -exec rm -rf {} + 2>/dev/null && echo "Successfully removed all .cache directories"
+
 dev-publish: ui-build clean-build publish
 
 jupyter-example:
@@ -108,13 +120,13 @@ engine-up: engine-clickhouse-up engine-mssql-up engine-mysql-up engine-postgres-
 engine-down: engine-clickhouse-down engine-mssql-down engine-mysql-down engine-postgres-down engine-spark-down engine-trino-down
 
 fast-test:
-	pytest -n auto -m "fast and not cicdonly" --junitxml=test-results/junit-fast-test.xml && pytest -m "isolated" && pytest -m "registry_isolation"
+	pytest -n auto -m "fast and not cicdonly" --junitxml=test-results/junit-fast-test.xml && pytest -m "isolated" && pytest -m "registry_isolation" && pytest -m "dialect_isolated"
 
 slow-test:
-	pytest -n auto -m "(fast or slow) and not cicdonly" && pytest -m "isolated" && pytest -m "registry_isolation"
+	pytest -n auto -m "(fast or slow) and not cicdonly" && pytest -m "isolated" && pytest -m "registry_isolation" && pytest -m "dialect_isolated"
 
 cicd-test:
-	pytest -n auto -m "fast or slow" --junitxml=test-results/junit-cicd.xml && pytest -m "isolated" && pytest -m "registry_isolation"
+	pytest -n auto -m "fast or slow" --junitxml=test-results/junit-cicd.xml && pytest -m "isolated" && pytest -m "registry_isolation" && pytest -m "dialect_isolated"
 
 core-fast-test:
 	pytest -n auto -m "fast and not web and not github and not dbt and not jupyter"

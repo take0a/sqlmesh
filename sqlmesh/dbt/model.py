@@ -31,6 +31,7 @@ from sqlmesh.core.model.kind import (
     OnAdditiveChange,
     on_destructive_change_validator,
     on_additive_change_validator,
+    DbtCustomKind,
 )
 from sqlmesh.dbt.basemodel import BaseModelConfig, Materialization, SnapshotStrategy
 from sqlmesh.dbt.common import SqlStr, sql_str_validator
@@ -40,6 +41,7 @@ from sqlmesh.utils.pydantic import field_validator
 if t.TYPE_CHECKING:
     from sqlmesh.core.audit.definition import ModelAudit
     from sqlmesh.dbt.context import DbtContext
+    from sqlmesh.dbt.package import MaterializationConfig
 
 logger = logging.getLogger(__name__)
 
@@ -169,6 +171,22 @@ class ModelConfig(BaseModelConfig):
         if isinstance(v, str) and v.lower() == "all":
             return "*"
         return ensure_list(v)
+
+    @field_validator("updated_at", mode="before")
+    @classmethod
+    def _validate_updated_at(cls, v: t.Optional[str]) -> t.Optional[str]:
+        """
+        Extract column name if updated_at contains a cast.
+
+        SCDType2ByTimeKind and SCDType2ByColumnKind expect a column, and the casting is done later.
+        """
+        if v is None:
+            return None
+        parsed = d.parse_one(v)
+        if isinstance(parsed, exp.Cast) and isinstance(parsed.this, exp.Column):
+            return parsed.this.name
+
+        return v
 
     @field_validator("sql", mode="before")
     @classmethod
@@ -444,6 +462,19 @@ class ModelConfig(BaseModelConfig):
         if materialization == Materialization.DYNAMIC_TABLE:
             return ManagedKind()
 
+        if materialization == Materialization.CUSTOM:
+            if custom_materialization := self._get_custom_materialization(context):
+                return DbtCustomKind(
+                    materialization=self.materialized,
+                    adapter=custom_materialization.adapter,
+                    dialect=self.dialect(context),
+                    definition=custom_materialization.definition,
+                )
+
+            raise ConfigError(
+                f"Unknown materialization '{self.materialized}'. Custom materializations must be defined in your dbt project."
+            )
+
         raise ConfigError(f"{materialization.value} materialization not supported.")
 
     def _big_query_partition_by_expr(self, context: DbtContext) -> exp.Expression:
@@ -483,6 +514,18 @@ class ModelConfig(BaseModelConfig):
             dialect="bigquery",
         )
 
+    def _get_custom_materialization(self, context: DbtContext) -> t.Optional[MaterializationConfig]:
+        materializations = context.manifest.materializations()
+        name, target_adapter = self.materialized, context.target.dialect
+
+        adapter_specific_key = f"{name}_{target_adapter}"
+        default_key = f"{name}_default"
+        if adapter_specific_key in materializations:
+            return materializations[adapter_specific_key]
+        if default_key in materializations:
+            return materializations[default_key]
+        return None
+
     @property
     def sqlmesh_config_fields(self) -> t.Set[str]:
         return super().sqlmesh_config_fields | {
@@ -510,10 +553,11 @@ class ModelConfig(BaseModelConfig):
         physical_properties: t.Dict[str, t.Any] = {}
 
         if self.partition_by:
-            if isinstance(kind, ViewKind):
+            if isinstance(kind, (ViewKind, EmbeddedKind)):
                 logger.warning(
-                    "Ignoring partition_by config for model '%s'; partition_by is not supported for views.",
+                    "Ignoring partition_by config for model '%s'; partition_by is not supported for %s.",
                     self.name,
+                    "views" if isinstance(kind, ViewKind) else "ephemeral models",
                 )
             else:
                 partitioned_by = []
@@ -651,11 +695,20 @@ class ModelConfig(BaseModelConfig):
             if physical_properties:
                 model_kwargs["physical_properties"] = physical_properties
 
+        kind = self.model_kind(context)
+
+        # A falsy grants config (None or {}) is considered as unmanaged per dbt semantics
+        if self.grants and kind.supports_grants:
+            model_kwargs["grants"] = self.grants
+
         allow_partials = model_kwargs.pop("allow_partials", None)
         if allow_partials is None:
             # Set allow_partials to True for dbt models to preserve the original semantics.
             allow_partials = True
 
+        # pop begin for all models so we don't pass it through for non-incremental materializations
+        # (happens if model config is microbatch but project config overrides)
+        begin = model_kwargs.pop("begin", None)
         if kind.is_incremental:
             if self.batch_size and isinstance(self.batch_size, str):
                 if "interval_unit" in model_kwargs:
@@ -665,7 +718,7 @@ class ModelConfig(BaseModelConfig):
                 else:
                     model_kwargs["interval_unit"] = self.batch_size
                     self.batch_size = None
-            if begin := model_kwargs.pop("begin", None):
+            if begin:
                 if "start" in model_kwargs:
                     get_console().log_warning(
                         f"Both 'begin' and 'start' are set for model '{self.canonical_name(context)}'. 'start' will be used."
@@ -694,7 +747,7 @@ class ModelConfig(BaseModelConfig):
             extract_dependencies_from_query=False,
             allow_partials=allow_partials,
             virtual_environment_mode=virtual_environment_mode,
-            dbt_name=self.node_name,
+            dbt_node_info=self.node_info,
             **optional_kwargs,
             **model_kwargs,
         )

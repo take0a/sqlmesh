@@ -10,6 +10,11 @@ from datetime import datetime, timedelta, date
 from unittest import mock
 from unittest.mock import patch
 import logging
+from IPython.utils.capture import capture_output
+
+
+import time_machine
+from pytest_mock.plugin import MockerFixture
 
 import numpy as np  # noqa: TID253
 import pandas as pd  # noqa: TID253
@@ -45,6 +50,7 @@ from tests.core.engine_adapter.integration import (
     TEST_SCHEMA,
     wait_until,
 )
+from tests.utils.test_helpers import use_terminal_console
 
 DATA_TYPE = exp.DataType.Type
 VARCHAR_100 = exp.DataType.build("varchar(100)")
@@ -3774,7 +3780,7 @@ def test_janitor(
     ]
 
 
-def test_materialized_view_evaluation(ctx: TestContext, mocker: MockerFixture):
+def test_materialized_view_evaluation(ctx: TestContext):
     adapter = ctx.engine_adapter
     dialect = ctx.dialect
 
@@ -3834,3 +3840,396 @@ def test_materialized_view_evaluation(ctx: TestContext, mocker: MockerFixture):
         assert any("Replacing view" in call[0][0] for call in mock_logger.call_args_list)
 
     _assert_mview_value(value=2)
+
+
+@use_terminal_console
+def test_external_model_freshness(ctx: TestContext, mocker: MockerFixture, tmp_path: pathlib.Path):
+    adapter = ctx.engine_adapter
+    if not adapter.SUPPORTS_METADATA_TABLE_LAST_MODIFIED_TS:
+        pytest.skip("This test only runs for engines that support metadata-based freshness")
+
+    def _assert_snapshot_last_altered_ts(
+        context: Context,
+        snapshot_id: str,
+        last_altered_ts: datetime,
+        dev_last_altered_ts: t.Optional[datetime] = None,
+    ):
+        from sqlmesh.utils.date import to_datetime
+
+        snapshot = context.state_sync.get_snapshots([snapshot_id])[snapshot_id]
+
+        assert to_datetime(snapshot.last_altered_ts).replace(
+            microsecond=0
+        ) == last_altered_ts.replace(microsecond=0)
+
+        if dev_last_altered_ts:
+            assert to_datetime(snapshot.dev_last_altered_ts).replace(
+                microsecond=0
+            ) == dev_last_altered_ts.replace(microsecond=0)
+
+    import sqlmesh
+
+    spy = mocker.spy(sqlmesh.core.snapshot.evaluator.SnapshotEvaluator, "evaluate")
+
+    def _assert_model_evaluation(lambda_func, was_evaluated, day_delta=0):
+        spy.reset_mock()
+        timestamp = now(minute_floor=False) + timedelta(days=day_delta)
+        with time_machine.travel(timestamp, tick=False):
+            with capture_output() as output:
+                plan_or_run_result = lambda_func()
+
+        evaluate_function_called = spy.call_count == 1
+        signal_was_checked = "Checking signals for" in output.stdout
+
+        assert signal_was_checked
+        if was_evaluated:
+            assert "All ready" in output.stdout
+            assert evaluate_function_called
+        else:
+            assert "None ready" in output.stdout
+            assert not evaluate_function_called
+
+        return timestamp, plan_or_run_result
+
+    # Create & initialize schema
+    schema = ctx.add_test_suffix(TEST_SCHEMA)
+    ctx._schemas.append(schema)
+    adapter.create_schema(schema)
+
+    # Create & initialize external models
+    external_table1 = f"{schema}.external_table1"
+    external_table2 = f"{schema}.external_table2"
+
+    external_models_yaml = tmp_path / "external_models.yaml"
+    external_models_yaml.write_text(f"""
+- name: {external_table1}
+  columns:
+    col1: int
+
+- name: {external_table2}
+  columns:
+    col2: int
+""")
+
+    adapter.execute(
+        f"CREATE TABLE {external_table1} AS (SELECT 1 AS col1)", quote_identifiers=False
+    )
+    adapter.execute(
+        f"CREATE TABLE {external_table2} AS (SELECT 2 AS col2)", quote_identifiers=False
+    )
+
+    # Create model that depends on external models
+    model_name = f"{schema}.new_model"
+    model_path = tmp_path / "models" / "new_model.sql"
+    (tmp_path / "models").mkdir(parents=True, exist_ok=True)
+    model_path.write_text(f"""
+        MODEL (
+            name {model_name},
+            start '2024-01-01',
+            kind FULL,
+            signals (
+                freshness(),
+            )
+        );
+
+         SELECT col1 * col2 AS col FROM {external_table1}, {external_table2};
+    """)
+
+    # Initialize context
+    def _set_config(gateway: str, config: Config) -> None:
+        config.model_defaults.dialect = ctx.dialect
+
+    context = ctx.create_context(path=tmp_path, config_mutator=_set_config)
+
+    # Case 1: Model is evaluated for the first plan
+    prod_plan_ts, prod_plan = _assert_model_evaluation(
+        lambda: context.plan(auto_apply=True, no_prompts=True), was_evaluated=True
+    )
+
+    prod_snapshot_id = next(iter(prod_plan.context_diff.new_snapshots))
+    _assert_snapshot_last_altered_ts(context, prod_snapshot_id, last_altered_ts=prod_plan_ts)
+
+    # Case 2: Model is NOT evaluated on run if external models are not fresh
+    _assert_model_evaluation(lambda: context.run(), was_evaluated=False, day_delta=1)
+
+    # Case 3: Differentiate last_altered_ts between snapshots with shared version
+    # For instance, creating a FORWARD_ONLY change in dev (reusing the version but creating a dev preview) should not cause
+    # any side effects to the prod snapshot's last_altered_ts hydration
+    model_path.write_text(model_path.read_text().replace("col1 * col2", "col1 + col2"))
+    context.load()
+    dev_plan_ts = now(minute_floor=False) + timedelta(days=2)
+    with time_machine.travel(dev_plan_ts, tick=False):
+        dev_plan = context.plan(
+            environment="dev", forward_only=True, auto_apply=True, no_prompts=True
+        )
+
+    context.state_sync.clear_cache()
+    dev_snapshot_id = next(iter(dev_plan.context_diff.new_snapshots))
+    _assert_snapshot_last_altered_ts(
+        context,
+        dev_snapshot_id,
+        last_altered_ts=prod_plan_ts,
+        dev_last_altered_ts=dev_plan_ts,
+    )
+    _assert_snapshot_last_altered_ts(context, prod_snapshot_id, last_altered_ts=prod_plan_ts)
+
+    # Case 4: Model is evaluated on run if any external model is fresh
+    adapter.execute(f"INSERT INTO {external_table2} (col2) VALUES (3)", quote_identifiers=False)
+    _assert_model_evaluation(lambda: context.run(), was_evaluated=True, day_delta=2)
+
+    # Case 5: Model is evaluated if changed (case 3) even if the external model is not fresh
+    model_path.write_text(model_path.read_text().replace("col1 + col2", "col1 * col2 * 5"))
+    context.load()
+    _assert_model_evaluation(
+        lambda: context.plan(auto_apply=True, no_prompts=True), was_evaluated=True, day_delta=3
+    )
+
+    # Case 6: Model is evaluated on a restatement plan even if the external model is not fresh
+    _assert_model_evaluation(
+        lambda: context.plan(restate_models=[model_name], auto_apply=True, no_prompts=True),
+        was_evaluated=True,
+        day_delta=4,
+    )
+
+
+def test_unicode_characters(ctx: TestContext, tmp_path: Path):
+    # Engines that don't quote identifiers in views are incompatible with unicode characters in model names
+    # at the time of writing this is Spark/Trino and they do this for compatibility reasons.
+    # I also think Spark may not support unicode in general but that would need to be verified.
+    if not ctx.engine_adapter.QUOTE_IDENTIFIERS_IN_VIEWS:
+        pytest.skip("Skipping as these engines have issues with unicode characters in model names")
+
+    model_name = "客户数据"
+    table = ctx.table(model_name).sql(dialect=ctx.dialect)
+    (tmp_path / "models").mkdir(exist_ok=True)
+
+    model_def = f"""
+    MODEL (
+        name {table},
+        kind FULL,
+        dialect '{ctx.dialect}'
+    );
+    SELECT 1 as id
+    """
+
+    (tmp_path / "models" / "客户数据.sql").write_text(model_def)
+
+    context = ctx.create_context(path=tmp_path)
+    context.plan(auto_apply=True, no_prompts=True)
+
+    results = ctx.get_metadata_results()
+    assert len(results.views) == 1
+    assert results.views[0].lower() == model_name
+
+    schema = d.to_schema(ctx.schema(), dialect=ctx.dialect)
+    schema_name = schema.args["db"].this
+    schema.args["db"].set("this", "sqlmesh__" + schema_name)
+    table_results = ctx.get_metadata_results(schema)
+    assert len(table_results.tables) == 1
+    assert table_results.tables[0].lower().startswith(schema_name.lower() + "________")
+
+
+def test_sync_grants_config(ctx: TestContext) -> None:
+    if not ctx.engine_adapter.SUPPORTS_GRANTS:
+        pytest.skip(
+            f"Skipping Test since engine adapter {ctx.engine_adapter.dialect} doesn't support grants"
+        )
+
+    table = ctx.table("sync_grants_integration")
+    select_privilege = ctx.get_select_privilege()
+    insert_privilege = ctx.get_insert_privilege()
+    update_privilege = ctx.get_update_privilege()
+    with ctx.create_users_or_roles("reader", "writer", "admin") as roles:
+        ctx.engine_adapter.create_table(table, {"id": exp.DataType.build("INT")})
+
+        initial_grants = {
+            select_privilege: [roles["reader"]],
+            insert_privilege: [roles["writer"]],
+        }
+        ctx.engine_adapter.sync_grants_config(table, initial_grants)
+
+        current_grants = ctx.engine_adapter._get_current_grants_config(table)
+        assert set(current_grants.get(select_privilege, [])) == {roles["reader"]}
+        assert set(current_grants.get(insert_privilege, [])) == {roles["writer"]}
+
+        target_grants = {
+            select_privilege: [roles["writer"], roles["admin"]],
+            update_privilege: [roles["admin"]],
+        }
+        ctx.engine_adapter.sync_grants_config(table, target_grants)
+
+        synced_grants = ctx.engine_adapter._get_current_grants_config(table)
+        assert set(synced_grants.get(select_privilege, [])) == {
+            roles["writer"],
+            roles["admin"],
+        }
+        assert set(synced_grants.get(update_privilege, [])) == {roles["admin"]}
+        assert synced_grants.get(insert_privilege, []) == []
+
+
+def test_grants_sync_empty_config(ctx: TestContext):
+    if not ctx.engine_adapter.SUPPORTS_GRANTS:
+        pytest.skip(
+            f"Skipping Test since engine adapter {ctx.engine_adapter.dialect} doesn't support grants"
+        )
+
+    table = ctx.table("grants_empty_test")
+    select_privilege = ctx.get_select_privilege()
+    insert_privilege = ctx.get_insert_privilege()
+    with ctx.create_users_or_roles("user") as roles:
+        ctx.engine_adapter.create_table(table, {"id": exp.DataType.build("INT")})
+
+        initial_grants = {
+            select_privilege: [roles["user"]],
+            insert_privilege: [roles["user"]],
+        }
+        ctx.engine_adapter.sync_grants_config(table, initial_grants)
+
+        initial_current_grants = ctx.engine_adapter._get_current_grants_config(table)
+        assert roles["user"] in initial_current_grants.get(select_privilege, [])
+        assert roles["user"] in initial_current_grants.get(insert_privilege, [])
+
+        ctx.engine_adapter.sync_grants_config(table, {})
+
+        final_grants = ctx.engine_adapter._get_current_grants_config(table)
+        assert final_grants == {}
+
+
+def test_grants_case_insensitive_grantees(ctx: TestContext):
+    if not ctx.engine_adapter.SUPPORTS_GRANTS:
+        pytest.skip(
+            f"Skipping Test since engine adapter {ctx.engine_adapter.dialect} doesn't support grants"
+        )
+
+    with ctx.create_users_or_roles("reader", "writer") as roles:
+        table = ctx.table("grants_quoted_test")
+        ctx.engine_adapter.create_table(table, {"id": exp.DataType.build("INT")})
+
+        reader = roles["reader"]
+        writer = roles["writer"]
+        select_privilege = ctx.get_select_privilege()
+
+        if ctx.dialect == "bigquery":
+            # BigQuery labels are case sensitive, e.g. serviceAccount
+            lablel, grantee = writer.split(":", 1)
+            upper_case_writer = f"{lablel}:{grantee.upper()}"
+        else:
+            upper_case_writer = writer.upper()
+
+        grants_config = {select_privilege: [reader, upper_case_writer]}
+        ctx.engine_adapter.sync_grants_config(table, grants_config)
+
+        # Grantees are still in lowercase
+        current_grants = ctx.engine_adapter._get_current_grants_config(table)
+        assert reader in current_grants.get(select_privilege, [])
+        assert writer in current_grants.get(select_privilege, [])
+
+        # Revoke writer
+        grants_config = {select_privilege: [reader.upper()]}
+        ctx.engine_adapter.sync_grants_config(table, grants_config)
+
+        current_grants = ctx.engine_adapter._get_current_grants_config(table)
+        assert reader in current_grants.get(select_privilege, [])
+        assert writer not in current_grants.get(select_privilege, [])
+
+
+def test_grants_plan(ctx: TestContext, tmp_path: Path):
+    if not ctx.engine_adapter.SUPPORTS_GRANTS:
+        pytest.skip(
+            f"Skipping Test since engine adapter {ctx.engine_adapter.dialect} doesn't support grants"
+        )
+
+    table = ctx.table("grant_model").sql(dialect="duckdb")
+    select_privilege = ctx.get_select_privilege()
+    insert_privilege = ctx.get_insert_privilege()
+    with ctx.create_users_or_roles("analyst", "etl_user") as roles:
+        (tmp_path / "models").mkdir(exist_ok=True)
+
+        model_def = f"""
+        MODEL (
+            name {table},
+            kind FULL,
+            grants (
+                '{select_privilege}' = ['{roles["analyst"]}']
+            ),
+            grants_target_layer 'all'
+        );
+        SELECT 1 as id, CURRENT_DATE as created_date
+        """
+
+        (tmp_path / "models" / "grant_model.sql").write_text(model_def)
+
+        context = ctx.create_context(path=tmp_path)
+        plan_result = context.plan(auto_apply=True, no_prompts=True)
+
+        assert len(plan_result.new_snapshots) == 1
+        snapshot = plan_result.new_snapshots[0]
+
+        # Physical layer w/ grants
+        table_name = snapshot.table_name()
+        view_name = snapshot.qualified_view_name.for_environment(
+            plan_result.environment_naming_info, dialect=ctx.dialect
+        )
+        current_grants = ctx.engine_adapter._get_current_grants_config(
+            exp.to_table(table_name, dialect=ctx.dialect)
+        )
+        assert current_grants == {select_privilege: [roles["analyst"]]}
+
+        # Virtual layer (view) w/ grants
+        virtual_grants = ctx.engine_adapter._get_current_grants_config(
+            exp.to_table(view_name, dialect=ctx.dialect)
+        )
+        assert virtual_grants == {select_privilege: [roles["analyst"]]}
+
+        # Update model with query change and new grants
+        updated_model = load_sql_based_model(
+            d.parse(
+                f"""
+                MODEL (
+                    name {table},
+                    kind FULL,
+                    grants (
+                        '{select_privilege}' = ['{roles["analyst"]}', '{roles["etl_user"]}'],
+                        '{insert_privilege}' = ['{roles["etl_user"]}']
+                    ),
+                    grants_target_layer 'all'
+                );
+                SELECT 1 as id, CURRENT_DATE as created_date, 'v2' as version
+                """,
+                default_dialect=context.default_dialect,
+            ),
+            dialect=context.default_dialect,
+        )
+        context.upsert_model(updated_model)
+
+        plan = context.plan(auto_apply=True, no_prompts=True)
+        plan_result = PlanResults.create(plan, ctx, ctx.add_test_suffix(TEST_SCHEMA))
+        assert len(plan_result.plan.directly_modified) == 1
+
+        new_snapshot = plan_result.snapshot_for(updated_model)
+        assert new_snapshot is not None
+
+        new_table_name = new_snapshot.table_name()
+        final_grants = ctx.engine_adapter._get_current_grants_config(
+            exp.to_table(new_table_name, dialect=ctx.dialect)
+        )
+        expected_final_grants = {
+            select_privilege: [roles["analyst"], roles["etl_user"]],
+            insert_privilege: [roles["etl_user"]],
+        }
+        assert set(final_grants.get(select_privilege, [])) == set(
+            expected_final_grants[select_privilege]
+        )
+        assert final_grants.get(insert_privilege, []) == expected_final_grants[insert_privilege]
+
+        # Virtual layer should also have the updated grants
+        updated_virtual_grants = ctx.engine_adapter._get_current_grants_config(
+            exp.to_table(view_name, dialect=ctx.dialect)
+        )
+        assert set(updated_virtual_grants.get(select_privilege, [])) == set(
+            expected_final_grants[select_privilege]
+        )
+        assert (
+            updated_virtual_grants.get(insert_privilege, [])
+            == expected_final_grants[insert_privilege]
+        )

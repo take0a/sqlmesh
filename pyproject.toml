@@ -24,7 +24,7 @@ dependencies = [
     "requests",
     "rich[jupyter]",
     "ruamel.yaml",
-    "sqlglot[rs]~=27.16.3",
+    "sqlglot[rs]~=27.20.0",
     "tenacity",
     "time-machine",
     "json-stream",
@@ -82,6 +82,7 @@ dev = [
     "google-cloud-bigquery-storage",
     "httpx",
     "mypy~=1.13.0",
+    "numpy",
     "pandas-stubs",
     "pre-commit",
     "psycopg2-binary",
@@ -246,6 +247,7 @@ markers = [
     "remote: test that involves interacting with a remote DB",
     "cicdonly: test that only runs on CI/CD",
     "isolated: tests that need to run sequentially usually because they use fork",
+    "dialect_isolated: tests that need to run separately due to global dialect overrides",
 
     # Test Domain Markers
     # default: core functionality
