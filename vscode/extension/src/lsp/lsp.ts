@@ -28,16 +28,22 @@ let outputChannel: OutputChannel | undefined
 export class LSPClient implements Disposable {
   private client: LanguageClient | undefined
 
-  /** Caches which custom methods the server supports */
+  /** Caches which custom methods the server supports 
+   * サーバーがサポートするカスタムメソッドをキャッシュします
+  */
   private supportedMethodsState: SupportedMethodsState = { type: 'not-fetched' }
 
   /**
    * Remember whether the user explicitly stopped the client so that we do not
    * auto‑start again until they ask for it.
+   * ユーザーが明示的にクライアントを停止したかどうかを記憶し、
+   * ユーザーが要求するまで自動的に再起動しないようにします。
    */
   private explicitlyStopped = false
 
-  /** True when a LanguageClient instance is alive. */
+  /** True when a LanguageClient instance is alive. 
+   * LanguageClient インスタンスが生きている場合は True です。
+  */
   private get isRunning(): boolean {
     return this.client !== undefined
   }
@@ -45,6 +51,8 @@ export class LSPClient implements Disposable {
   /**
    * Query whether the connected server advertises completion capability.
    * (Transient helper kept for backwards‑compat reasons.)
+   * 接続されたサーバーが補完機能をアドバタイズしているかどうかを問い合わせます。
+   * (後方互換性のために一時的なヘルパーが保持されています。)
    */
   public hasCompletionCapability(): boolean {
     if (!this.client) {
@@ -57,7 +65,9 @@ export class LSPClient implements Disposable {
     )
   }
 
-  /** Start the Language Client unless it is already running. */
+  /** Start the Language Client unless it is already running. 
+   * 言語クライアントがまだ実行されていない場合は起動します。
+  */
   public async start(
     overrideStoppedByUser = false,
   ): Promise<Result<undefined, ErrorType>> {
@@ -69,17 +79,20 @@ export class LSPClient implements Disposable {
     }
 
     // Guard against duplicate initialisation
+    // 重複した初期化を防ぐ
     if (this.isRunning) {
       traceInfo('LSP client already running – start() is a no‑op.')
       return ok(undefined)
     }
 
     // Ensure we have an output channel
+    // 出力チャネルがあることを確認する
     if (!outputChannel) {
       outputChannel = window.createOutputChannel('sqlmesh-lsp')
     }
 
     // Resolve sqlmesh executable
+    // sqlmesh実行ファイルを解決する
     const sqlmesh = await sqlmeshLspExec()
     if (isErr(sqlmesh)) {
       traceError(
@@ -89,6 +102,7 @@ export class LSPClient implements Disposable {
     }
 
     // We need at least one workspace
+    // 少なくとも1つのワークスペースが必要です
     if (getWorkspaceFolders().length === 0) {
       const msg = 'No workspace folders found'
       traceError(msg)
@@ -158,15 +172,19 @@ export class LSPClient implements Disposable {
   /**
    * Stop the client (if running) and clean up all VS Code resources so that a
    * future `start()` registers its commands without collisions.
+   * クライアントを停止し (実行中の場合)、すべての VS Code リソースをクリーンアップして、
+   * 将来の `start()` が衝突することなくコマンドを登録できるようにします。
    */
   public async stop(stoppedByUser = false): Promise<void> {
     if (this.client) {
       // Shut down the JSON‑RPC connection
+      // JSON-RPC接続をシャットダウンする
       await this.client
         .stop()
         .catch(err => traceError(`Error while stopping LSP: ${err}`))
 
       // Unregister commands, code lenses, etc.
+      // コマンド、コードレンズなどを登録解除します。
       await this.client.dispose()
 
       this.client = undefined
@@ -248,6 +266,7 @@ export class LSPClient implements Disposable {
 
   /**
    * Low‑level helper that sends a raw JSON‑RPC request without any feature checks.
+   * 機能チェックなしで生の JSON-RPC リクエストを送信する低レベル ヘルパー。
    */
   public async internal_call_custom_method<
     Method extends CustomLSPMethods['method'],

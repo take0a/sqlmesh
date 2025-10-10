@@ -43,6 +43,7 @@ function execAsyncCore(
       (error, stdout, stderr) => {
         if (error) {
           // Forward AbortError unchanged so callers can detect cancellation
+          // AbortError を変更せずに転送し、呼び出し側がキャンセルを検出できるようにします。
           if ((error as NodeJS.ErrnoException).name === 'AbortError') {
             reject(error)
           } else {

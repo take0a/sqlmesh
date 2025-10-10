@@ -20,7 +20,8 @@ def bot(
     paths: t.List[str],
     config: t.Optional[str] = None,
 ) -> None:
-    """SQLMesh CI/CD Bot. Currently only Github Actions is supported. See https://sqlmesh.readthedocs.io/en/stable/integrations/github/ for details"""
+    """SQLMesh CI/CD Bot. Currently only Github Actions is supported. See https://sqlmesh.readthedocs.io/en/stable/integrations/github/ for details
+    SQLMesh CI/CD ボット。現在は Github Actions のみサポートされています。詳細は https://sqlmesh.readthedocs.io/en/stable/integrations/github/ をご覧ください。"""
     configure_logging(write_to_stdout=True, write_to_file=False)
 
     ctx.obj = {

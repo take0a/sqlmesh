@@ -2,6 +2,7 @@ type SemVer = [number, number, number]
 
 /**
  * Check if a is greater than or equal to b.
+ * a が b 以上かどうかを確認します。
  *
  * @param a - The first version.
  * @param b - The second version.

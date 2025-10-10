@@ -30,6 +30,7 @@ export const signInSpecifyFlow =
       await window.showInformationMessage('Sign in success')
 
       // Execute callback after successful sign-in
+      // サインイン成功後にコールバックを実行する
       if (onSignInSuccess) {
         traceInfo('Executing post sign-in callback')
         try {
@@ -45,6 +46,7 @@ export const signInSpecifyFlow =
       await window.showInformationMessage('Sign in success')
 
       // Execute callback after successful sign-in
+      // サインイン成功後にコールバックを実行する
       if (onSignInSuccess) {
         traceInfo('Executing post sign-in callback')
         try {

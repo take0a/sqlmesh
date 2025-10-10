@@ -21,6 +21,9 @@ SQLMesh の設定パラメータは、環境変数、`~/.sqlmesh` フォルダ�
 2. `~/.sqlmesh` フォルダ内の `config.yaml` または `config.py`
 3. プロジェクトフォルダ内の `config.yaml` または `config.py` [最低優先順位]
 
+!!! note
+    `.sqlmesh` フォルダを再配置するには、`SQLMESH_HOME` 環境変数を希望のディレクトリ パスに設定します。
+
 ### ファイルタイプ
 
 SQLMesh の設定は、YAML または Python で指定できます。

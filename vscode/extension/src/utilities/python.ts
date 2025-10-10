@@ -5,6 +5,7 @@ import { promisify } from 'util'
 import { execFile } from 'child_process'
 
 /** isPythonModuleInstallled returns true if the given python module is installed.
+ * isPythonModuleInstallled は、指定された Python モジュールがインストールされている場合に true を返します。
  *
  * @param moduleName - The name of the python module to check.
  * @returns True if the module is installed, false otherwise.

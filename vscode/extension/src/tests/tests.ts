@@ -22,6 +22,8 @@ export const setupTestController = (lsp: LSPClient): Disposable => {
 
   // Discover tests immediately when the controller is set up
   // This is useful for the initial load of tests in the workspace
+  // コントローラーのセットアップ時にすぐにテストを検出します
+  // これは、ワークスペースでのテストの初期ロードに役立ちます
   // eslint-disable-next-line @typescript-eslint/no-floating-promises
   discoverWorkspaceTests()
 

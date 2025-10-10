@@ -16,9 +16,12 @@ export const signIn =
     }
 
     // Do not await this, as this will block the thread, you just need to show the message, but not block
+    // これを待たないでください。スレッドがブロックされてしまいます。
+    // メッセージを表示するだけで、ブロックする必要はありません。
     vscode.window.showInformationMessage('Signed in successfully')
 
     // Execute callback after successful sign-in
+    // サインイン成功後にコールバックを実行する
     if (onSignInSuccess) {
       traceInfo('Executing post sign-in callback')
       try {

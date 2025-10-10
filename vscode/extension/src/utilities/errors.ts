@@ -5,6 +5,7 @@ import { traceInfo } from './common/log'
 
 /**
  * Represents different types of errors that can occur in the application.
+ * アプリケーションで発生する可能性のあるさまざまな種類のエラーを表します。
  */
 export type ErrorType =
   | ErrorTypeGeneric
@@ -13,6 +14,9 @@ export type ErrorType =
   | { type: 'sqlmesh_lsp_not_found' }
   // tcloud_bin_not_found is used when the tcloud executable is not found. This is likely to happen if the user
   // opens a project that has a `tcloud.yaml` file but doesn't have tcloud installed.
+  // tcloud_bin_not_found は、tcloud 実行ファイルが見つからない場合に使用されます。
+  // これは、ユーザーが `tcloud.yaml` ファイルがあるプロジェクトを開いたものの、
+  // tcloud がインストールされていない場合に発生する可能性があります。
   | { type: 'tcloud_bin_not_found' }
   | SqlmeshLspDependenciesMissingError
   | ErrorTypeInvalidState
@@ -22,12 +26,17 @@ export type ErrorType =
  * ErrorTypeSQLMeshOutdated is used when the SQLMesh version is outdated. The
  * message should explain the problem, but the suggestion to update SQLMesh is
  * handled at the place where the error is shown.
+ * ErrorTypeSQLMeshOutdated は、SQLMesh のバージョンが古い場合に使用されます。
+ * メッセージには問題の説明が表示されますが、SQLMesh の更新の提案は
+ * エラーが表示された場所で処理されます。
  */
 export interface ErrorTypeSQLMeshOutdated {
   type: 'sqlmesh_outdated'
   /**
    * A message that describes the outdated SQLMesh version, it should not talk about
    * updating SQLMesh. This is done at the place where the error is handled.
+   * SQLMeshのバージョンが古いことを示すメッセージです。
+   * SQLMeshのアップデートについては言及すべきではありません。これはエラー処理時に行われます。
    */
   message: string
 }
@@ -37,6 +46,10 @@ export interface ErrorTypeSQLMeshOutdated {
  * They should never be thrown by the application unless there is a bug in the code.
  * The shown message should be generic and not contain any sensitive information but
  * asks the user to report the issue to the developers.
+ * ErrorTypeInvalidState は、アプリケーションの状態が無効な場合に使用されます。
+ * コードにバグがない限り、アプリケーションによってこれらのエラーがスローされることはありません。
+ * 表示されるメッセージは一般的な内容で、機密情報は含まず、ユーザーに開発者に問題を報告するよう
+ * 求める内容である必要があります。
  */
 export interface ErrorTypeInvalidState {
   type: 'invalid_state'
@@ -44,12 +57,15 @@ export interface ErrorTypeInvalidState {
    * A message that describes the invalid state, it should not talk about reporting
    * the issue to the developers. This is done at the place where the error is
    * handled.
+   * 無効な状態を説明するメッセージであり、開発者に問題を報告することについては言及すべきではありません。
+   * これはエラーが処理される場所で行われます。
    */
   message: string
 }
 
 /**
  * ErrorTypeGeneric is a generic error type that can be used to represent any error with a message.
+ * ErrorTypeGeneric は、メッセージを使用してあらゆるエラーを表すために使用できる汎用エラー タイプです。
  */
 export interface ErrorTypeGeneric {
   type: 'generic'
@@ -59,6 +75,8 @@ export interface ErrorTypeGeneric {
 /**
  * SqlmeshLspDependenciesMissingError is used when the sqlmesh_lsp is found but
  * the lsp extras are missing.
+ * SqlmeshLspDependenciesMissingError は、sqlmesh_lsp が見つかったが、
+ * lsp 追加情報が見つからない場合に使用されます。
  */
 interface SqlmeshLspDependenciesMissingError {
   type: 'sqlmesh_lsp_dependencies_missing'
@@ -107,6 +125,7 @@ export async function handleError(
 
 /**
  * Handles the case where the user is not signed in to Tobiko Cloud.
+ * ユーザーが Tobiko Cloud にサインインしていない場合を処理します。
  * @param authProvider - The authentication provider to use for signing in.
  */
 const handleNotSignedInError = async (
@@ -125,6 +144,7 @@ const handleNotSignedInError = async (
 
 /**
  * Handles the case where the sqlmesh executable is not found.
+ * sqlmesh 実行可能ファイルが見つからない場合を処理します。
  */
 const handleSqlmeshNotFoundError = async (): Promise<void> => {
   traceInfo('handleSqlmeshNotFoundError')
@@ -133,6 +153,7 @@ const handleSqlmeshNotFoundError = async (): Promise<void> => {
 
 /**
  * Handles the case where the sqlmesh_lsp is not found.
+ * sqlmesh_lsp が見つからないケースを処理します。
  */
 const handleSqlmeshLspNotFoundError = async (): Promise<void> => {
   traceInfo('handleSqlmeshLspNotFoundError')
@@ -143,6 +164,7 @@ const handleSqlmeshLspNotFoundError = async (): Promise<void> => {
 
 /**
  * Handles the case where the sqlmesh_lsp is found but the lsp extras are missing.
+ * sqlmesh_lsp は見つかったが、lsp エクストラが見つからないケースを処理します。
  */
 const handleSqlmeshLspDependenciesMissingError = async (
   error: SqlmeshLspDependenciesMissingError,
@@ -170,6 +192,7 @@ const handleSqlmeshLspDependenciesMissingError = async (
 
 /**
  * Handles the case where the tcloud executable is not found.
+ * tcloud 実行ファイルが見つからない場合を処理します。
  */
 const handleTcloudBinNotFoundError = async (): Promise<void> => {
   const result = await window.showErrorMessage(

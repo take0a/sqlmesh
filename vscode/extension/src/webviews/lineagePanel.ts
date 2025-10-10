@@ -63,12 +63,15 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
 
     webviewView.webview.options = {
       // Allow scripts in the webview
+      // WebView でスクリプトを許可する
       enableScripts: true,
       localResourceRoots: [this.extensionUri],
     }
 
     // Set content options for external URL access
     // Set up message listener for events from the iframe
+    // 外部URLアクセスのコンテンツオプションを設定する
+    // iframeからのイベントのメッセージリスナーを設定する
     const disposable = webviewView.webview.onDidReceiveMessage(
       async request => {
         if (!request) {
@@ -185,6 +188,7 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
     )
 
     // Handle query requests from the React app
+    // React アプリからのクエリリクエストを処理する
 
     return `
 <!DOCTYPE html>
@@ -216,6 +220,8 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
   dispose() {
     // WebviewView doesn't have a dispose method
     // We can clear references
+    // WebviewView には dispose メソッドがありません
+    // 参照をクリアできます
     this.panel = undefined
     this.disposables.forEach(disposable => {
       disposable.dispose()

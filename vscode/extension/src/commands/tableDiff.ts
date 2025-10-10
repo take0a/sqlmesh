@@ -26,11 +26,13 @@ export function showTableDiff(
     }
 
     // Get the current active editor
+    // 現在アクティブなエディターを取得する
     const activeEditor = vscode.window.activeTextEditor
     let selectedModelInfo: ModelInfo | null = null
 
     if (!activeEditor) {
       // No active editor, show a list of all models
+      // アクティブなエディタがありません。すべてのモデルのリストを表示します。
       const allModelsResult = await lspClient.call_custom_method(
         'sqlmesh/get_models',
         {},
@@ -52,6 +54,7 @@ export function showTableDiff(
       }
 
       // Let user choose from all models
+      // ユーザーがすべてのモデルから選択できるようにする
       const items = (allModelsResult.value.models as ModelInfo[]).map(
         (model: ModelInfo) => ({
           label: model.name,
@@ -76,9 +79,11 @@ export function showTableDiff(
       selectedModelInfo = selected.model
     } else {
       // Get the current document URI and check if it contains models
+      // 現在のドキュメントURIを取得し、モデルが含まれているかどうかを確認します
       const documentUri = activeEditor.document.uri.toString(true)
 
       // Call the render model API to get models in the current file
+      // レンダリングモデルAPIを呼び出して、現在のファイル内のモデルを取得します。
       const result = await lspClient.call_custom_method(
         'sqlmesh/render_model',
         {
@@ -94,6 +99,7 @@ export function showTableDiff(
       }
 
       // Check if we got any models
+      // モデルがあるか確認する
       if (!result.value.models || result.value.models.length === 0) {
         vscode.window.showInformationMessage(
           'No models found in the current file',
@@ -102,6 +108,7 @@ export function showTableDiff(
       }
 
       // If multiple models, let user choose
+      // 複数のモデルがある場合は、ユーザーに選択させる
       if (result.value.models.length > 1) {
         const items = result.value.models.map(model => ({
           label: model.name,
@@ -125,12 +132,14 @@ export function showTableDiff(
     }
 
     // Ensure we have a selected model
+    // 選択されたモデルがあることを確認する
     if (!selectedModelInfo) {
       vscode.window.showErrorMessage('No model selected')
       return
     }
 
     // Get environments for selection
+    // 選択のための環境を取得する
     const environmentsResult = await lspClient.call_custom_method(
       'sqlmesh/get_environments',
       {},
@@ -152,6 +161,7 @@ export function showTableDiff(
     }
 
     // Let user select source environment
+    // ユーザーにソース環境を選択させる
     const sourceEnvironmentItems = environmentNames.map(env => ({
       label: env,
       description: `Source environment: ${env}`,
@@ -169,6 +179,7 @@ export function showTableDiff(
     }
 
     // Let user select target environment (excluding source)
+    // ユーザーにターゲット環境を選択させる（ソースを除く）
     const targetEnvironmentItems = environmentNames
       .filter(env => env !== selectedSourceEnv.label)
       .map(env => ({
@@ -195,6 +206,7 @@ export function showTableDiff(
     }
 
     // Run table diff immediately with selected parameters
+    // 選択したパラメータでテーブル比較をすぐに実行します
     const tableDiffResult = await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
@@ -226,6 +238,8 @@ export function showTableDiff(
 
     // Determine the view column for side-by-side display
     // Find the rightmost column with an editor
+    // 並べて表示するためのビュー列を決定します
+    // エディターで右端の列を見つけます
     let maxColumn = vscode.ViewColumn.One
     for (const editor of vscode.window.visibleTextEditors) {
       if (editor.viewColumn && editor.viewColumn > maxColumn) {
@@ -234,6 +248,7 @@ export function showTableDiff(
     }
 
     // Open in the next column after the rightmost editor
+    // 右端のエディタの次の列で開く
     const viewColumn = maxColumn + 1
 
     // Create a webview panel for the table diff
@@ -249,6 +264,7 @@ export function showTableDiff(
     )
 
     // Store the initial data for the webview
+    // WebView の初期データを保存します
     // eslint-disable-next-line prefer-const
     let initialData = {
       selectedModel: selectedModelInfo,
@@ -259,6 +275,7 @@ export function showTableDiff(
     }
 
     // Set up message listener for events from the webview
+    // WebViewからのイベントのメッセージリスナーを設定する
     panel.webview.onDidReceiveMessage(
       async request => {
         if (!request || !request.key) {
@@ -415,6 +432,7 @@ export function showTableDiff(
                 if (modelInfo) {
                   initialData.selectedModel = modelInfo
                   // Update the panel title to reflect the new selection
+                  // 新しい選択を反映するようにパネルのタイトルを更新します
                   panel.title = `SQLMesh Table Diff - ${modelInfo.name} (${initialData.sourceEnvironment} → ${initialData.targetEnvironment})`
                 }
 

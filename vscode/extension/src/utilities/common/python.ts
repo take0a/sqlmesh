@@ -43,6 +43,7 @@ export async function initializePython(
           const environment = await api.environments.resolveEnvironment(e.path)
           const isVirtualEnv = environment?.environment !== undefined
           // Get the directory of the Python executable for virtual environments
+          // 仮想環境用のPython実行ファイルのディレクトリを取得する
           const pythonDir = environment?.executable.uri
             ? path.dirname(environment.executable.uri.fsPath)
             : undefined
@@ -81,6 +82,7 @@ export async function getInterpreterDetails(
   if (environment?.executable.uri && checkVersion(environment)) {
     const isVirtualEnv = environment.environment !== undefined
     // Get the directory of the Python executable
+    // Python実行ファイルのディレクトリを取得する
     const pythonDir = path.dirname(environment?.executable.uri.fsPath)
 
     return {
@@ -89,6 +91,7 @@ export async function getInterpreterDetails(
       isVirtualEnvironment: isVirtualEnv,
       // For virtual environments, we need to point directly to the bin directory
       // rather than constructing it from the environment folder
+      // 仮想環境の場合、環境フォルダから構築するのではなく、binディレクトリを直接指定する必要があります。
       binPath: isVirtualEnv ? pythonDir : undefined,
     }
   }
@@ -125,6 +128,7 @@ export function checkVersion(
 
 /**
  * getPythonEnvVariables returns the environment variables for the current python interpreter.
+ * getPythonEnvVariables は、現在の Python インタープリターの環境変数を返します。
  *
  * @returns The environment variables for the current python interpreter.
  */

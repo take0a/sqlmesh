@@ -69,6 +69,7 @@ export class AuthenticationProviderTobikoCloud
 
   /**
    * Get the status of the authentication provider from the cli
+   * CLIから認証プロバイダーのステータスを取得する
    * @returns true if the user is logged in with the id token, false otherwise
    */
   private async get_status(): Promise<Result<StatusResponse, ErrorType>> {
@@ -156,6 +157,7 @@ export class AuthenticationProviderTobikoCloud
 
   async removeSession(): Promise<void> {
     // Get current sessions before logging out
+    // ログアウトする前に現在のセッションを取得する
     const currentSessions = await this.getSessions()
     const tcloudBin = await getTcloudBin()
     const workspacePath = await getProjectRoot()
@@ -172,6 +174,7 @@ export class AuthenticationProviderTobikoCloud
     }
 
     // Emit event with the actual sessions that were removed
+    // 削除された実際のセッションを含むイベントを発行します
     if (currentSessions.length > 0) {
       this._sessionChangeEmitter.fire({
         added: [],
@@ -238,6 +241,7 @@ export class AuthenticationProviderTobikoCloud
         await env.openExternal(Uri.parse(url))
       } else {
         // Always abort the server if not proceeding with sign in
+        // サインインを続行しない場合は常にサーバーを中止します
         ac.abort()
         clearTimeout(timeout)
         if (messageResult === 'Cancel') {
@@ -252,6 +256,7 @@ export class AuthenticationProviderTobikoCloud
           throw new Error(`Failed to complete authentication: ${output.stderr}`)
         }
         // Get updated session and notify about the change
+        // 更新されたセッションを取得し、変更について通知する
         const sessions = await this.getSessions()
         if (sessions.length > 0) {
           this._sessionChangeEmitter.fire({
@@ -344,6 +349,7 @@ export class AuthenticationProviderTobikoCloud
         }
 
         // Get updated session and notify about the change
+        // 更新されたセッションを取得し、変更について通知する
         const sessions = await this.getSessions()
         if (sessions.length > 0) {
           this._sessionChangeEmitter.fire({
@@ -367,6 +373,7 @@ export class AuthenticationProviderTobikoCloud
 
 /**
  * Checks if the user is currently signed into Tobiko Cloud.
+ * ユーザーが現在 Tobiko Cloud にサインインしているかどうかを確認します。
  * @returns A promise that resolves to true if the user is signed in, false otherwise.
  */
 export async function isSignedIntoTobikoCloud(): Promise<boolean> {

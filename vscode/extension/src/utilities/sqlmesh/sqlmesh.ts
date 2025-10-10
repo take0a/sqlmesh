@@ -24,6 +24,8 @@ export interface SqlmeshExecInfo {
 /**
  * Gets the current SQLMesh environment variables that would be used for execution.
  * This is useful for debugging and understanding the environment configuration.
+ * 実行に使用される現在の SQLMesh 環境変数を取得します。
+ * これは、デバッグや環境設定の理解に役立ちます。
  * 
  * @returns A Result containing the environment variables or an error
  */
@@ -60,6 +62,11 @@ export async function getSqlmeshEnvironment(): Promise<Result<Record<string, str
  * Returns true if the current project is a Tcloud project. To detect this we,
  * 1. Check if the project has a tcloud.yaml file in the project root. If it does, we assume it's a Tcloud project.
  * 2. Check if the project has tcloud installed in the Python environment.
+ * 現在のプロジェクトが Tcloud プロジェクトの場合は true を返します。
+ * これを検出するには、以下の手順を実行します。
+ * 1. プロジェクトのプロジェクトルートに tcloud.yaml ファイルがあるかどうかを確認します。
+ *     ある場合は、Tcloud プロジェクトであると想定します。
+ * 2. プロジェクトの Python 環境に tcloud がインストールされているかどうかを確認します。
  *
  * @returns A Result indicating whether tcloud is installed.
  */
@@ -87,6 +94,7 @@ export const isTcloudProject = async (): Promise<Result<boolean, string>> => {
 
 /**
  * Get the tcloud executable for the current Python environment.
+ * 現在の Python 環境用の tcloud 実行可能ファイルを取得します。
  *
  * @returns The tcloud executable for the current Python environment.
  */
@@ -124,6 +132,8 @@ const isSqlmeshInstalledSchema = z.object({
 
 /**
  * Returns true if the current project is a sqlmesh enterprise project is installed and updated.
+ * 現在のプロジェクトが sqlmesh エンタープライズ プロジェクトであり、
+ * インストールされて更新されている場合は true を返します。
  *
  * @returns A Result indicating whether sqlmesh enterprise is installed and updated.
  */
@@ -165,6 +175,7 @@ export const isSqlmeshEnterpriseInstalled = async (): Promise<
 
 /**
  * Install sqlmesh enterprise.
+ * sqlmesh enterprise をインストールします。
  *
  * @returns A Result indicating whether sqlmesh enterprise was installed.
  */
@@ -203,6 +214,11 @@ let installationLock: Promise<Result<boolean, ErrorType>> | undefined = undefine
  * Checks if sqlmesh enterprise is installed and updated. If not, it will install it.
  * This will also create a progress message in vscode in order to inform the user that sqlmesh enterprise is being installed.
  * Uses a lock mechanism to prevent parallel executions.
+ * sqlmesh enterprise がインストール済みかつ更新済みかどうかを確認します。
+ * インストールされていない場合はインストールします。
+ * また、sqlmesh enterprise がインストール中であることをユーザーに通知するため、
+ * vscode に進行状況メッセージを表示します。
+ * 並列実行を防ぐため、ロックメカニズムを使用します。
  *
  * @returns A Result indicating whether sqlmesh enterprise was installed in the call.
  */
@@ -210,11 +226,13 @@ export const ensureSqlmeshEnterpriseInstalled = async (): Promise<
   Result<boolean, ErrorType>
 > => {
   // If there's an ongoing installation, wait for it to complete
+  // インストールが進行中の場合は、完了するまでお待ちください
   if (installationLock) {
     return installationLock
   }
 
   // Create a new lock
+  // 新しいロックを作成する
   installationLock = (async () => {
     try {
       traceInfo('Ensuring sqlmesh enterprise is installed')
@@ -236,6 +254,7 @@ export const ensureSqlmeshEnterpriseInstalled = async (): Promise<
         },
         async (progress, token) => {
           // Connect the cancellation token to our abort controller
+          // キャンセルトークンを中止コントローラに接続する
           token.onCancellationRequested(() => {
             abortController.abort()
             traceInfo('Sqlmesh enterprise installation cancelled')
@@ -255,6 +274,7 @@ export const ensureSqlmeshEnterpriseInstalled = async (): Promise<
       return ok(true)
     } finally {
       // Clear the lock when done
+      // 完了したらロックを解除します
       installationLock = undefined
     }
   })()
@@ -264,6 +284,7 @@ export const ensureSqlmeshEnterpriseInstalled = async (): Promise<
 
 /**
  * Ensure that the sqlmesh_lsp dependencies are installed.
+ * sqlmesh_lsp の依存関係がインストールされていることを確認します。
  *
  * @returns A Result indicating whether the sqlmesh_lsp dependencies were installed.
  */
@@ -304,6 +325,7 @@ export const ensureSqlmeshLspDependenciesInstalled = async (): Promise<
 
 /**
  * Get the sqlmesh_lsp executable for the current workspace.
+ * 現在のワークスペースの sqlmesh_lsp 実行可能ファイルを取得します。
  *
  * @returns The sqlmesh_lsp executable for the current workspace.
  */
@@ -378,6 +400,7 @@ export const sqlmeshLspExec = async (): Promise<
         return tcloudBinVersion
       }
       // TODO: Remove this once we have a stable version of tcloud that supports sqlmesh_lsp.
+      // TODO: sqlmesh_lsp をサポートする tcloud の安定したバージョンがリリースされたら、これを削除します。
       if (isSemVerGreaterThanOrEqual(tcloudBinVersion.value, [2, 10, 1])) {
         return ok ({
           bin: tcloudBin.value.bin,
@@ -451,6 +474,7 @@ async function doesExecutableExist(executable: string): Promise<boolean> {
 
 /**
  * Get the version of the tcloud bin.
+ * tcloud bin のバージョンを取得します。
  *
  * @returns The version of the tcloud bin.
  */

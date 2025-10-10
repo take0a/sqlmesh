@@ -15,15 +15,18 @@ export function printEnvironment() {
     const env = envResult.value
 
     // Create a new terminal with the SQLMesh environment
+    // SQLMesh環境で新しいターミナルを作成する
     const terminal = vscode.window.createTerminal({
       name: 'SQLMesh Environment',
       env: env,
     })
 
     // Show the terminal
+    // ターミナルを表示
     terminal.show()
 
     // Run the appropriate command to display environment variables
+    // 適切なコマンドを実行して環境変数を表示します
     if (IS_WINDOWS) {
       // On Windows, use 'set' command
       terminal.sendText('set')
