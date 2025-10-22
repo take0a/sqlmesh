@@ -19,16 +19,20 @@ def get_sql_completions(
 ) -> AllModelsResponse:
     """
     Return a list of completions for a given file.
+    指定されたファイルの補完リストを返します。
     """
     # Get SQL keywords for the dialect
+    # 方言のSQLキーワードを取得する
     sql_keywords = get_keywords(context, file_uri)
 
     # Get keywords from file content if provided
+    # 提供されている場合、ファイルの内容からキーワードを取得します
     file_keywords = set()
     if content:
         file_keywords = extract_keywords_from_content(content, get_dialect(context, file_uri))
 
     # Combine keywords - SQL keywords first, then file keywords
+    # キーワードを組み合わせる - 最初にSQLキーワード、次にファイルキーワード
     all_keywords = list(sql_keywords) + list(file_keywords - sql_keywords)
 
     models = list(get_models(context, file_uri))
@@ -45,9 +49,12 @@ def get_models(
 ) -> t.List[ModelCompletion]:
     """
     Return a list of models for a given file.
+    指定されたファイルのモデルのリストを返します。
 
     If there is no context, return an empty list.
     If there is a context, return a list of all models bar the ones the file itself defines.
+    コンテキストがない場合、空のリストを返します。
+    コンテキストがある場合、ファイル自体で定義されているモデルを除くすべてのモデルのリストを返します。
     """
     if context is None:
         return []
@@ -72,7 +79,8 @@ def get_models(
 def get_macros(
     context: t.Optional[LSPContext], file_uri: t.Optional[URI]
 ) -> t.List[MacroCompletion]:
-    """Return a list of macros with optional descriptions."""
+    """Return a list of macros with optional descriptions.
+    オプションの説明が付いたマクロのリストを返します。"""
     macros: t.Dict[str, t.Optional[str]] = {}
 
     for name, m in macro.get_registry().items():
@@ -92,12 +100,16 @@ def get_keywords(context: t.Optional[LSPContext], file_uri: t.Optional[URI]) -> 
     """
     Return a list of sql keywords for a given file.
     If no context is provided, return ANSI SQL keywords.
+    指定されたファイルのSQLキーワードのリストを返します。
+    コンテキストが指定されていない場合は、ANSI SQLキーワードを返します。
 
     If a context is provided but no file_uri is provided, returns the keywords
     for the default dialect of the context.
+    コンテキストが指定されているがfile_uriが指定されていない場合は、コンテキストのデフォルトの方言のキーワードを返します。
 
     If both a context and a file_uri are provided, returns the keywords
     for the dialect of the model that the file belongs to.
+    コンテキストとfile_uriの両方が指定されている場合は、ファイルが属するモデルの方言のキーワードを返します。
     """
     if file_uri is not None and context is not None and file_uri.to_path() in context.map:
         file_info = context.map[file_uri.to_path()]
@@ -127,6 +139,10 @@ def get_keywords_from_tokenizer(dialect: t.Optional[str] = None) -> t.Set[str]:
     Return a list of sql keywords for a given dialect. This is separate from
     the direct use of Tokenizer.KEYWORDS.keys() because that returns a set of
     keywords that are expanded, e.g. "ORDER BY" -> ["ORDER", "BY"].
+    指定された方言のSQLキーワードのリストを返します。
+    これはTokenizer.KEYWORDS.keys()を直接使用した場合とは異なります。
+    Tokenizer.KEYWORDS.keys()は、展開されたキーワードのセット
+    （例："ORDER BY" -> ["ORDER", "BY"]）を返します。
     """
     tokenizer = Tokenizer
     if dialect is not None:
@@ -145,17 +161,20 @@ def get_keywords_from_tokenizer(dialect: t.Optional[str] = None) -> t.Set[str]:
 def get_dialect(context: t.Optional[LSPContext], file_uri: t.Optional[URI]) -> t.Optional[str]:
     """
     Get the dialect for a given file.
+    指定されたファイルの方言を取得します。
     """
     if file_uri is not None and context is not None and file_uri.to_path() in context.map:
         file_info = context.map[file_uri.to_path()]
 
         # Handle ModelInfo objects
+        # ModelInfo オブジェクトを処理する
         if isinstance(file_info, ModelTarget) and file_info.names:
             model_name = file_info.names[0]
             model_from_context = context.context.get_model(model_name)
             return model_from_context.dialect
 
         # Handle AuditInfo objects
+        # AuditInfo オブジェクトを処理する
         if isinstance(file_info, AuditTarget) and file_info.name:
             audit = context.context.standalone_audits.get(file_info.name)
             if audit is not None and audit.dialect:
@@ -170,9 +189,11 @@ def get_dialect(context: t.Optional[LSPContext], file_uri: t.Optional[URI]) -> t
 def extract_keywords_from_content(content: str, dialect: t.Optional[str] = None) -> t.Set[str]:
     """
     Extract identifiers from SQL content using the tokenizer.
+    トークナイザーを使用してSQLコンテンツから識別子を抽出します。
 
     Only extracts identifiers (variable names, table names, column names, etc.)
     that are not SQL keywords.
+    SQLキーワードではない識別子（変数名、テーブル名、列名など）のみを抽出します。
     """
     if not content:
         return set()
@@ -184,11 +205,13 @@ def extract_keywords_from_content(content: str, dialect: t.Optional[str] = None)
         tokens = tokenizer.tokenize(content)
         for token in tokens:
             # Don't include keywords in the set
+            # セットにキーワードを含めない
             if token.text.upper() not in tokenizer_class.KEYWORDS:
                 keywords.add(token.text)
 
     except Exception:
         # If tokenization fails, return an empty set
+        # トークン化に失敗した場合は空のセットを返す
         pass
 
     return keywords

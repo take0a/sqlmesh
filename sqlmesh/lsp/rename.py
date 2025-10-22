@@ -22,7 +22,7 @@ def prepare_rename(
     lsp_context: LSPContext, document_uri: URI, lsp_position: Position
 ) -> t.Optional[PrepareRenameResult_Type1]:
     """
-    Prepare for rename operation by checking if the symbol at the position can be renamed.
+    位置にあるシンボルの名前を変更できるかどうかを確認して、名前変更操作の準備をします。
 
     Args:
         lsp_context: The LSP context
@@ -31,19 +31,24 @@ def prepare_rename(
 
     Returns:
         PrepareRenameResult if the symbol can be renamed, None otherwise
+        シンボルの名前を変更できる場合は PrepareRenameResult、そうでない場合は None
     """
     # Check if there's a CTE at this position
+    # この位置にCTEがあるかどうかを確認します
     position = to_sqlmesh_position(lsp_position)
     cte_references = get_cte_references(lsp_context, document_uri, position)
     if cte_references:
         # Find the target CTE definition to get its range
+        # ターゲットCTE定義を見つけてその範囲を取得します
         target_range = None
         for ref in cte_references:
             # Check if cursor is on a CTE usage
+            # カーソルがCTE使用箇所にあるかどうかを確認する
             if _position_within_range(position, ref.range):
                 target_range = ref.target_range
                 break
             # Check if cursor is on the CTE definition
+            # カーソルがCTE定義上にあるかどうかを確認します
             elif _position_within_range(position, ref.target_range):
                 target_range = ref.target_range
                 break
@@ -53,6 +58,7 @@ def prepare_rename(
             )
 
     # For now, only CTEs are supported
+    # 現時点ではCTEのみがサポートされています
     return None
 
 
@@ -61,6 +67,7 @@ def rename_symbol(
 ) -> t.Optional[WorkspaceEdit]:
     """
     Perform rename operation on the symbol at the given position.
+    指定された位置のシンボルに対して名前変更操作を実行します。
 
     Args:
         lsp_context: The LSP context
@@ -70,6 +77,7 @@ def rename_symbol(
 
     Returns:
         WorkspaceEdit with the changes, or None if no symbol to rename
+        変更を加えた場合は WorkspaceEdit、名前を変更するシンボルがない場合は None
     """
     # Check if there's a CTE at this position
     cte_references = get_cte_references(
@@ -85,6 +93,7 @@ def rename_symbol(
 def _rename_cte(cte_references: t.List[CTEReference], new_name: str) -> WorkspaceEdit:
     """
     Create a WorkspaceEdit for renaming a CTE.
+    CTE の名前を変更するための WorkspaceEdit を作成します。
 
     Args:
         cte_references: List of CTE references (definition and usages)
@@ -92,6 +101,7 @@ def _rename_cte(cte_references: t.List[CTEReference], new_name: str) -> Workspac
 
     Returns:
         WorkspaceEdit with the text edits for renaming the CTE
+        CTEの名前を変更するためのテキスト編集機能を備えたWorkspaceEdit
     """
     changes: t.Dict[str, t.List[TextEdit]] = {}
 
@@ -112,9 +122,12 @@ def get_document_highlights(
 ) -> t.Optional[t.List[DocumentHighlight]]:
     """
     Get document highlights for all occurrences of the symbol at the given position.
+    指定された位置にあるシンボルのすべての出現箇所のドキュメントハイライトを取得します。
 
     This function finds all occurrences of a symbol (CTE) within the current document
     and returns them as DocumentHighlight objects for "Change All Occurrences" feature.
+    この関数は、現在のドキュメント内でシンボル（CTE）のすべての出現箇所を検索し、
+    「すべての出現箇所を変更」機能用の DocumentHighlight オブジェクトとして返します。
 
     Args:
         lsp_context: The LSP context
@@ -123,13 +136,16 @@ def get_document_highlights(
 
     Returns:
         List of DocumentHighlight objects or None if no symbol found
+        DocumentHighlight オブジェクトのリスト、またはシンボルが見つからない場合は None
     """
     # Check if there's a CTE at this position
+    # この位置にCTEがあるかどうかを確認します
     cte_references = get_cte_references(lsp_context, document_uri, to_sqlmesh_position(position))
     if cte_references:
         highlights = []
         for ref in cte_references:
             # Determine the highlight kind based on whether it's a definition or usage
+            # 定義か使用法かに基づいてハイライトの種類を決定します
             kind = (
                 DocumentHighlightKind.Write
                 if ref.range == ref.target_range
@@ -140,4 +156,5 @@ def get_document_highlights(
         return highlights
 
     # For now, only CTEs are supported
+    # 現時点ではCTEのみがサポートされています
     return None

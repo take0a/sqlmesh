@@ -7,10 +7,13 @@ from sqlmesh.utils.pydantic import field_validator
 
 class RunConfig(BaseConfig):
     """A configuration for `sqlmesh run` command.
+    `sqlmesh run` コマンドの構成。
 
     Args:
         environment_check_interval: Interval in seconds between environment checks.
+            環境チェックの間隔（秒）。
         environment_check_max_wait: Maximum time in seconds to wait for environment to be ready.
+            環境の準備ができるまで待機する最大時間（秒）。
     """
 
     environment_check_interval: int = 30

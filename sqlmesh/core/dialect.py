@@ -737,15 +737,21 @@ def format_model_expressions(
     **kwargs: t.Any,
 ) -> str:
     """Format a model's expressions into a standardized format.
+    モデルの式を標準化された形式にフォーマットします。
 
     Args:
         expressions: The model's expressions, must be at least model def + query.
+            モデルの式は、少なくともモデル定義 + クエリである必要があります。
         dialect: The dialect to render the expressions as.
+            式を表現する方言。
         rewrite_casts: Whether to rewrite all casts to use the :: syntax.
+            すべてのキャストを :: 構文を使用するように書き換えるかどうか。
         **kwargs: Additional keyword arguments to pass to the sql generator.
+            SQL ジェネレーターに渡す追加のキーワード引数。
 
     Returns:
         A string representing the formatted model.
+        フォーマットされたモデルを表す文字列。
     """
     if len(expressions) == 1 and is_meta_expression(expressions[0]):
         return expressions[0].sql(pretty=True, dialect=dialect)
@@ -756,6 +762,8 @@ def format_model_expressions(
             if isinstance(node, exp.Cast) and not any(
                 # Only convert CAST into :: if it doesn't have additional args set, otherwise this
                 # conversion could alter the semantics (eg. changing SAFE_CAST in BigQuery to CAST)
+                # 追加の引数が設定されていない場合にのみ、CAST を :: に変換します。そうでない場合、
+                # この変換によってセマンティクスが変更される可能性があります (例: BigQuery の SAFE_CAST を CAST に変更する)
                 arg
                 for name, arg in node.args.items()
                 if name not in ("this", "to")

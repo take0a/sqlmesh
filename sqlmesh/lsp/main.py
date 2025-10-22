@@ -136,7 +136,7 @@ class SQLMeshLanguageServer:
     # for a config files. They are explicitly set by the user and optionally
     # pass in at init
     # 指定されたフォルダは、ワークスペースフォルダや設定ファイルの検索よりも優先されます。
-    # これらはユーザーによって明示的に設定され、オプションでinit.iniに渡されます。
+    # これらはユーザーによって明示的に設定され、オプションでinitに渡されます。
     specified_paths: t.Optional[t.List[Path]] = None
 
     def __init__(
@@ -230,9 +230,11 @@ class SQLMeshLanguageServer:
             return RunTestResponse(success=False, response_error=str(e))
 
     # All the custom LSP methods are registered here and prefixed with _custom
+    # すべてのカスタムLSPメソッドはここに登録され、_customというプレフィックスが付けられます。
     def _custom_all_models(self, ls: LanguageServer, params: AllModelsRequest) -> AllModelsResponse:
         uri = URI(params.textDocument.uri)
         # Get the document content
+        # ドキュメントの内容を取得する
         content = None
         try:
             document = ls.workspace.get_text_document(params.textDocument.uri)
@@ -464,6 +466,7 @@ class SQLMeshLanguageServer:
                 try:
                     self.context_state.context.load()
                     # Creating a new LSPContext will naturally create fresh caches
+                    # 新しいLSPContextを作成すると、当然新しいキャッシュが作成されます。
                     self.context_state = ContextLoaded(
                         lsp_context=LSPContext(self.context_state.context)
                     )
@@ -477,19 +480,23 @@ class SQLMeshLanguageServer:
                     self.context_state = ContextFailed(error=e, context=context)
             else:
                 # If there's no context, reset to NoContext and try to create one from scratch
+                # コンテキストがない場合は、NoContext にリセットして、最初から作成してみます
                 ls.log_trace("No partial context available, attempting fresh creation")
                 self.context_state = NoContext()
                 self.has_raised_loading_error = False  # Reset error flag to show new errors
                 try:
                     self._ensure_context_for_document(uri)
                     # If successful, context_state will be ContextLoaded
+                    # 成功した場合、context_stateはContextLoadedになります
                     if isinstance(self.context_state, ContextLoaded):
                         loaded_sqlmesh_message(ls)
                 except Exception as e:
                     ls.log_trace(f"Still cannot load context: {e}")
                     # The error will be stored in context_state by _ensure_context_for_document
+                    # エラーは_ensure_context_for_documentによってcontext_stateに保存されます。
         else:
             # Reload the context if it was successfully loaded
+            # コンテキストが正常に読み込まれた場合は、それをロードします。
             try:
                 context = self.context_state.lsp_context.context
                 context.load()
@@ -593,6 +600,7 @@ class SQLMeshLanguageServer:
                         self.specified_paths = [Path(path) for path in options.project_paths]
 
                 # Check if the client supports pull diagnostics
+                # クライアントがプル診断をサポートしているかどうかを確認する
                 if params.capabilities and params.capabilities.text_document:
                     diagnostics = getattr(params.capabilities.text_document, "diagnostic", None)
                     if diagnostics:
@@ -611,14 +619,17 @@ class SQLMeshLanguageServer:
                     ]
 
                     # Try to find a SQLMesh config file in any workspace folder (only at the root level)
+                    # 任意のワークスペース フォルダ (ルート レベルのみ) で SQLMesh 構成ファイルを探します。
                     for folder_path in self.workspace_folders:
                         # Only check for config files directly in the workspace directory
+                        # ワークスペースディレクトリ内の設定ファイルのみを直接チェックする
                         for ext in ("py", "yml", "yaml"):
                             config_path = folder_path / f"config.{ext}"
                             if config_path.exists():
                                 if self._create_lsp_context([folder_path]):
                                     loaded_sqlmesh_message(ls)
                                     return  # Exit after successfully loading any config
+                                            # 設定が正常に読み込まれたら終了します（なんで一個なのか）
             except Exception as e:
                 ls.log_trace(
                     f"Error initializing SQLMesh context: {e}",
@@ -630,6 +641,7 @@ class SQLMeshLanguageServer:
             context = self._context_get_or_load(uri)
 
             # Only publish diagnostics if client doesn't support pull diagnostics
+            # クライアントがプル診断をサポートしていない場合にのみ診断を公開する
             if not self.client_supports_pull_diagnostics:
                 diagnostics = context.lint_model(uri)
                 ls.publish_diagnostics(
@@ -750,6 +762,7 @@ class SQLMeshLanguageServer:
                 location_links = []
                 for reference in references:
                     # Use target_range if available (CTEs, Macros, and external models in YAML)
+                    # 利用可能な場合は target_range を使用する（CTE、マクロ、YAML の外部モデル）
                     if isinstance(reference, ModelReference):
                         # Regular SQL models - default to start of file
                         target_range = types.Range(
@@ -762,6 +775,7 @@ class SQLMeshLanguageServer:
                         )
                     elif isinstance(reference, ExternalModelReference):
                         # External models may have target_range set for YAML files
+                        # 外部モデルでは、YAML ファイルに target_range が設定されている場合があります。
                         target_range = types.Range(
                             start=types.Position(line=0, character=0),
                             end=types.Position(line=0, character=0),
@@ -775,6 +789,7 @@ class SQLMeshLanguageServer:
                             target_selection_range = to_lsp_range(reference.target_range)
                     else:
                         # CTEs and Macros always have target_range
+                        # CTEとマクロには常にtarget_rangeがある
                         target_range = to_lsp_range(reference.target_range)
                         target_selection_range = to_lsp_range(reference.target_range)
 
@@ -999,7 +1014,7 @@ class SQLMeshLanguageServer:
             ls: LanguageServer, params: types.CompletionParams
         ) -> t.Optional[types.CompletionList]:
             """Handle completion requests from the client.
-            クライアントからの完了要求を処理します。"""
+            クライアントからの補完要求を処理します。"""
             try:
                 uri = URI(params.text_document.uri)
                 context = self._context_get_or_load(uri)
@@ -1105,6 +1120,7 @@ class SQLMeshLanguageServer:
         if isinstance(state, NoContext):
             if self.specified_paths is not None:
                 # If specified paths are provided, create context from them
+                # 指定されたパスが提供されている場合は、それらからコンテキストを作成します
                 if self._create_lsp_context(self.specified_paths):
                     loaded_sqlmesh_message(self.server)
             else:
@@ -1169,24 +1185,18 @@ class SQLMeshLanguageServer:
 
     def _create_lsp_context(self, paths: t.List[Path]) -> t.Optional[LSPContext]:
         """Create a new LSPContext instance using the configured context class.
+        設定されたコンテキストクラスを使用して、新しい LSPContext インスタンスを作成します。
 
         On success, sets self.context_state to ContextLoaded and returns the created context.
+        成功した場合、self.context_state を ContextLoaded に設定し、作成したコンテキストを返します。
 
         Args:
             paths: List of paths to pass to the context constructor
+                コンテキストコンストラクタに渡すパスのリスト
 
         Returns:
             A new LSPContext instance wrapping the created context, or None if creation fails
-
-        設定されたコンテキストクラスを使用して、新しい LSPContext インスタンスを作成します。
-
-        成功した場合、self.context_state を ContextLoaded に設定し、作成したコンテキストを返します。
-
-        引数:
-            paths: コンテキストコンストラクタに渡すパスのリスト
-
-        戻り値:
-            作成したコンテキストをラップする新しい LSPContext インスタンス。作成に失敗した場合は None を返します。
+                作成したコンテキストをラップする新しい LSPContext インスタンス。作成に失敗した場合は None を返します。
         """
         try:
             if isinstance(self.context_state, NoContext):
@@ -1197,6 +1207,7 @@ class SQLMeshLanguageServer:
                     context.load()
                 else:
                     # If there's no context (initial creation failed), try creating again
+                    # コンテキストがない場合（初期作成に失敗した場合）、再度作成してください
                     context = self.context_class(paths=paths)
             else:
                 context = self.context_state.lsp_context.context
@@ -1215,6 +1226,8 @@ class SQLMeshLanguageServer:
             self.server.log_trace(f"Error creating context: {e}")
             # Store the error in context state so subsequent requests show the actual error
             # Try to preserve any partially loaded context if it exists
+            # 後続のリクエストで実際のエラーが表示されるように、エラーをコンテキスト状態に保存します。
+            # 部分的に読み込まれたコンテキストが存在する場合は、それを保持しようとします。
             context = None
             if isinstance(self.context_state, ContextLoaded):
                 context = self.context_state.lsp_context.context
@@ -1243,6 +1256,7 @@ def loaded_sqlmesh_message(ls: LanguageServer) -> None:
 
 def main() -> None:
     # Example instantiator that just uses the same signature as your original `Context` usage.
+    # 元の `Context` の使用と同じシグネチャを使用するインスタンス化子の例。
     sqlmesh_server = SQLMeshLanguageServer(context_class=Context)
     sqlmesh_server.start()
 

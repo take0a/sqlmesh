@@ -166,6 +166,9 @@ def load_config_from_paths(
     # if "dbt_project.yml" is present *and there was no python config already defined*,
     # create a basic one to ensure we are using the DBT loader.
     # any config within yaml files will get overlayed on top of it.
+    # 「dbt_project.yml」が存在し、*Python 構成がまだ定義されていない場合*、
+    # DBT ローダーを使用していることを確認するために基本的な構成を作成します。
+    # yaml ファイル内のすべての構成はその上にオーバーレイされます。
     if not python_config:
         potential_project_files = [f / DBT_PROJECT_FILENAME for f in visited_folders]
         dbt_project_file = next((f for f in potential_project_files if f.exists()), None)

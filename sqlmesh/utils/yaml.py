@@ -26,6 +26,9 @@ def YAML(typ: t.Optional[str] = "safe") -> yaml.YAML:
     # Ruamel doesn't know how to serialize Decimal values. This is problematic when,
     # e.g., we're trying to auto-generate a unit test whose body contains Decimal data.
     # This is a best-effort approach to solve this by serializing them as strings.
+    # Ruamel は Decimal 値をシリアル化する方法を認識しません。これは、次のような場合に問題となります。
+    # 例えば、本体に Decimal データを含むユニットテストを自動生成しようとしている場合です。
+    # これは、文字列としてシリアル化することでこの問題を解決するためのベストエフォート型のアプローチです。
     yaml_obj.representer.add_representer(
         Decimal, lambda dumper, data: dumper.represent_str(str(data))
     )
@@ -43,9 +46,12 @@ class SafeConstructorOverride(SafeConstructor):
         value: t.Any,
     ) -> bool:
         """This function normally returns True if key is unique.
+        この関数は通常、キーが一意の場合にTrueを返します。
 
         It is only used by the construct_mapping function. By always returning True,
         keys will always be updated and so the last value will be kept for mappings.
+        construct_mapping関数でのみ使用されます。
+        常にTrueを返すことで、キーは常に更新され、マッピングでは最後の値が保持されます。
         """
         return True
 
@@ -58,7 +64,8 @@ def load(
     variables: t.Optional[t.Dict[str, t.Any]] = None,
     keep_last_duplicate_key: bool = False,
 ) -> t.Dict:
-    """Loads a YAML object from either a raw string or a file."""
+    """Loads a YAML object from either a raw string or a file.
+    生の文字列またはファイルから YAML オブジェクトを読み込みます。"""
     path: t.Optional[Path] = None
 
     if isinstance(source, Path):

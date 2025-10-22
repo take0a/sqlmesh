@@ -20,14 +20,16 @@ from sqlmesh.utils.lineage import get_yaml_model_name_ranges
 
 @dataclass
 class ModelTarget:
-    """Information about models in a file."""
+    """Information about models in a file.
+    ファイル内のモデルに関する情報。"""
 
     names: t.List[str]
 
 
 @dataclass
 class AuditTarget:
-    """Information about standalone audits in a file."""
+    """Information about standalone audits in a file.
+    ファイル内のスタンドアロン監査に関する情報。"""
 
     name: str
 
@@ -36,6 +38,8 @@ class LSPContext:
     """
     A context that is used for linting. It contains the context and a reverse map of file uri to
     model names and standalone audit names.
+    リンティングに使用されるコンテキスト。
+    コンテキストと、ファイルURIからモデル名およびスタンドアロン監査名への逆マッピングが含まれます。
     """
 
     map: t.Dict[Path, t.Union[ModelTarget, AuditTarget]]
@@ -48,6 +52,7 @@ class LSPContext:
         self._lint_cache = {}
 
         # Add models to the map
+        # マップにモデルを追加する
         model_map: t.Dict[Path, ModelTarget] = {}
         for model in context.models.values():
             if model._path is not None:
@@ -58,6 +63,7 @@ class LSPContext:
                     model_map[uri] = ModelTarget(names=[model.name])
 
         # Add standalone audits to the map
+        # マップにスタンドアロン監査を追加する
         audit_map: t.Dict[Path, AuditTarget] = {}
         for audit in context.standalone_audits.values():
             if audit._path is not None:
@@ -75,6 +81,7 @@ class LSPContext:
         tests = self.context.load_model_tests()
 
         # Use a set to ensure unique URIs
+        # URI が一意であることを保証するにはセットを使用する
         unique_test_uris = {URI.from_path(test.path).value for test in tests}
         test_uris: t.Dict[str, t.Dict[str, Range]] = {}
         for uri in unique_test_uris:
@@ -93,6 +100,7 @@ class LSPContext:
 
     def get_document_tests(self, uri: URI) -> t.List[TestEntry]:
         """Get tests for a specific document.
+        特定のドキュメントのテストを取得します。
 
         Args:
             uri: The URI of the file to get tests for.
@@ -113,6 +121,7 @@ class LSPContext:
 
     def run_test(self, uri: URI, test_name: str) -> RunTestResponse:
         """Run a specific test for a model.
+        モデルに対して特定のテストを実行します。
 
         Args:
             uri: The URI of the file containing the test.
@@ -137,6 +146,7 @@ class LSPContext:
 
     def render_model(self, uri: URI) -> t.List[RenderModelEntry]:
         """Get rendered models for a file, using cache when available.
+        利用可能な場合はキャッシュを使用して、ファイルのレンダリングされたモデルを取得します。
 
         Args:
             uri: The URI of the file to render.
@@ -196,6 +206,7 @@ class LSPContext:
 
     def lint_model(self, uri: URI) -> t.List[AnnotatedRuleViolation]:
         """Get lint diagnostics for a model, using cache when available.
+        利用可能な場合はキャッシュを使用して、モデルの lint 診断を取得します。
 
         Args:
             uri: The URI of the file to lint.
@@ -226,13 +237,17 @@ class LSPContext:
     def get_code_actions(
         self, uri: URI, params: types.CodeActionParams
     ) -> t.Optional[t.List[t.Union[types.Command, types.CodeAction]]]:
-        """Get code actions for a file."""
+        """Get code actions for a file.
+        ファイルのコードアクションを取得します。"""
 
         # Get the violations (which contain the fixes)
+        # 違反情報を取得する（修正を含む）
         violations = self.lint_model(uri)
 
         # Convert violations to a map for quick lookup
         # Use a hashable representation of Range as the key
+        # 違反をマップに変換して、すばやく検索できるようにします
+        # キーとして、Range のハッシュ可能な表現を使用します
         violation_map: t.Dict[
             t.Tuple[str, t.Tuple[int, int, int, int]], AnnotatedRuleViolation
         ] = {}
@@ -241,6 +256,7 @@ class LSPContext:
                 lsp_diagnostic = self.diagnostic_to_lsp_diagnostic(violation)
                 if lsp_diagnostic:
                     # Create a hashable key from the diagnostic message and range
+                    # 診断メッセージと範囲からハッシュ可能なキーを作成する
                     key = (
                         lsp_diagnostic.message,
                         (
@@ -253,12 +269,14 @@ class LSPContext:
                     violation_map[key] = violation
 
         # Get diagnostics in the requested range
+        # 要求された範囲の診断を取得する
         diagnostics = params.context.diagnostics if params.context else []
 
         code_actions: t.List[t.Union[types.Command, types.CodeAction]] = []
 
         for diagnostic in diagnostics:
             # Find the corresponding violation
+            # 対応する違反を見つける
             key = (
                 diagnostic.message,
                 (
@@ -272,6 +290,7 @@ class LSPContext:
 
             if found_violation is not None and found_violation.fixes:
                 # Create code actions for each fix
+                # 各修正ごとにコードアクションを作成する
                 for fix in found_violation.fixes:
                     changes: t.Dict[str, t.List[types.TextEdit]] = {}
                     document_changes: t.List[
@@ -350,7 +369,8 @@ class LSPContext:
         return None
 
     def _get_external_model_code_lenses(self, uri: URI) -> t.List[types.CodeLens]:
-        """Get code lenses for external models YAML files."""
+        """Get code lenses for external models YAML files.
+        外部モデル YAML ファイルのコード レンズを取得します。"""
         ranges = get_yaml_model_name_ranges(uri.to_path())
         if ranges is None:
             return []
@@ -370,6 +390,7 @@ class LSPContext:
 
     def list_of_models_for_rendering(self) -> t.List[ModelForRendering]:
         """Get a list of models for rendering.
+        レンダリングするモデルのリストを取得します。
 
         Returns:
             List of ModelForRendering objects.
@@ -400,7 +421,8 @@ class LSPContext:
         uri: t.Optional[URI] = None,
         file_content: t.Optional[str] = None,
     ) -> AllModelsResponse:
-        """Get completion suggestions for a file"""
+        """Get completion suggestions for a file
+        ファイルの補完候補を取得する"""
         from sqlmesh.lsp.completions import get_sql_completions
 
         return get_sql_completions(self, uri, file_content)
@@ -410,13 +432,17 @@ class LSPContext:
         diagnostics: t.List[AnnotatedRuleViolation],
     ) -> t.List[types.Diagnostic]:
         """
-        Converts a list of AnnotatedRuleViolations to a list of LSP diagnostics. It will remove duplicates based on the message and range.
+        Converts a list of AnnotatedRuleViolations to a list of LSP diagnostics. 
+        It will remove duplicates based on the message and range.
+        AnnotatedRuleViolationsのリストをLSP診断のリストに変換します。
+        メッセージと範囲に基づいて重複を削除します。
         """
         lsp_diagnostics = {}
         for diagnostic in diagnostics:
             lsp_diagnostic = LSPContext.diagnostic_to_lsp_diagnostic(diagnostic)
             if lsp_diagnostic is not None:
                 # Create a unique key combining message and range
+                # メッセージと範囲を組み合わせた一意のキーを作成する
                 diagnostic_key = (
                     lsp_diagnostic.message,
                     lsp_diagnostic.range.start.line,
@@ -454,11 +480,13 @@ class LSPContext:
             )
 
         # Get rule definition location for diagnostics link
+        # 診断リンクのルール定義の場所を取得する
         rule_location = diagnostic.rule.get_definition_location()
         rule_uri_wihout_extension = URI.from_path(rule_location.file_path)
         rule_uri = f"{rule_uri_wihout_extension.value}#L{rule_location.start_line}"
 
         # Use URI format to create a link for "related information"
+        # URI形式を使用して「関連情報」へのリンクを作成します
         return types.Diagnostic(
             range=diagnostic_range,
             message=diagnostic.violation_msg,
@@ -478,6 +506,13 @@ class LSPContext:
         In this case, the model name is the name of the external model as is defined in the YAML file, not any other version of it.
 
         Errors still throw exceptions to be handled by the caller.
+
+        YAML ファイル内の外部モデルの列を更新します。
+        変更された場合は True を返し、列が既に最新の状態であるため変更されなかった場合は False を返します。
+
+        この場合、モデル名は YAML ファイルで定義されている外部モデルの名前であり、他のバージョンではありません。
+
+        エラーが発生した場合は、呼び出し元で処理される例外がスローされます。
         """
         models = yaml.load(uri.to_path())
         if not isinstance(models, list):
@@ -492,8 +527,10 @@ class LSPContext:
         existing_model_columns = existing_model.get("columns")
 
         # Get the adapter and fetch columns
+        # アダプタを取得して列を取得する
         adapter = self.context.engine_adapter
         # Get columns for the model
+        # モデルの列を取得する
         new_columns = get_columns(
             adapter=adapter,
             dialect=self.context.config.model_defaults.dialect,
@@ -501,11 +538,13 @@ class LSPContext:
             strict=True,
         )
         # Compare existing columns and matching types and if they are the same, do not update
+        # 既存の列と一致する型を比較し、同じ場合は更新しない
         if existing_model_columns is not None:
             if existing_model_columns == new_columns:
                 return False
 
         # Model index to update
+        # 更新するモデルインデックス
         model_index = next(
             (i for i, model in enumerate(models) if model.get("name") == model_name), None
         )
@@ -513,6 +552,7 @@ class LSPContext:
             raise ValueError(f"Could not find model {model_name} in {uri.to_path()}")
 
         # Get end of the file to set the edit range
+        # 編集範囲を設定するためにファイルの末尾を取得します
         with open(uri.to_path(), "r", encoding="utf-8") as file:
             read_file = file.read()
 

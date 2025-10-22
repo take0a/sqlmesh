@@ -23,7 +23,8 @@ if t.TYPE_CHECKING:
 
 
 class ModelReference(PydanticModel):
-    """A reference to a model, excluding external models."""
+    """A reference to a model, excluding external models.
+    外部モデルを除くモデルへの参照。"""
 
     type: t.Literal["model"] = "model"
     path: Path
@@ -32,20 +33,25 @@ class ModelReference(PydanticModel):
 
 
 class ExternalModelReference(PydanticModel):
-    """A reference to an external model."""
+    """A reference to an external model.
+    外部モデルへの参照。"""
 
     type: t.Literal["external_model"] = "external_model"
     range: Range
     target_range: t.Optional[Range] = None
     path: t.Optional[Path] = None
     """The path of the external model, typically a YAML file, it is optional because
-    external models can be unregistered and so the path is not available."""
+    external models can be unregistered and so the path is not available.
+    外部モデルのパス (通常は YAML ファイル) はオプションです。
+    外部モデルは登録解除される可能性があり、
+    その場合はパスが使用できないため、このパスはオプションです。"""
 
     markdown_description: t.Optional[str] = None
 
 
 class CTEReference(PydanticModel):
-    """A reference to a CTE."""
+    """A reference to a CTE.
+    CTE への参照。"""
 
     type: t.Literal["cte"] = "cte"
     path: Path
@@ -54,7 +60,8 @@ class CTEReference(PydanticModel):
 
 
 class MacroReference(PydanticModel):
-    """A reference to a macro."""
+    """A reference to a macro.
+    マクロへの参照。"""
 
     type: t.Literal["macro"] = "macro"
     path: Path
@@ -78,6 +85,7 @@ def extract_references_from_query(
     dialect: t.Optional[str] = None,
 ) -> t.List[Reference]:
     # Build a scope tree to properly handle nested CTEs
+    # ネストされたCTEを適切に処理するためのスコープツリーを構築する
     try:
         query = normalize_identifiers(query.copy(), dialect=dialect)
         root_scope = build_scope(query)
@@ -89,11 +97,13 @@ def extract_references_from_query(
         return references
 
     # Traverse all scopes to find CTE definitions and table references
+    # すべてのスコープを走査して、CTE定義とテーブル参照を見つける
     for scope in root_scope.traverse():
         for table in scope.tables:
             table_name = table.name
 
             # Check if this table reference is a CTE in the current scope
+            # このテーブル参照が現在のスコープ内のCTEであるかどうかを確認します
             if cte_scope := scope.cte_sources.get(table_name):
                 cte = cte_scope.expression.parent
                 alias = cte.args["alias"]
@@ -129,6 +139,8 @@ def extract_references_from_query(
 
             # For non-CTE tables, process these as before (external model references)
             # Normalize the table reference
+            # CTE 以外のテーブルの場合は、従来どおり処理します（外部モデル参照）。
+            # テーブル参照を正規化します
             unaliased = table.copy()
             if unaliased.args.get("alias") is not None:
                 unaliased.set("alias", None)
@@ -143,20 +155,24 @@ def extract_references_from_query(
                     continue
             except Exception:
                 # Skip references that cannot be normalized
+                # 正規化できない参照をスキップする
                 continue
 
             # Get the referenced model uri
+            # 参照モデルのURIを取得する
             referenced_model = context.get_model(
                 model_or_snapshot=normalized_reference_name, raise_if_missing=False
             )
             if referenced_model is None:
                 # Extract metadata for positioning
+                # 位置決めのためのメタデータの抽出
                 table_meta = TokenPositionDetails.from_meta(table.this.meta)
                 table_range_sqlmesh = table_meta.to_range(read_file)
                 start_pos_sqlmesh = table_range_sqlmesh.start
                 end_pos_sqlmesh = table_range_sqlmesh.end
 
                 # If there's a catalog or database qualifier, adjust the start position
+                # カタログまたはデータベース修飾子がある場合は、開始位置を調整します
                 catalog_or_db = table.args.get("catalog") or table.args.get("db")
                 if catalog_or_db is not None:
                     catalog_or_db_meta = TokenPositionDetails.from_meta(catalog_or_db.meta)
@@ -177,16 +193,19 @@ def extract_references_from_query(
             if referenced_model_path is None:
                 continue
             # Check whether the path exists
+            # パスが存在するかどうかを確認する
             if not referenced_model_path.is_file():
                 continue
 
             # Extract metadata for positioning
+            # 位置決めのためのメタデータの抽出
             table_meta = TokenPositionDetails.from_meta(table.this.meta)
             table_range_sqlmesh = table_meta.to_range(read_file)
             start_pos_sqlmesh = table_range_sqlmesh.start
             end_pos_sqlmesh = table_range_sqlmesh.end
 
             # If there's a catalog or database qualifier, adjust the start position
+            # カタログまたはデータベース修飾子がある場合は、開始位置を調整します
             catalog_or_db = table.args.get("catalog") or table.args.get("db")
             if catalog_or_db is not None:
                 catalog_or_db_meta = TokenPositionDetails.from_meta(catalog_or_db.meta)
@@ -196,6 +215,7 @@ def extract_references_from_query(
             description = generate_markdown_description(referenced_model)
 
             # For external models in YAML files, find the specific model block
+            # YAMLファイル内の外部モデルの場合は、特定のモデルブロックを見つけます
             if isinstance(referenced_model, ExternalModel):
                 yaml_target_range: t.Optional[Range] = None
                 if (
@@ -292,21 +312,33 @@ def _process_column_references(
 ) -> t.List[Reference]:
     """
     Process column references for a given table and create appropriate reference objects.
+    指定されたテーブルの列参照を処理し、適切な参照オブジェクトを作成します。
 
     Args:
         scope: The SQL scope to search for columns
+            列を検索するSQLスコープ
         reference_name: The full reference name (may include database/catalog)
+            完全な参照名（データベース/カタログを含む場合があります）
         read_file: The file content as list of lines
+            ファイルの内容は行のリストとして
         referenced_model_path: Path of the referenced model
+            参照モデルのパス
         description: Markdown description for the reference
+            参照用のマークダウンの説明
         yaml_target_range: Target range for external models (YAML files)
+            外部モデル（YAMLファイル）のターゲット範囲
         reference_type: Type of reference - "model", "external_model", or "cte"
+            参照の種類 - 「model」、「external_model」、または「cte」
         default_catalog: Default catalog for normalization
+            正規化のデフォルトカタログ
         dialect: SQL dialect for normalization
+            正規化のためのSQL方言
         cte_target_range: Target range for CTE references
+            CTE参照の目標範囲
 
     Returns:
         List of table references for column usages
+        列の使用に関するテーブル参照のリスト
     """
 
     references: t.List[Reference] = []
@@ -356,13 +388,17 @@ def _process_column_references(
 def _get_column_table_range(column: exp.Column, read_file: t.List[str]) -> Range:
     """
     Get the range for a column's table reference, handling both simple and qualified table names.
+    単純なテーブル名と修飾されたテーブル名の両方を処理して、列のテーブル参照の範囲を取得します。
 
     Args:
         column: The column expression
+            列式
         read_file: The file content as list of lines
+            ファイルの内容は行のリストとして
 
     Returns:
         The Range covering the table reference in the column
+        列内のテーブル参照をカバーする範囲
     """
 
     table_parts = column.parts[:-1]
@@ -379,13 +415,17 @@ def _get_column_table_range(column: exp.Column, read_file: t.List[str]) -> Range
 def _get_yaml_model_range(path: Path, model_name: str) -> t.Optional[Range]:
     """
     Find the range of a specific model block in a YAML file.
+    YAML ファイル内の特定のモデル ブロックの範囲を見つけます。
 
     Args:
         yaml_path: Path to the YAML file
+            YAMLファイルへのパス
         model_name: Name of the model to find
+            検索するモデ​​ルの名前
 
     Returns:
         The Range of the model block in the YAML file, or None if not found
+        YAML ファイル内のモデル ブロックの範囲。見つからない場合は None になります。
     """
     model_name_ranges = get_yaml_model_name_ranges(path)
     if model_name_ranges is None:
@@ -396,12 +436,15 @@ def _get_yaml_model_range(path: Path, model_name: str) -> t.Optional[Range]:
 def get_yaml_model_name_ranges(path: Path) -> t.Optional[t.Dict[str, Range]]:
     """
     Get the ranges of all model names in a YAML file.
+    YAML ファイル内のすべてのモデル名の範囲を取得します。
 
     Args:
         path: Path to the YAML file
+            YAMLファイルへのパス
 
     Returns:
         A dictionary mapping model names to their ranges in the YAML file.
+        YAML ファイル内のモデル名とその範囲をマッピングする辞書。
     """
     yaml = YAML()
     with path.open("r", encoding="utf-8") as f:

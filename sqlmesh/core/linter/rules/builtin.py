@@ -29,10 +29,12 @@ from sqlmesh.utils.lineage import extract_references_from_query, ExternalModelRe
 
 
 class NoSelectStar(Rule):
-    """Query should not contain SELECT * on its outer most projections, even if it can be expanded."""
+    """Query should not contain SELECT * on its outer most projections, even if it can be expanded.
+    クエリは、拡張できる場合でも、最も外側の投影に SELECT * を含めないでください。"""
 
     def check_model(self, model: Model) -> t.Optional[RuleViolation]:
         # Only applies to SQL models, as other model types do not have a query.
+        # 他のモデル タイプにはクエリがないため、SQL モデルにのみ適用されます。
         if not isinstance(model, SqlModel):
             return None
         if model.query.is_star:
@@ -42,7 +44,8 @@ class NoSelectStar(Rule):
         return None
 
     def _get_range(self, model: SqlModel) -> t.Optional[Range]:
-        """Get the range of the violation if available."""
+        """Get the range of the violation if available.
+        可能な場合は違反の範囲を取得します。"""
         try:
             if len(model.query.expressions) == 1 and isinstance(model.query.expressions[0], Star):
                 return TokenPositionDetails.from_meta(model.query.expressions[0].meta).to_range(
@@ -56,7 +59,8 @@ class NoSelectStar(Rule):
     def _create_fixes(
         self, model: SqlModel, violation_range: t.Optional[Range]
     ) -> t.Optional[t.List[Fix]]:
-        """Create fixes for the SELECT * violation."""
+        """Create fixes for the SELECT * violation.
+        SELECT * 違反に対する修正を作成します。"""
         if not violation_range:
             return None
         columns = model.columns_to_types

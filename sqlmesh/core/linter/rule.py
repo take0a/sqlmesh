@@ -18,7 +18,8 @@ if t.TYPE_CHECKING:
 
 
 class RuleLocation(PydanticModel):
-    """The location of a rule in a file."""
+    """The location of a rule in a file.
+    ファイル内のルールの場所。"""
 
     file_path: str
     start_line: t.Optional[int] = None
@@ -26,7 +27,8 @@ class RuleLocation(PydanticModel):
 
 @dataclass(frozen=True)
 class Position:
-    """The position of a rule violation in a file, the position follows the LSP standard."""
+    """The position of a rule violation in a file, the position follows the LSP standard.
+    ファイル内のルール違反の位置。位置は LSP 標準に従います。"""
 
     line: int
     character: int
@@ -34,7 +36,8 @@ class Position:
 
 @dataclass(frozen=True)
 class Range:
-    """The range of a rule violation in a file. The range follows the LSP standard."""
+    """The range of a rule violation in a file. The range follows the LSP standard.
+    ファイル内のルール違反の範囲。範囲はLSP標準に従います。"""
 
     start: Position
     end: Position
@@ -42,7 +45,8 @@ class Range:
 
 @dataclass(frozen=True)
 class TextEdit:
-    """A text edit to apply to a file."""
+    """A text edit to apply to a file.
+    ファイルに適用するテキスト編集。"""
 
     path: Path
     range: Range
@@ -51,7 +55,8 @@ class TextEdit:
 
 @dataclass(frozen=True)
 class CreateFile:
-    """Create a new file with the provided text."""
+    """Create a new file with the provided text.
+    指定されたテキストで新しいファイルを作成します。"""
 
     path: Path
     text: str
@@ -59,7 +64,8 @@ class CreateFile:
 
 @dataclass(frozen=True)
 class Fix:
-    """A fix that can be applied to resolve a rule violation."""
+    """A fix that can be applied to resolve a rule violation.
+    ルール違反を解決するために適用できる修正。"""
 
     title: str
     edits: t.List[TextEdit] = field(default_factory=list)
@@ -73,7 +79,8 @@ class _Rule(abc.ABCMeta):
 
 
 class Rule(abc.ABC, metaclass=_Rule):
-    """The base class for a rule."""
+    """The base class for a rule.
+    ルールの基本クラス。"""
 
     name = "rule"
 
@@ -84,11 +91,13 @@ class Rule(abc.ABC, metaclass=_Rule):
     def check_model(
         self, model: Model
     ) -> t.Optional[t.Union[RuleViolation, t.List[RuleViolation]]]:
-        """The evaluation function that'll check for a violation of this rule."""
+        """The evaluation function that'll check for a violation of this rule.
+        このルールの違反をチェックする評価関数。"""
 
     @property
     def summary(self) -> str:
-        """A summary of what this rule checks for."""
+        """A summary of what this rule checks for.
+        このルールがチェックする内容の概要。"""
         return self.__doc__ or ""
 
     def violation(
@@ -97,7 +106,8 @@ class Rule(abc.ABC, metaclass=_Rule):
         violation_range: t.Optional[Range] = None,
         fixes: t.Optional[t.List[Fix]] = None,
     ) -> RuleViolation:
-        """Create a RuleViolation instance for this rule"""
+        """Create a RuleViolation instance for this rule
+        このルールのRuleViolationインスタンスを作成する"""
         return RuleViolation(
             rule=self,
             violation_msg=violation_msg or self.summary,
@@ -107,20 +117,26 @@ class Rule(abc.ABC, metaclass=_Rule):
 
     def get_definition_location(self) -> RuleLocation:
         """Return the file path and position information for this rule.
+        このルールのファイル パスと位置情報を返します。
 
         This method returns information about where this rule is defined,
         which can be used in diagnostics to link to the rule's documentation.
+        このメソッドは、このルールが定義されている場所に関する情報を返します。
+        この情報は、診断でルールのドキュメントにリンクするために使用できます。
 
         Returns:
             A dictionary containing file path and position information.
+            ファイル パスと位置情報を含む辞書。
         """
         import inspect
 
         # Get the file where the rule class is defined
+        # ルールクラスが定義されているファイルを取得する
         file_path = inspect.getfile(self.__class__)
 
         try:
             # Get the source code and line number
+            # ソースコードと行番号を取得する
             source_lines, start_line = inspect.getsourcelines(self.__class__)
             return RuleLocation(
                 file_path=file_path,
@@ -128,6 +144,7 @@ class Rule(abc.ABC, metaclass=_Rule):
             )
         except (IOError, TypeError):
             # Fall back to just returning the file path if we can't get source lines
+            # ソース行を取得できない場合は、ファイルパスを返すだけにします。
             return RuleLocation(file_path=file_path)
 
     def __repr__(self) -> str:

@@ -25,11 +25,13 @@ from sqlmesh.utils.config import sensitive_fields, excluded_fields
 
 
 class SchedulerConfig(abc.ABC):
-    """Abstract base class for Scheduler configurations."""
+    """Abstract base class for Scheduler configurations.
+    スケジューラ構成の抽象基本クラス。"""
 
     @abc.abstractmethod
     def create_plan_evaluator(self, context: GenericContext) -> PlanEvaluator:
         """Creates a Plan Evaluator instance.
+        プラン評価インスタンスを作成します。
 
         Args:
             context: The SQLMesh Context.
@@ -38,6 +40,7 @@ class SchedulerConfig(abc.ABC):
     @abc.abstractmethod
     def create_state_sync(self, context: GenericContext) -> StateSync:
         """Creates a State Sync instance.
+        State Sync インスタンスを作成します。
 
         Args:
             context: The SQLMesh Context.
@@ -49,6 +52,7 @@ class SchedulerConfig(abc.ABC):
     @abc.abstractmethod
     def get_default_catalog_per_gateway(self, context: GenericContext) -> t.Dict[str, str]:
         """Returns the default catalog for each gateway.
+        各ゲートウェイのデフォルト カタログを返します。
 
         Args:
             context: The SQLMesh Context.
@@ -57,6 +61,7 @@ class SchedulerConfig(abc.ABC):
     @abc.abstractmethod
     def state_sync_fingerprint(self, context: GenericContext) -> str:
         """Returns the fingerprint of the State Sync configuration.
+        State Sync 構成のフィンガープリントを返します。
 
         Args:
             context: The SQLMesh Context.
@@ -123,7 +128,8 @@ class _EngineAdapterStateSyncSchedulerConfig(SchedulerConfig):
 
 
 class BuiltInSchedulerConfig(_EngineAdapterStateSyncSchedulerConfig, BaseConfig):
-    """The Built-In Scheduler configuration."""
+    """The Built-In Scheduler configuration.
+    組み込みスケジューラの構成。"""
 
     type_: t.Literal["builtin"] = Field(alias="type", default="builtin")
 

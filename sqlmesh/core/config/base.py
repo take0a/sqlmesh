@@ -10,7 +10,8 @@ T = t.TypeVar("T", bound="BaseConfig")
 
 
 class UpdateStrategy(Enum):
-    """Supported strategies for adding new config to existing config"""
+    """Supported strategies for adding new config to existing config
+    既存の構成に新しい構成を追加するためのサポートされている戦略"""
 
     REPLACE = auto()  # Replace with new value
     EXTEND = auto()  # Extend list to existing list
@@ -27,6 +28,7 @@ def update_field(
 ) -> t.Any:
     """
     Update config field with new config value
+    新しい設定値で設定フィールドを更新する
 
     Args:
         old: The existing config value
@@ -106,18 +108,21 @@ def update_field(
 
 
 class BaseConfig(PydanticModel):
-    """Base configuration functionality for configuration classes."""
+    """Base configuration functionality for configuration classes.
+    構成クラスの基本構成機能。"""
 
     _FIELD_UPDATE_STRATEGY: t.ClassVar[t.Dict[str, UpdateStrategy]] = {}
 
     def update_with(self: T, other: t.Union[t.Dict[str, t.Any], T]) -> T:
         """Updates this instance's fields with the passed in config fields and returns a new instance.
+        渡された構成フィールドでこのインスタンスのフィールドを更新し、新しいインスタンスを返します。
 
         Args:
-            other: Other configuration.
+            other: Other configuration. その他の構成。
 
         Returns:
             New instance updated with the passed in config fields
+            渡された設定フィールドで更新された新しいインスタンス
         """
         if isinstance(other, dict):
             other = self.__class__(**other)
@@ -135,6 +140,7 @@ class BaseConfig(PydanticModel):
                 updated_fields[field] = getattr(other, field)
 
         # Assign each field to trigger assignment validators
+        # 各フィールドを割り当てて割り当て検証をトリガーする
         updated = self.copy()
         for field, value in updated_fields.items():
             setattr(updated, field, value)

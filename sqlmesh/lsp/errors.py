@@ -19,6 +19,12 @@ def context_error_to_diagnostic(
 
     uri_filter is used to filter diagnostics by URI. If present, only diagnostics
     with a matching URI will be returned.
+
+    エラーを診断メッセージに変換します。
+    エラーがConfigErrorの場合、診断メッセージに変換されます。
+
+    uri_filterは、URIで診断をフィルタリングするために使用されます。
+    指定されている場合、一致するURIを持つ診断のみが返されます。
     """
     if isinstance(error, ConfigError):
         return config_error_to_diagnostic(error), error

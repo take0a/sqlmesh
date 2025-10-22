@@ -20,6 +20,7 @@ def get_hints(
 ) -> t.List[types.InlayHint]:
     """
     Get type hints for certain lines in a document
+    文書内の特定の行の型ヒントを取得する
 
     Args:
         lint_context: The LSP context
@@ -29,6 +30,7 @@ def get_hints(
 
     Returns:
         A list of hints to apply to the document
+        ドキュメントに適用するヒントのリスト
     """
     path = document_uri.to_path()
     if path.suffix != ".sql":
@@ -40,6 +42,7 @@ def get_hints(
     file_info = lsp_context.map[path]
 
     # Process based on whether it's a model or standalone audit
+    # モデルかスタンドアロン監査かに基づくプロセス
     if not isinstance(file_info, ModelTarget):
         return []
 
@@ -87,6 +90,7 @@ def _get_type_hints_for_select(
         col = meta["col"]
 
         # Lines from sqlglot are 1 based
+        # sqlglotの行は1から始まります
         line -= 1
 
         if line < start_line or line > end_line:
@@ -124,6 +128,7 @@ def _get_type_hints_for_model_from_query(
         query = normalize_identifiers(query.copy(), dialect=dialect)
 
         # Return the hints for top level selects (model definition columns only)
+        # 最上位レベルの選択のヒントを返します（モデル定義列のみ）
         return [
             hint
             for q in query.walk(prune=lambda n: not isinstance(n, exp.SetOperation))

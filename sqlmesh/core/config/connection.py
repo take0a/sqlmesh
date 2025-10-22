@@ -104,51 +104,61 @@ class ConnectionConfig(abc.ABC, BaseConfig):
     catalog_type_overrides: t.Optional[t.Dict[str, str]] = None
 
     # Whether to share a  single connection across threads or create a new connection per thread.
+    # スレッド間で単一の接続を共有するか、スレッドごとに新しい接続を作成するかを指定します。
     shared_connection: t.ClassVar[bool] = False
 
     @property
     @abc.abstractmethod
     def _connection_kwargs_keys(self) -> t.Set[str]:
-        """keywords that should be passed into the connection"""
+        """keywords that should be passed into the connection
+        接続に渡されるキーワード"""
 
     @property
     @abc.abstractmethod
     def _engine_adapter(self) -> t.Type[EngineAdapter]:
-        """The engine adapter for this connection"""
+        """The engine adapter for this connection
+        この接続用のエンジンアダプター"""
 
     @property
     @abc.abstractmethod
     def _connection_factory(self) -> t.Callable:
-        """A function that is called to return a connection object for the given Engine Adapter"""
+        """A function that is called to return a connection object for the given Engine Adapter
+        指定されたエンジン アダプタの接続オブジェクトを返すために呼び出される関数"""
 
     @property
     def _static_connection_kwargs(self) -> t.Dict[str, t.Any]:
-        """The static connection kwargs for this connection"""
+        """The static connection kwargs for this connection
+        この接続の静的接続kwargs"""
         return {}
 
     @property
     def _extra_engine_config(self) -> t.Dict[str, t.Any]:
-        """kwargs that are for execution config only"""
+        """kwargs that are for execution config only
+        実行設定専用のkwargs"""
         return {}
 
     @property
     def _cursor_init(self) -> t.Optional[t.Callable[[t.Any], None]]:
-        """A function that is called to initialize the cursor"""
+        """A function that is called to initialize the cursor
+        カーソルを初期化するために呼び出される関数"""
         return None
 
     @property
     def is_recommended_for_state_sync(self) -> bool:
-        """Whether this engine is recommended for being used as a state sync for production state syncs"""
+        """Whether this engine is recommended for being used as a state sync for production state syncs
+        このエンジンが本番環境の状態同期としての使用に推奨されるかどうか"""
         return self.type_ in RECOMMENDED_STATE_SYNC_ENGINES
 
     @property
     def is_forbidden_for_state_sync(self) -> bool:
-        """Whether this engine is forbidden from being used as a state sync"""
+        """Whether this engine is forbidden from being used as a state sync
+        このエンジンが状態同期として使用されることを禁止するかどうか"""
         return self.type_ in FORBIDDEN_STATE_SYNC_ENGINES
 
     @property
     def _connection_factory_with_kwargs(self) -> t.Callable[[], t.Any]:
-        """A function that is called to return a connection object for the given Engine Adapter"""
+        """A function that is called to return a connection object for the given Engine Adapter
+        指定されたエンジン アダプタの接続オブジェクトを返すために呼び出される関数"""
         return partial(
             self._connection_factory,
             **{
@@ -158,13 +168,15 @@ class ConnectionConfig(abc.ABC, BaseConfig):
         )
 
     def connection_validator(self) -> t.Callable[[], None]:
-        """A function that validates the connection configuration"""
+        """A function that validates the connection configuration
+        接続構成を検証する関数"""
         return self.create_engine_adapter().ping
 
     def create_engine_adapter(
         self, register_comments_override: bool = False, concurrent_tasks: t.Optional[int] = None
     ) -> EngineAdapter:
-        """Returns a new instance of the Engine Adapter."""
+        """Returns a new instance of the Engine Adapter.
+        エンジン アダプターの新しいインスタンスを返します。"""
 
         concurrent_tasks = concurrent_tasks or self.concurrent_tasks
         return self._engine_adapter(
@@ -182,7 +194,8 @@ class ConnectionConfig(abc.ABC, BaseConfig):
         )
 
     def get_catalog(self) -> t.Optional[str]:
-        """The catalog for this connection"""
+        """The catalog for this connection
+        この接続のカタログ"""
         if hasattr(self, "catalog"):
             return self.catalog
         if hasattr(self, "database"):
@@ -197,12 +210,18 @@ class ConnectionConfig(abc.ABC, BaseConfig):
         """
         There are situations where a connection config class has a field that is some kind of complex type
         (eg a list of strings or a dict) but the value is being supplied from a source such as an environment variable
+        接続設定クラスに、ある種の複合型（文字列のリストや辞書など）のフィールドがあり、
+        その値が環境変数などのソースから提供される場合があります。
 
         When this happens, the value is supplied as a string rather than a Python object. We need some way
         of turning this string into the corresponding Python list or dict.
+        このような場合、値はPythonオブジェクトではなく文字列として提供されます。
+        この文字列を対応するPythonのリストまたは辞書に変換する何らかの方法が必要です。
 
         Rather than doing this piecemeal on every config subclass, this provides a generic implementatation
         to identify fields that may be be supplied as JSON strings and handle them transparently
+        この方法は、すべての設定サブクラスでこれを個別に行うのではなく、
+        JSON文字列として提供される可能性のあるフィールドを識別し、透過的に処理するための汎用的な実装を提供します。
         """
         if data and isinstance(data, dict):
             for maybe_json_field_name in cls._get_list_and_dict_field_names():
@@ -222,6 +241,7 @@ class ConnectionConfig(abc.ABC, BaseConfig):
                 field_types = get_concrete_types_from_typehint(field.annotation)
 
                 # check if the field type is something that could concievably be supplied as a json string
+                # フィールドタイプがJSON文字列として提供できるものかどうかを確認します
                 if any(ft is t for t in (list, tuple, set, dict) for ft in field_types):
                     field_names.add(name)
 
@@ -234,6 +254,7 @@ class DuckDBAttachOptions(BaseConfig):
     read_only: bool = False
 
     # DuckLake specific options
+    # DuckLake固有のオプション
     data_path: t.Optional[str] = None
     encrypted: bool = False
     data_inlining_row_limit: t.Optional[int] = None

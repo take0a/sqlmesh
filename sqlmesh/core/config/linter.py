@@ -12,13 +12,18 @@ from sqlmesh.utils.pydantic import field_validator
 
 class LinterConfig(BaseConfig):
     """Configuration for model linting
+    モデルのリンティングの設定
 
     Args:
         enabled: Flag indicating whether the linter should run
+            リンターを実行するかどうかを示すフラグ
 
         rules: A list of error rules to be applied on model
+            モデルに適用されるエラールールのリスト
         warn_rules: A list of rules to be applied on models but produce warnings instead of raising errors.
+            モデルに適用されるが、エラーを発生させる代わりに警告を生成するルールのリスト。
         ignored_rules: A list of rules to be excluded/ignored
+            除外/無視するルールのリスト
 
     """
 

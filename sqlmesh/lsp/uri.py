@@ -6,6 +6,7 @@ import typing as t
 class URI:
     """
     A URI is a unique identifier for a file used in the LSP.
+    URI は、LSP で使用されるファイルの一意の識別子です。
     """
 
     def __init__(self, uri: str):
