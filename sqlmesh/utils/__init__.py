@@ -39,11 +39,14 @@ ALPHANUMERIC = string.ascii_lowercase + string.digits
 
 def optional_import(name: str) -> t.Optional[types.ModuleType]:
     """Optionally import a module.
+    必要に応じてモジュールをインポートします。
 
     Args:
         name: The name of the module to import.
+            インポートするモジュールの名前。
     Returns:
         The module if it is installed.
+        インストールされている場合のモジュール。
     """
     try:
         module = importlib.import_module(name)
@@ -53,7 +56,8 @@ def optional_import(name: str) -> t.Optional[types.ModuleType]:
 
 
 def major_minor(version: str) -> t.Tuple[int, int]:
-    """Returns a tuple of just the major.minor for a version string (major.minor.patch)."""
+    """Returns a tuple of just the major.minor for a version string (major.minor.patch).
+    バージョン文字列 (major.minor.patch) の major.minor のみのタプルを返します。"""
     return t.cast(t.Tuple[int, int], tuple(int(part) for part in version.split(".")[0:2]))
 
 
@@ -69,7 +73,8 @@ def random_id(short: bool = False) -> str:
 
 
 class UniqueKeyDict(t.Dict[KEY, VALUE]):
-    """Dict that raises when a duplicate key is set."""
+    """Dict that raises when a duplicate key is set.
+    重複するキーが設定されている場合に例外が発生する辞書。"""
 
     def __init__(self, name: str, *args: t.Dict[KEY, VALUE], **kwargs: VALUE) -> None:
         self.name = name
@@ -111,7 +116,8 @@ class AttributeDict(dict, t.Mapping[KEY, VALUE]):
 
 
 class registry_decorator:
-    """A decorator that registers itself."""
+    """A decorator that registers itself.
+    自分自身を登録するデコレータ。"""
 
     registry_name = ""
     _registry: t.Optional[UniqueKeyDict] = None
@@ -148,18 +154,21 @@ class registry_decorator:
 
     @classmethod
     def get_registry(cls) -> UniqueKeyDict:
-        """Get a copy of the registry"""
+        """Get a copy of the registry
+        レジストリのコピーを取得する"""
         return UniqueKeyDict(cls.registry_name, **(cls._registry or {}))
 
     @classmethod
     def set_registry(cls, registry: UniqueKeyDict) -> None:
-        """Set the registry."""
+        """Set the registry.
+        レジストリを設定します。"""
         cls._registry = registry
 
 
 @contextmanager
 def sys_path(*paths: Path) -> t.Iterator[None]:
-    """A context manager to temporarily add a path to 'sys.path'."""
+    """A context manager to temporarily add a path to 'sys.path'.
+    'sys.path' に一時的にパスを追加するコンテキスト マネージャー。"""
     inserted = set()
 
     for path in paths:
@@ -185,6 +194,7 @@ def format_exception(exception: BaseException) -> t.List[str]:
 def word_characters_only(s: str, replacement_char: str = "_") -> str:
     """
     Replace all non-word characters in string with the replacement character.
+    文字列内のすべての非単語文字を置換文字に置き換えます。
     Reference SO: https://stackoverflow.com/questions/1276764/stripping-everything-but-alphanumeric-chars-from-a-string-in-python/70310018#70310018
 
     >>> word_characters_only("Hello, world!")
@@ -198,10 +208,13 @@ def word_characters_only(s: str, replacement_char: str = "_") -> str:
 def str_to_bool(s: t.Optional[str]) -> bool:
     """
     Convert a string to a boolean. disutils is being deprecated and it is recommended to implement your own version:
+    文字列をブール値に変換します。disutils は非推奨になっており、独自のバージョンを実装することをお勧めします。
     https://peps.python.org/pep-0632/
 
     Unlike disutils, this actually returns a bool and never raises. If a value cannot be determined to be true
     then false is returned.
+    disutilsとは異なり、これは実際にはbool型を返し、例外を発生させることはありません。
+    値がtrueであると判断できない場合はfalseが返されます。
     """
     if not s:
         return False
@@ -222,13 +235,18 @@ def debug_mode_enabled() -> bool:
 
 def ttl_cache(ttl: int = 60, maxsize: int = 128000) -> t.Callable:
     """Caches a function that clears whenever the current epoch / ttl seconds changes.
+    現在のエポック/TTL秒が変更されるたびにクリアする関数をキャッシュします。
 
     TTL is not exact, it is used as a salt. So by default, at every minute mark, the cache will be cleared.
     This is done for simplicity.
+    TTLは正確な値ではなく、ソルトとして使用されます。そのため、デフォルトでは1分ごとにキャッシュがクリアされます。
+    これは処理を簡素化するためです。
 
     Args:
         ttl: The number of seconds to hold the cache for.
+            キャッシュを保持する秒数。
         maxsize: The maximum size of the cache.
+            キャッシュの最大サイズ。
     """
 
     def decorator(func: t.Callable) -> t.Any:
@@ -248,6 +266,7 @@ def ttl_cache(ttl: int = 60, maxsize: int = 128000) -> t.Callable:
 class classproperty(property):
     """
     Similar to a normal property but works for class methods
+    通常のプロパティに似ていますが、クラスメソッドで機能します
     """
 
     def __get__(self, obj: t.Any, owner: t.Any = None) -> t.Any:
@@ -256,7 +275,8 @@ class classproperty(property):
 
 @contextmanager
 def env_vars(environ: dict[str, str]) -> t.Iterator[None]:
-    """A context manager to temporarily modify environment variables."""
+    """A context manager to temporarily modify environment variables.
+    環境変数を一時的に変更するためのコンテキスト マネージャー。"""
     old_environ = os.environ.copy()
     os.environ.update(environ)
 
@@ -270,6 +290,7 @@ def env_vars(environ: dict[str, str]) -> t.Iterator[None]:
 def merge_dicts(*args: t.Dict) -> t.Dict:
     """
     Merges dicts. Just does key collision replacement
+    辞書をマージします。キー衝突の置換のみを行います。
     """
 
     def merge(a: t.Dict, b: t.Dict) -> t.Dict:
@@ -318,6 +339,7 @@ def columns_to_types_to_struct(
 ) -> exp.DataType:
     """
     Converts a dict of column names to types to a struct.
+    列名の辞書を構造体の型に変換します。
     """
     return exp.DataType(
         this=exp.DataType.Type.STRUCT,
@@ -329,7 +351,8 @@ def columns_to_types_to_struct(
 
 
 def type_is_known(d_type: t.Union[exp.DataType, exp.ColumnDef]) -> bool:
-    """Checks that a given column type is known and not NULL."""
+    """Checks that a given column type is known and not NULL.
+    指定された列タイプが既知であり、NULL ではないことを確認します。"""
     if isinstance(d_type, exp.ColumnDef):
         if not d_type.kind:
             return False
@@ -344,12 +367,14 @@ def type_is_known(d_type: t.Union[exp.DataType, exp.ColumnDef]) -> bool:
 
 
 def columns_to_types_all_known(columns_to_types: t.Dict[str, exp.DataType]) -> bool:
-    """Checks that all column types are known and not NULL."""
+    """Checks that all column types are known and not NULL.
+    すべての列タイプが既知であり、NULL ではないことを確認します。"""
     return all(type_is_known(expression) for expression in columns_to_types.values())
 
 
 class Verbosity(IntEnum):
-    """Verbosity levels for SQLMesh output."""
+    """Verbosity levels for SQLMesh output.
+    SQLMesh 出力の詳細レベル。"""
 
     DEFAULT = 0
     VERBOSE = 1
@@ -399,7 +424,8 @@ class JobType(Enum):
 
 @dataclass(frozen=True)
 class CorrelationId:
-    """ID that is added to each query in order to identify the job that created it."""
+    """ID that is added to each query in order to identify the job that created it.
+    各クエリを作成したジョブを識別するために各クエリに追加される ID。"""
 
     job_type: JobType
     job_id: str

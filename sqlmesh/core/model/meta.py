@@ -54,7 +54,8 @@ FunctionCall = t.Tuple[str, t.Dict[str, exp.Expression]]
 
 
 class GrantsTargetLayer(str, Enum):
-    """Target layer(s) where grants should be applied."""
+    """Target layer(s) where grants should be applied.
+    許可を適用する対象レイヤー。"""
 
     ALL = "all"
     PHYSICAL = "physical"
@@ -84,7 +85,8 @@ class GrantsTargetLayer(str, Enum):
 
 
 class ModelMeta(_Node):
-    """Metadata for models which can be defined in SQL."""
+    """Metadata for models which can be defined in SQL.
+    SQL で定義できるモデルのメタデータ。"""
 
     dialect: str = ""
     name: str
@@ -199,6 +201,9 @@ class ModelMeta(_Node):
             # this branch gets hit when we are deserializing from json because `partitioned_by` is stored as a List[str]
             # however, we should only invoke this if the list contains strings because this validator is also
             # called by Python models which might pass a List[exp.Expression]
+            # このブランチは、`partitioned_by` が List[str] として保存されているため、JSON からデシリアライズするときにヒットします。
+            # ただし、このバリデータは Python モデルによっても呼び出され、List[exp.Expression] を渡す可能性があるため、
+            # リストに文字列が含まれている場合にのみこれを呼び出す必要があります。
             string_to_parse = (
                 f"({','.join(v)})"  # recreate the (a, b, c) part of "partitioned_by (a, b, c)"
             )
@@ -445,7 +450,8 @@ class ModelMeta(_Node):
 
     @property
     def time_column(self) -> t.Optional[TimeColumn]:
-        """The time column for incremental models."""
+        """The time column for incremental models.
+        増分モデルの時間列。"""
         return getattr(self.kind, "time_column", None)
 
     @property
@@ -458,12 +464,14 @@ class ModelMeta(_Node):
 
     @property
     def column_descriptions(self) -> t.Dict[str, str]:
-        """A dictionary of column names to annotation comments."""
+        """A dictionary of column names to annotation comments.
+        注釈コメントの列名の辞書。"""
         return self.column_descriptions_ or {}
 
     @property
     def lookback(self) -> int:
-        """The incremental lookback window."""
+        """The incremental lookback window.
+        増分ルックバックウィンドウ。"""
         return getattr(self.kind, "lookback", 0) or 0
 
     def lookback_start(self, start: TimeLike) -> TimeLike:
@@ -476,31 +484,36 @@ class ModelMeta(_Node):
 
     @property
     def batch_size(self) -> t.Optional[int]:
-        """The maximal number of units in a single task for a backfill."""
+        """The maximal number of units in a single task for a backfill.
+        バックフィルの単一タスク内のユニットの最大数。"""
         return getattr(self.kind, "batch_size", None)
 
     @property
     def batch_concurrency(self) -> t.Optional[int]:
-        """The maximal number of batches that can run concurrently for a backfill."""
+        """The maximal number of batches that can run concurrently for a backfill.
+        バックフィルで同時に実行できるバッチの最大数。"""
         return getattr(self.kind, "batch_concurrency", None)
 
     @cached_property
     def physical_properties(self) -> t.Dict[str, exp.Expression]:
-        """A dictionary of properties that will be applied to the physical layer. It replaces table_properties which is deprecated."""
+        """A dictionary of properties that will be applied to the physical layer. It replaces table_properties which is deprecated.
+        物理レイヤーに適用されるプロパティの辞書。非推奨のtable_propertiesに代わるものです。"""
         if self.physical_properties_:
             return {e.this.name: e.expression for e in self.physical_properties_.expressions}
         return {}
 
     @cached_property
     def virtual_properties(self) -> t.Dict[str, exp.Expression]:
-        """A dictionary of properties that will be applied to the virtual layer."""
+        """A dictionary of properties that will be applied to the virtual layer.
+        仮想レイヤーに適用されるプロパティの辞書。"""
         if self.virtual_properties_:
             return {e.this.name: e.expression for e in self.virtual_properties_.expressions}
         return {}
 
     @property
     def session_properties(self) -> SessionProperties:
-        """A dictionary of session properties."""
+        """A dictionary of session properties.
+        セッション プロパティの辞書。"""
         if not self.session_properties_:
             return {}
 
@@ -514,7 +527,8 @@ class ModelMeta(_Node):
 
     @cached_property
     def grants(self) -> t.Optional[GrantsConfig]:
-        """A dictionary of grants mapping permission names to lists of grantees."""
+        """A dictionary of grants mapping permission names to lists of grantees.
+        権限名を権限付与者のリストにマッピングする権限付与の辞書。"""
 
         if self.grants_ is None:
             return None
@@ -538,14 +552,16 @@ class ModelMeta(_Node):
 
     @property
     def all_references(self) -> t.List[Reference]:
-        """All references including grains."""
+        """All references including grains.
+        grains を含むすべての参照。"""
         return [Reference(model_name=self.name, expression=e, unique=True) for e in self.grains] + [
             Reference(model_name=self.name, expression=e, unique=True) for e in self.references
         ]
 
     @property
     def on(self) -> t.List[str]:
-        """The grains to be used as join condition in table_diff."""
+        """The grains to be used as join condition in table_diff.
+        table_diff の結合条件として使用される粒度。"""
 
         on: t.List[str] = []
         for expr in [ref.expression for ref in self.all_references if ref.unique]:
@@ -575,7 +591,8 @@ class ModelMeta(_Node):
 
     @property
     def catalog(self) -> t.Optional[str]:
-        """Returns the catalog of a model."""
+        """Returns the catalog of a model.
+        モデルのカタログを返します。"""
         return self.fully_qualified_table.catalog
 
     @cached_property
@@ -594,7 +611,8 @@ class ModelMeta(_Node):
 
     @property
     def on_additive_change(self) -> OnAdditiveChange:
-        """Return the model's additive change setting if it has one."""
+        """Return the model's additive change setting if it has one.
+        モデルの追加の変更設定があればそれを返します。"""
         return getattr(self.kind, "on_additive_change", OnAdditiveChange.ALLOW)
 
     @property

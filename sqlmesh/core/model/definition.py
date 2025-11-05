@@ -97,10 +97,14 @@ CRON_SHORTCUTS = {
 
 class _Model(ModelMeta, frozen=True):
     """Model is the core abstraction for user defined datasets.
+    モデルは、ユーザー定義データセットの中核となる抽象化です。
 
     A model consists of logic that fetches the data (a SQL query, a Python script or a seed) and metadata
     associated with it. Models can be run on arbitrary cadences and support incremental or full refreshes.
     Models can also be materialized into physical tables or shared across other models as temporary views.
+    モデルは、データ（SQLクエリ、Pythonスクリプト、またはシード）を取得するロジックと、それに関連付けられた
+    メタデータで構成されます。モデルは任意の頻度で実行でき、増分更新または完全更新をサポートします。
+    モデルは物理テーブルにマテリアライズしたり、一時ビューとして他のモデルと共有したりすることもできます。
 
     Example:
         MODEL (
@@ -121,30 +125,52 @@ class _Model(ModelMeta, frozen=True):
     Args:
         name: The name of the model, which is of the form [catalog].[db].table.
             The catalog and db are optional.
+            モデルの名前。形式は [catalog].[db].table です。catalog と db はオプションです。
         dialect: The SQL dialect that the model's query is written in. By default,
             this is assumed to be the dialect of the context.
+            モデルのクエリが記述されている SQL 方言。
+            デフォルトでは、これがコンテキストの方言であると見なされます。
         owner: The owner of the model.
+            モデルの所有者。
         cron: A cron string specifying how often the model should be refreshed, leveraging the
             [croniter](https://github.com/kiorky/croniter) library.
+            [croniter](https://github.com/kiorky/croniter) ライブラリを活用して、
+            モデルを更新する頻度を指定する cron 文字列。
         description: The optional model description.
+            オプションのモデルの説明。
         stamp: An optional arbitrary string sequence used to create new model versions without making
             changes to any of the functional components of the definition.
+            定義の機能コンポーネントを変更せずに新しいモデル バージョンを作成するために使用される、
+            オプションの任意の文字列シーケンス。
         start: The earliest date that the model will be backfilled for. If this is None,
             then the date is inferred by taking the most recent start date of its ancestors.
             The start date can be a static datetime or a relative datetime like "1 year ago"
+            モデルがバックフィルされる最も古い日付。None の場合、その祖先の最新の開始日に基づいて
+            日付が推測されます。開始日は、静的な日時、または「1年前」のような相対的な日時で指定できます。
         end: The date that the model will be backfilled up until. Follows the same syntax as 'start',
             should be omitted if there is no end date.
+            モデルのバックフィルが完了する日付。「start」と同じ構文に従います。終了日がない場合は省略してください。
         lookback: The number of previous incremental intervals in the lookback window.
+            ルックバックウィンドウ内の以前の増分間隔の数。
         table_format: The table format used to manage the physical table files defined by `storage_format`, only applicable in certain engines.
             (eg, 'iceberg', 'delta', 'hudi')
+            `storage_format` によって定義された物理テーブル ファイルを管理するために使用されるテーブル形式。特定のエンジンにのみ適用されます。
+            (例: 'iceberg'、'delta'、'hudi')
         storage_format: The storage format used to store the physical table, only applicable in certain engines.
             (eg. 'parquet', 'orc')
+            物理テーブルを保存するために使用されるストレージ形式。特定のエンジンにのみ適用されます。(例: 'parquet'、'orc')
         partitioned_by: The partition columns or engine specific expressions, only applicable in certain engines. (eg. (ds, hour))
+            パーティション列またはエンジン固有の式。特定のエンジンにのみ適用されます。(例: (ds, hour))
         clustered_by: The cluster columns or engine specific expressions, only applicable in certain engines. (eg. (ds, hour))
+            特定のエンジンにのみ適用可能なクラスター列またはエンジン固有の式。(例: (ds, hour))
         python_env: Dictionary containing all global variables needed to render the model's macros.
+            モデルのマクロをレンダリングするために必要なすべてのグローバル変数を含む辞書。
         mapping_schema: The schema of table names to column and types.
+            テーブル名から列と型までのスキーマ。
         extract_dependencies_from_query: Whether to extract additional dependencies from the rendered model's query.
+            レンダリングされたモデルのクエリから追加の依存関係を抽出するかどうか。
         physical_schema_override: The desired physical schema name override.
+            必要な物理スキーマ名のオーバーライド。
     """
 
     python_env: t.Dict[str, Executable] = {}
@@ -186,18 +212,27 @@ class _Model(ModelMeta, frozen=True):
     ) -> t.Iterator[QueryOrDF]:
         """Renders the content of this model in a form of either a SELECT query, executing which the data for this model can
         be fetched, or a dataframe object which contains the data itself.
+        このモデルのコンテンツを、SELECTクエリ（このモデルのデータを取得できます）または
+        データ自体を含むデータフレームオブジェクトの形式でレンダリングします。
 
         The type of the returned object (query or dataframe) depends on whether the model was sourced from a SQL query,
         a Python script or a pre-built dataset (seed).
+        返されるオブジェクトのタイプ（クエリまたはデータフレーム）は、モデルがSQLクエリ、Pythonスクリプト、
+        または事前に構築されたデータセット（シード）のいずれから取得されたかによって異なります。
 
         Args:
             context: The execution context used for fetching data.
+                データの取得に使用される実行コンテキスト。
             start: The start date/time of the run.
+                実行の開始日時。
             end: The end date/time of the run.
+                実行の終了日時。
             execution_time: The date/time time reference to use for execution time.
+                実行時間に使用する日付/時刻参照。
 
         Returns:
             A generator which yields either a query object or one of the supported dataframe objects.
+            クエリ オブジェクトまたはサポートされているデータフレーム オブジェクトのいずれかを生成するジェネレーター。
         """
         yield self.render_query_or_raise(
             start=start,
@@ -216,9 +251,11 @@ class _Model(ModelMeta, frozen=True):
         render_query: bool = False,
     ) -> t.List[exp.Expression]:
         """Returns the original list of sql expressions comprising the model definition.
+        モデル定義を構成する SQL 式の元のリストを返します。
 
         Args:
             include_python: Whether or not to include Python code in the rendered definition.
+                レンダリングされた定義に Python コードを含めるかどうか。
         """
         expressions = []
         comment = None
@@ -284,21 +321,33 @@ class _Model(ModelMeta, frozen=True):
         **kwargs: t.Any,
     ) -> t.Optional[exp.Query]:
         """Renders a model's query, expanding macros with provided kwargs, and optionally expanding referenced models.
+        モデルのクエリをレンダリングし、提供された kwargs を使用してマクロを展開し、オプションで参照モデルを展開します。
 
         Args:
             start: The start datetime to render. Defaults to epoch start.
+                レンダリングを開始する日時。デフォルトはエポック開始です。
             end: The end datetime to render. Defaults to epoch start.
+                レンダリングの終了日時。デフォルトはエポックの開始です。
             execution_time: The date/time time reference to use for execution time.
+                実行時間に使用する日付/時刻参照。
             snapshots: All upstream snapshots (by name) to use for expansion and mapping of physical locations.
+                物理的な場所の拡張とマッピングに使用するすべてのアップストリーム スナップショット (名前別)。
             table_mapping: Table mapping of physical locations. Takes precedence over snapshot mappings.
+                物理的な場所のテーブル マッピング。スナップショット マッピングよりも優先されます。
             expand: Expand referenced models as subqueries. This is used to bypass backfills when running queries
                 that depend on materialized tables.  Model definitions are inlined and can thus be run end to
                 end on the fly.
+                参照モデルをサブクエリとして展開します。これは、マテリアライズドテーブルに依存するクエリを実行する際に、
+                バックフィルをバイパスするために使用されます。モデル定義はインライン化されているため、エンドツーエンドで
+                オンザフライで実行できます。
             deployability_index: Determines snapshots that are deployable in the context of this render.
+                このレンダリングのコンテキストでデプロイ可能なスナップショットを決定します。
             kwargs: Additional kwargs to pass to the renderer.
+                レンダラーに渡す追加の kwargs。
 
         Returns:
             The rendered expression.
+            レンダリングされた式。
         """
         return exp.select(
             *(
@@ -322,21 +371,32 @@ class _Model(ModelMeta, frozen=True):
         **kwargs: t.Any,
     ) -> exp.Query:
         """Same as `render_query()` but raises an exception if the query can't be rendered.
+        `render_query()` と同じですが、クエリをレンダリングできない場合は例外が発生します。
 
         Args:
             start: The start datetime to render. Defaults to epoch start.
+                レンダリングを開始する日時。デフォルトはエポック開始です。
             end: The end datetime to render. Defaults to epoch start.
+                レンダリングの終了日時。デフォルトはエポックの開始です。
             execution_time: The date/time time reference to use for execution time.
+                実行時間に使用する日付/時刻参照。
             snapshots: All upstream snapshots (by model name) to use for expansion and mapping of physical locations.
+                物理的な場所の拡張とマッピングに使用するすべてのアップストリーム スナップショット (名前別)。
             table_mapping: Table mapping of physical locations. Takes precedence over snapshot mappings.
             expand: Expand referenced models as subqueries. This is used to bypass backfills when running queries
                 that depend on materialized tables.  Model definitions are inlined and can thus be run end to
                 end on the fly.
+                参照モデルをサブクエリとして展開します。これは、マテリアライズドテーブルに依存するクエリを実行する際に、
+                バックフィルをバイパスするために使用されます。モデル定義はインライン化されているため、エンドツーエンドで
+                オンザフライで実行できます。
             deployability_index: Determines snapshots that are deployable in the context of this render.
+                このレンダリングのコンテキストでデプロイ可能なスナップショットを決定します。
             kwargs: Additional kwargs to pass to the renderer.
+                レンダラーに渡す追加の kwargs。
 
         Returns:
             The rendered expression.
+            レンダリングされた式。            
         """
         query = self.render_query(
             start=start,
@@ -367,22 +427,34 @@ class _Model(ModelMeta, frozen=True):
         **kwargs: t.Any,
     ) -> t.List[exp.Expression]:
         """Renders pre-statements for a model.
+        モデルの事前ステートメントをレンダリングします。
 
         Pre-statements are statements that preceded the model's SELECT query.
+        事前ステートメントとは、モデルの SELECT クエリの前に実行されるステートメントです。
 
         Args:
             start: The start datetime to render. Defaults to epoch start.
+                レンダリングを開始する日時。デフォルトはエポック開始です。
             end: The end datetime to render. Defaults to epoch start.
+                レンダリングの終了日時。デフォルトはエポックの開始です。
             execution_time: The date/time time reference to use for execution time.
+                実行時間に使用する日付/時刻参照。
             snapshots: All upstream snapshots (by model name) to use for expansion and mapping of physical locations.
+                物理的な場所の拡張とマッピングに使用するすべてのアップストリーム スナップショット (名前別)。
             expand: Expand referenced models as subqueries. This is used to bypass backfills when running queries
                 that depend on materialized tables.  Model definitions are inlined and can thus be run end to
                 end on the fly.
+                参照モデルをサブクエリとして展開します。これは、マテリアライズドテーブルに依存するクエリを実行する際に、
+                バックフィルをバイパスするために使用されます。モデル定義はインライン化されているため、エンドツーエンドで
+                オンザフライで実行できます。
             deployability_index: Determines snapshots that are deployable in the context of this render.
+                このレンダリングのコンテキストでデプロイ可能なスナップショットを決定します。
             kwargs: Additional kwargs to pass to the renderer.
+                レンダラーに渡す追加の kwargs。
 
         Returns:
             The list of rendered expressions.
+            レンダリングされた式のリスト。
         """
         return self._render_statements(
             [
@@ -414,23 +486,36 @@ class _Model(ModelMeta, frozen=True):
         **kwargs: t.Any,
     ) -> t.List[exp.Expression]:
         """Renders post-statements for a model.
+        モデルの post ステートメントをレンダリングします。
 
         Post-statements are statements that follow after the model's SELECT query.
+        post ステートメントとは、モデルの SELECT クエリの後に続くステートメントです。
 
         Args:
             start: The start datetime to render. Defaults to epoch start.
+                レンダリングを開始する日時。デフォルトはエポック開始です。
             end: The end datetime to render. Defaults to epoch start.
+                レンダリングの終了日時。デフォルトはエポックの開始です。
             execution_time: The date/time time reference to use for execution time.
+                実行時間に使用する日付/時刻参照。
             snapshots: All upstream snapshots (by model name) to use for expansion and mapping of physical locations.
+                物理的な場所の拡張とマッピングに使用するすべてのアップストリーム スナップショット (名前別)。
             expand: Expand referenced models as subqueries. This is used to bypass backfills when running queries
                 that depend on materialized tables.  Model definitions are inlined and can thus be run end to
                 end on the fly.
+                参照モデルをサブクエリとして展開します。これは、マテリアライズドテーブルに依存するクエリを実行する際に、
+                バックフィルをバイパスするために使用されます。モデル定義はインライン化されているため、エンドツーエンドで
+                オンザフライで実行できます。
             deployability_index: Determines snapshots that are deployable in the context of this render.
+                このレンダリングのコンテキストでデプロイ可能なスナップショットを決定します。
             inside_transaction: Whether to render hooks with transaction=True (inside) or transaction=False (outside).
+                transaction=True (内部) または transaction=False (外部) でフックをレンダリングするかどうか。
             kwargs: Additional kwargs to pass to the renderer.
+                レンダラーに渡す追加の kwargs。            
 
         Returns:
             The list of rendered expressions.
+            レンダリングされた式のリスト。
         """
         return self._render_statements(
             [
@@ -513,6 +598,9 @@ class _Model(ModelMeta, frozen=True):
         # The model's name is already normalized, but in case of snapshots we also prepend a
         # case-sensitive physical schema name, so we quote here to ensure that we won't have
         # a broken schema reference after the resulting query is normalized in `render`.
+        # モデルの名前はすでに正規化されていますが、スナップショットの場合は大文字と小文字を区別する
+        # 物理スキーマ名も先頭に付加されるため、結果のクエリが `render` で正規化された後にスキーマ
+        # 参照が壊れないように、ここで引用符で囲みます。
         quoted_model_name = quote_identifiers(
             exp.to_table(this_model, dialect=self.dialect), dialect=self.dialect
         )
@@ -620,14 +708,19 @@ class _Model(ModelMeta, frozen=True):
         execution_time: t.Optional[TimeLike] = None,
     ) -> t.List[t.Dict[str, str | int | float | bool]]:
         """Renders external; signals defined for this model.
+        外部をレンダリングします。このモデルに定義された信号です。
 
         Args:
             start: The start datetime to render. Defaults to epoch start.
+                レンダリングを開始する日時。デフォルトはエポック開始です。
             end: The end datetime to render. Defaults to epoch start.
+                レンダリングの終了日時。デフォルトはエポックの開始です。
             execution_time: The date/time time reference to use for execution time.
+                実行時間に使用する日付/時刻参照。
 
         Returns:
             The list of rendered expressions.
+            レンダリングされた式のリスト。
         """
 
         def _render(e: exp.Expression) -> str | int | float | bool:
@@ -739,15 +832,21 @@ class _Model(ModelMeta, frozen=True):
 
     def ctas_query(self, **render_kwarg: t.Any) -> exp.Query:
         """Return a dummy query to do a CTAS.
+        CTAS を実行するためのダミークエリを返します。
 
         If a model's column types are unknown, the only way to create the table is to
         run the fully expanded query. This can be expensive so we add a WHERE FALSE to all
         SELECTS and hopefully the optimizer is smart enough to not do anything.
+        モデルの列型が不明な場合、テーブルを作成する唯一の方法は、完全に展開されたクエリを実行することです。
+        これはコストが高くなる可能性があるため、すべての SELECT に WHERE FALSE を追加します。
+        こうすることで、オプティマイザが何も処理を行わないようにすることができます。
 
         Args:
             render_kwarg: Additional kwargs to pass to the renderer.
+                レンダラーに渡す追加の kwargs。
         Return:
             The mocked out ctas query.
+            モックされた CTA クエリ。
         """
         query = self.render_query_or_raise(**render_kwarg).limit(0)
 
@@ -769,13 +868,17 @@ class _Model(ModelMeta, frozen=True):
 
     def text_diff(self, other: Node, rendered: bool = False) -> str:
         """Produce a text diff against another node.
+        別のノードとのテキスト差分を生成します。
 
         Args:
             other: The node to diff against.
+                比較するノード。
             rendered: Whether the diff should compare raw vs rendered models
+                差分を生のモデルとレンダリングされたモデルと比較するかどうか
 
         Returns:
             A unified text diff showing additions and deletions.
+            追加と削除を示す統合テキスト差分。
         """
         if not isinstance(other, _Model):
             raise SQLMeshError(
@@ -801,9 +904,11 @@ class _Model(ModelMeta, frozen=True):
 
     def set_time_format(self, default_time_format: str = c.DEFAULT_TIME_COLUMN_FORMAT) -> None:
         """Sets the default time format for a model.
+        モデルのデフォルトの時間形式を設定します。
 
         Args:
             default_time_format: A python time format used as the default format when none is provided.
+                何も指定されていない場合にデフォルトの形式として使用される Python 時間形式。
         """
         if not self.time_column:
             return
@@ -822,7 +927,8 @@ class _Model(ModelMeta, frozen=True):
     def convert_to_time_column(
         self, time: TimeLike, columns_to_types: t.Optional[t.Dict[str, exp.DataType]] = None
     ) -> exp.Expression:
-        """Convert a TimeLike object to the same time format and type as the model's time column."""
+        """Convert a TimeLike object to the same time format and type as the model's time column.
+        TimeLike オブジェクトを、モデルの時間列と同じ時間形式とタイプに変換します。"""
         if self.time_column:
             if columns_to_types is None:
                 columns_to_types = self.columns_to_types_or_raise
@@ -847,7 +953,8 @@ class _Model(ModelMeta, frozen=True):
         self.mapping_schema.update(schema)
 
     def update_schema(self, schema: MappingSchema) -> None:
-        """Updates the schema for this model's dependencies based on the given mapping schema."""
+        """Updates the schema for this model's dependencies based on the given mapping schema.
+        指定されたマッピング スキーマに基づいて、このモデルの依存関係のスキーマを更新します。"""
         for dep in self.depends_on:
             table = exp.to_table(dep)
             mapping_schema = schema.find(table)
@@ -862,22 +969,26 @@ class _Model(ModelMeta, frozen=True):
     @property
     def depends_on(self) -> t.Set[str]:
         """All of the upstream dependencies referenced in the model's query, excluding self references.
+        自己参照を除く、モデルのクエリで参照されるすべての上流依存関係。
 
         Returns:
             A list of all the upstream table names.
+            すべてのアップストリーム テーブル名のリスト。
         """
         return self.full_depends_on - {self.fqn}
 
     @property
     def columns_to_types(self) -> t.Optional[t.Dict[str, exp.DataType]]:
-        """Returns the mapping of column names to types of this model."""
+        """Returns the mapping of column names to types of this model.
+        このモデルの列名と型のマッピングを返します。"""
         if self.columns_to_types_ is None:
             return None
         return {**self.columns_to_types_, **self.managed_columns}
 
     @property
     def columns_to_types_or_raise(self) -> t.Dict[str, exp.DataType]:
-        """Returns the mapping of column names to types of this model or raise if not available."""
+        """Returns the mapping of column names to types of this model or raise if not available.
+        このモデルの型への列名のマッピングを返します。利用できない場合は例外を発生させます。"""
         columns_to_types = self.columns_to_types
         if columns_to_types is None:
             raise SQLMeshError(f"Column information is not available for model '{self.name}'")
@@ -885,7 +996,8 @@ class _Model(ModelMeta, frozen=True):
 
     @property
     def annotated(self) -> bool:
-        """Checks if all column projection types of this model are known."""
+        """Checks if all column projection types of this model are known.
+        このモデルのすべての列投影タイプが既知であるかどうかを確認します。"""
         if self.columns_to_types is None:
             return False
         columns_to_types = {
@@ -897,7 +1009,8 @@ class _Model(ModelMeta, frozen=True):
 
     @property
     def sorted_python_env(self) -> t.List[t.Tuple[str, Executable]]:
-        """Returns the python env sorted by executable kind and then var name."""
+        """Returns the python env sorted by executable kind and then var name.
+        実行可能ファイルの種類と変数名でソートされた Python 環境を返します。"""
         return sorted(self.python_env.items(), key=lambda x: (x[1].kind, x[0]))
 
     @property
@@ -956,6 +1069,7 @@ class _Model(ModelMeta, frozen=True):
 
     def validate_definition(self) -> None:
         """Validates the model's definition.
+        モデルの定義を検証します。
 
         Raises:
             ConfigError
@@ -1037,13 +1151,17 @@ class _Model(ModelMeta, frozen=True):
 
     def is_breaking_change(self, previous: Model) -> t.Optional[bool]:
         """Determines whether this model is a breaking change in relation to the `previous` model.
+        このモデルが「以前の」モデルと比較して重大な変更であるかどうかを判断します。
 
         Args:
             previous: The previous model to compare against.
+                比較対象となる前のモデル。
 
         Returns:
             True if this model instance represents a breaking change, False if it's a non-breaking change
             and None if the nature of the change can't be determined.
+            このモデル インスタンスが重大な変更を表す場合は True、重大な変更でない場合は False、
+            変更の性質を判断できない場合は None になります。
         """
         raise NotImplementedError
 
@@ -1090,9 +1208,11 @@ class _Model(ModelMeta, frozen=True):
     def data_hash(self) -> str:
         """
         Computes the data hash for the node.
+        ノードのデータハッシュを計算します。
 
         Returns:
             The data hash for the node.
+            ノードのデータハッシュ。
         """
         if self._data_hash is None:
             self._data_hash = hash_data(self._data_hash_values)
@@ -1174,9 +1294,11 @@ class _Model(ModelMeta, frozen=True):
     def metadata_hash(self) -> str:
         """
         Computes the metadata hash for the node.
+        ノードのメタデータ ハッシュを計算します。
 
         Returns:
             The metadata hash for the node.
+            ノードのメタデータ ハッシュ。
         """
         if self._metadata_hash is None:
             metadata = [
@@ -1223,15 +1345,18 @@ class _Model(ModelMeta, frozen=True):
 
     @property
     def is_model(self) -> bool:
-        """Return True if this is a model node"""
+        """Return True if this is a model node
+        モデルノードの場合はTrueを返します"""
         return True
 
     @property
     def grants_table_type(self) -> DataObjectType:
         """Get the table type for grants application (TABLE, VIEW, MATERIALIZED_VIEW).
+        権限を適用するテーブル種別(TABLE, VIEW, MATERIALIZED_VIEW)を返す
 
         Returns:
             The DataObjectType that should be used when applying grants to this model.
+            このモデルに権限を適用するときに使用する DataObjectType。
         """
         from sqlmesh.core.engine_adapter.shared import DataObjectType
 
@@ -1288,7 +1413,8 @@ class _Model(ModelMeta, frozen=True):
 
     @property
     def partitioned_by(self) -> t.List[exp.Expression]:
-        """Columns to partition the model by, including the time column if it is not already included."""
+        """Columns to partition the model by, including the time column if it is not already included.
+        モデルをパーティション分割する列。まだ含まれていない場合は時間列も含まれます。"""
         if self.time_column and not self._is_time_column_in_partitioned_by:
             # This allows the user to opt out of automatic time_column injection
             # by setting `partition_by_time_column false` on the model kind
@@ -1306,7 +1432,8 @@ class _Model(ModelMeta, frozen=True):
 
     @property
     def partition_interval_unit(self) -> t.Optional[IntervalUnit]:
-        """The interval unit to use for partitioning if applicable."""
+        """The interval unit to use for partitioning if applicable.
+        該当する場合、パーティション分割に使用する間隔単位。"""
         # Only return the interval unit for partitioning if the partitioning
         # wasn't explicitly set by the user. Otherwise, the user-provided
         # value should always take precedence.
@@ -1345,12 +1472,17 @@ class _Model(ModelMeta, frozen=True):
 
 class SqlModel(_Model):
     """The model definition which relies on a SQL query to fetch the data.
+    データを取得するために SQL クエリに依存するモデル定義。
 
     Args:
         query: The main query representing the model.
+            モデルを表すメインクエリ。
         pre_statements: The list of SQL statements that precede the model's query.
+            モデルのクエリの前にある SQL ステートメントのリスト。
         post_statements: The list of SQL statements that follow after the model's query.
+            モデルのクエリの後に続く SQL ステートメントのリスト。
         on_virtual_update: The list of SQL statements to be executed after the virtual update.
+            仮想更新後に実行される SQL ステートメントのリスト。
     """
 
     query_: ParsableSql = Field(alias="query")
@@ -1638,9 +1770,11 @@ class SqlModel(_Model):
 
 class SeedModel(_Model):
     """The model definition which uses a pre-built static dataset to source the data from.
+    事前に構築された静的データセットを使用してデータを取得するモデル定義。
 
     Args:
         seed: The content of a pre-built static dataset.
+            事前に構築された静的データセットの内容。
     """
 
     kind: SeedKind
@@ -1788,13 +1922,17 @@ class SeedModel(_Model):
 
     def to_dehydrated(self) -> SeedModel:
         """Creates a dehydrated copy of this model.
+        このモデルの脱水コピーを作成します。
 
         The dehydrated seed model will not contain the seed content, but will contain
         the column hashes. This is useful for comparing two seed models without
         having to read the seed content from disk.
+        脱水されたシードモデルにはシードコンテンツは含まれませんが、列ハッシュが含まれます。
+        これは、ディスクからシードコンテンツを読み込まずに2つのシードモデルを比較するのに便利です。
 
         Returns:
             A dehydrated copy of this model.
+            このモデルの乾燥コピー。
         """
         if not self.is_hydrated:
             return self
@@ -1812,9 +1950,11 @@ class SeedModel(_Model):
 
     def to_hydrated(self, content: str) -> SeedModel:
         """Creates a hydrated copy of this model with the given seed content.
+        指定されたシード コンテンツを使用して、このモデルの水和コピーを作成します。
 
         Returns:
             A hydrated copy of this model.
+            このモデルの水分補給されたコピー。
         """
         if self.is_hydrated:
             return self
@@ -1868,9 +2008,11 @@ class SeedModel(_Model):
 
 class PythonModel(_Model):
     """The model definition which relies on a Python script to fetch the data.
+    データを取得するために Python スクリプトに依存するモデル定義。
 
     Args:
         entrypoint: The name of a Python function which contains the data fetching / transformation logic.
+            データの取得/変換ロジックを含む Python 関数の名前。
     """
 
     kind: ModelKind = FullKind()
@@ -1960,7 +2102,8 @@ class PythonModel(_Model):
 
 
 class ExternalModel(_Model):
-    """The model definition which represents an external source/table."""
+    """The model definition which represents an external source/table.
+    外部ソース/テーブルを表すモデル定義。"""
 
     source_type: t.Literal["external"] = "external"
 
@@ -1985,27 +2128,36 @@ Model = t.Union[SqlModel, SeedModel, PythonModel, ExternalModel]
 
 class AuditResult(PydanticModel):
     audit: Audit
-    """The audit this result is for."""
+    """The audit this result is for.
+    この結果の対象となる監査。"""
     audit_args: t.Dict[t.Any, t.Any]
-    """Arguments passed to the audit."""
+    """Arguments passed to the audit.
+    監査に渡される引数。"""
     model: t.Optional[_Model] = None
-    """The model this audit is for."""
+    """The model this audit is for.
+    この監査の対象となるモデル。"""
     count: t.Optional[int] = None
-    """The number of records returned by the audit query. This could be None if the audit was skipped."""
+    """The number of records returned by the audit query. This could be None if the audit was skipped.
+    監査クエリによって返されたレコードの数。監査がスキップされた場合は、None になることがあります。"""
     query: t.Optional[exp.Expression] = None
-    """The rendered query used by the audit. This could be None if the audit was skipped."""
+    """The rendered query used by the audit. This could be None if the audit was skipped.
+    監査で使用されるレンダリングされたクエリ。監査がスキップされた場合は None になります。"""
     skipped: bool = False
-    """Whether or not the audit was blocking. This can be overriden by the user."""
     blocking: bool = True
+    """Whether or not the audit was blocking. This can be overriden by the user.
+    監査がブロックされていたかどうか。これはユーザーが上書きできます。"""
 
 
 class EvaluatableSignals(PydanticModel):
     signals_to_kwargs: t.Dict[str, t.Dict[str, t.Optional[exp.Expression]]]
-    """A mapping of signal names to the kwargs passed to the signal."""
+    """A mapping of signal names to the kwargs passed to the signal.
+    シグナル名とシグナルに渡される kwargs のマッピング。"""
     python_env: t.Dict[str, Executable]
-    """The Python environment that should be used to evaluated the rendered signal calls."""
+    """The Python environment that should be used to evaluated the rendered signal calls.
+    レンダリングされたシグナル呼び出しを評価するために使用する Python 環境。"""
     prepared_python_env: t.Dict[str, t.Any]
-    """The prepared Python environment that should be used to evaluated the rendered signal calls."""
+    """The prepared Python environment that should be used to evaluated the rendered signal calls.
+    レンダリングされたシグナル呼び出しを評価するために使用する準備された Python 環境。"""
 
 
 def _extract_blueprints(blueprints: t.Any, path: Path) -> t.List[t.Any]:
@@ -2170,23 +2322,37 @@ def load_sql_based_model(
     **kwargs: t.Any,
 ) -> Model:
     """Load a model from a parsed SQLMesh model SQL file.
+    解析された SQLMesh モデル SQL ファイルからモデルを読み込みます。
 
     Args:
         expressions: Model, *Statements, Query.
         defaults: Definition default values.
+            定義のデフォルト値。
         path: An optional path to the model definition file.
+            モデル定義ファイルへのオプションのパス。
         module_path: The python module path to serialize macros for.
+            マクロをシリアル化する Python モジュール パス。
         time_column_format: The default time column format to use if no model time column is configured.
+            モデル時間列が構成されていない場合に使用するデフォルトの時間列形式。
         macros: The custom registry of macros. If not provided the default registry will be used.
+            マクロのカスタムレジストリ。指定しない場合はデフォルトのレジストリが使用されます。
         jinja_macros: The registry of Jinja macros.
+            Jinja マクロのレジストリ。
         python_env: The custom Python environment for macros. If not provided the environment will be constructed
             from the macro registry.
+            マクロ用のカスタムPython環境。指定されていない場合は、マクロレジストリから環境が構築されます。
         dialect: The default dialect if no model dialect is configured.
             The format must adhere to Python's strftime codes.
+            モデル方言が設定されていない場合のデフォルトの方言。
+            フォーマットはPythonのstrftimeコードに準拠する必要があります。
         physical_schema_mapping: A mapping of regular expressions to match against the model schema to produce the corresponding physical schema
+            モデルスキーマと照合して対応する物理スキーマを生成する正規表現のマッピング
         default_catalog: The default catalog if no model catalog is configured.
+            モデル カタログが構成されていない場合のデフォルトのカタログ。
         variables: The variables to pass to the model.
+            モデルに渡す変数。
         kwargs: Additional kwargs to pass to the loader.
+            ローダーに渡す追加の kwargs。
     """
     missing_model_msg = f"""Please add a MODEL block at the top of the file. Example:
 
@@ -2362,11 +2528,14 @@ def create_sql_model(
     **kwargs: t.Any,
 ) -> Model:
     """Creates a SQL model.
+    SQL モデルを作成します。
 
     Args:
         name: The name of the model, which is of the form [catalog].[db].table.
             The catalog and db are optional.
+            モデルの名前。形式は[catalog].[db].tableです。catalogとdbはオプションです。
         query: The model's logic in a form of a SELECT query.
+            SELECT クエリの形式でのモデルのロジック。
     """
     if not isinstance(query, (exp.Query, d.JinjaQuery, d.MacroFunc)):
         raise_config_error(
@@ -2387,13 +2556,17 @@ def create_seed_model(
     **kwargs: t.Any,
 ) -> Model:
     """Creates a Seed model.
+    シード モデルを作成します。
 
     Args:
         name: The name of the model, which is of the form [catalog].[db].table.
             The catalog and db are optional.
+            モデルの名前。形式は[catalog].[db].tableです。catalogとdbはオプションです。
         seed_kind: The information about the location of a seed and other related configuration.
+            シードの場所やその他の関連する構成に関する情報。
         path: An optional path to the model definition file.
             from the macro registry.
+            マクロ レジストリからのモデル定義ファイルへのオプションのパス。
     """
     seed_path = Path(seed_kind.path)
     marker, *subdirs = seed_path.parts
@@ -2437,16 +2610,24 @@ def create_python_model(
     **kwargs: t.Any,
 ) -> Model:
     """Creates a Python model.
+    Python モデルを作成します。
 
     Args:
         name: The name of the model, which is of the form [catalog].[db].table.
             The catalog and db are optional.
+            モデルの名前。形式は[catalog].[db].tableです。catalogとdbはオプションです。
         entrypoint: The name of a Python function which contains the data fetching / transformation logic.
+            データの取得/変換ロジックを含む Python 関数の名前。
         python_env: The Python environment of all objects referenced by the model implementation.
+            モデル実装によって参照されるすべてのオブジェクトの Python 環境。
         path: An optional path to the model definition file.
+            モデル定義ファイルへのオプションのパス。
         depends_on: The custom set of model's upstream dependencies.
+            モデルの上流依存関係のカスタム セット。
         variables: The variables to pass to the model.
+            モデルに渡す変数。
         blueprint_variables: The blueprint's variables to pass to the model.
+            モデルに渡すブループリントの変数。
     """
     # Find dependencies for python models by parsing code if they are not explicitly defined
     # Also remove self-references that are found
@@ -2515,12 +2696,16 @@ def create_external_model(
     **kwargs: t.Any,
 ) -> ExternalModel:
     """Creates an external model.
+    外部モデルを作成します。
 
     Args:
         name: The name of the model, which is of the form [catalog].[db].table.
             The catalog and db are optional.
+            モデルの名前。形式は[catalog].[db].tableです。catalogとdbはオプションです。
         dialect: The dialect to serialize.
+            シリアル化する方言。
         path: An optional path to the model definition file.
+            モデル定義ファイルへのオプションのパス。
     """
     return t.cast(
         ExternalModel,
@@ -2745,16 +2930,21 @@ def _split_sql_model_statements(
     UniqueKeyDict[str, ModelAudit],
 ]:
     """Extracts the SELECT query from a sequence of expressions.
+    一連の式から SELECT クエリを抽出します。
 
     Args:
         expressions: The list of all SQL statements in the model definition.
+            モデル定義内のすべての SQL ステートメントのリスト。
 
     Returns:
         A tuple containing the extracted SELECT query or the `@INSERT_SEED()` call, the statements before the it,
         the statements after it, and the inline audit definitions.
+        抽出された SELECT クエリまたは `@INSERT_SEED()` 呼び出し、その前のステートメント、
+        その後のステートメント、およびインライン監査定義を含むタプル。
 
     Raises:
         ConfigError: If the model definition contains more than one SELECT query or `@INSERT_SEED()` call.
+            モデル定義に複数の SELECT クエリまたは `@INSERT_SEED()` 呼び出しが含まれている場合。
     """
     from sqlmesh.core.audit import ModelAudit, load_audit
 

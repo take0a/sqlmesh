@@ -43,11 +43,16 @@ def field_serializer(*args: t.Any, **kwargs: t.Any) -> t.Callable[[t.Any], t.Any
 
 def get_dialect(values: t.Any) -> str:
     """Extracts dialect from a dict or pydantic obj, defaulting to the globally set dialect.
-
+    辞書またはpydanticオブジェクトから方言を抽出し、デフォルトはグローバルに設定された方言です。
+  
     Python models allow users to instantiate pydantic models by hand. This is problematic
     because the validators kick in with the SQLGLot dialect. To instantiate Pydantic Models used
     in python models using the project default dialect, we set a class variable on the model
     registry and use that here.
+    Pythonモデルでは、ユーザーがpydanticモデルを手動でインスタンス化できます。
+    バリデータがSQLGLot方言で起動するため、これは問題となります。プロジェクトのデフォルトの方言を使用して
+    Pythonモデルで使用されるPydanticモデルをインスタンス化するには、モデルレジストリにクラス変数を設定し、
+    ここでそれを使用します。
     """
 
     from sqlmesh.core.model import model
@@ -69,6 +74,8 @@ class PydanticModel(pydantic.BaseModel):
         # Even though Pydantic v2 kept support for json_encoders, the functionality has been
         # crippled badly. Here we need to enumerate all different ways of how sqlglot expressions
         # show up in pydantic models.
+        # Pydantic v2 では json_encoders のサポートは維持されていましたが、機能が大幅に制限されました。
+        # ここでは、pydantic モデルで sqlglot 式がどのように表示されるか、さまざまな方法を列挙する必要があります。
         json_encoders={
             exp.Expression: _expression_encoder,
             exp.DataType: _expression_encoder,
