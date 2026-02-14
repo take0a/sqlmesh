@@ -78,7 +78,7 @@ class LSPContext:
 
     def list_workspace_tests(self) -> t.List[TestEntry]:
         """List all tests in the workspace."""
-        tests = self.context.load_model_tests()
+        tests = self.context.select_tests()
 
         # Use a set to ensure unique URIs
         # URI が一意であることを保証するにはセットを使用する
@@ -88,7 +88,9 @@ class LSPContext:
             test_ranges = get_test_ranges(URI(uri).to_path())
             if uri not in test_uris:
                 test_uris[uri] = {}
+
             test_uris[uri].update(test_ranges)
+
         return [
             TestEntry(
                 name=test.test_name,
@@ -108,7 +110,7 @@ class LSPContext:
         Returns:
             List of TestEntry objects for the specified document.
         """
-        tests = self.context.load_model_tests(tests=[str(uri.to_path())])
+        tests = self.context.select_tests(tests=[str(uri.to_path())])
         test_ranges = get_test_ranges(uri.to_path())
         return [
             TestEntry(

@@ -355,11 +355,12 @@ class ModelTest(unittest.TestCase):
                         for df in _split_df_by_column_pairs(diff)
                     )
                 else:
-                    from pandas import MultiIndex
+                    from pandas import DataFrame, MultiIndex
 
                     levels = t.cast(MultiIndex, diff.columns).levels[0]
                     for col in levels:
-                        col_diff = diff[col]
+                        # diff[col] returns a DataFrame when columns is a MultiIndex
+                        col_diff = t.cast(DataFrame, diff[col])
                         if not col_diff.empty:
                             table = df_to_table(
                                 f"[bold red]Column '{col}' mismatch{failed_subtest}[/bold red]",
@@ -453,6 +454,9 @@ class ModelTest(unittest.TestCase):
         ctes = outputs.get("ctes")
         query = outputs.get("query")
         partial = outputs.pop("partial", None)
+
+        if ctes is None and query is None:
+            _raise_error("Incomplete test, outputs must contain 'query' or 'ctes'", self.path)
 
         def _normalize_rows(
             values: t.List[Row] | t.Dict,
@@ -707,7 +711,7 @@ class SqlModelTest(ModelTest):
             query = self._render_model_query()
             sql = query.sql(self._test_adapter_dialect, pretty=self.engine_adapter._pretty_sql)
 
-        with_clause = query.args.get("with")
+        with_clause = query.args.get("with_")
 
         if with_clause:
             self.test_ctes(
@@ -804,7 +808,7 @@ class PythonModelTest(ModelTest):
             actual_df.reset_index(drop=True, inplace=True)
             expected = self._create_df(values, columns=self.model.columns_to_types, partial=partial)
 
-            self.assert_equal(expected, actual_df, sort=False, partial=partial)
+            self.assert_equal(expected, actual_df, sort=True, partial=partial)
 
     def _execute_model(self) -> pd.DataFrame:
         """Executes the python model and returns a DataFrame."""
@@ -901,7 +905,7 @@ def generate_test(
     if isinstance(model, SqlModel):
         assert isinstance(test, SqlModelTest)
         model_query = test._render_model_query()
-        with_clause = model_query.args.get("with")
+        with_clause = model_query.args.get("with_")
 
         if with_clause and include_ctes:
             ctes = {}
@@ -922,8 +926,7 @@ def generate_test(
                 cte_output = test._execute(cte_query)
                 ctes[cte.alias] = (
                     pandas_timestamp_to_pydatetime(
-                        cte_output.apply(lambda col: col.map(_normalize_df_value)),
-                        cte_query.named_selects,
+                        df=cte_output.apply(lambda col: col.map(_normalize_df_value)),
                     )
                     .replace({np.nan: None})
                     .to_dict(orient="records")

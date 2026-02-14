@@ -65,7 +65,7 @@ from sqlmesh.dbt.target import (
     PostgresConfig,
 )
 from sqlmesh.dbt.test import TestConfig
-from sqlmesh.utils.errors import ConfigError, MacroEvalError, SQLMeshError
+from sqlmesh.utils.errors import ConfigError, SQLMeshError
 from sqlmesh.utils.jinja import MacroReference
 
 pytestmark = [pytest.mark.dbt, pytest.mark.slow]
@@ -291,6 +291,32 @@ def test_model_kind():
         on_destructive_change=OnDestructiveChange.IGNORE,
         on_additive_change=OnAdditiveChange.ALLOW,
     )
+
+    check_cols_with_cast = ModelConfig(
+        materialized=Materialization.SNAPSHOT,
+        unique_key=["id"],
+        strategy="check",
+        check_cols=["created_at::TIMESTAMPTZ"],
+    ).model_kind(context)
+    assert isinstance(check_cols_with_cast, SCDType2ByColumnKind)
+    assert check_cols_with_cast.execution_time_as_valid_from is True
+    assert len(check_cols_with_cast.columns) == 1
+    assert isinstance(check_cols_with_cast.columns[0], exp.Cast)
+    assert check_cols_with_cast.columns[0].sql() == 'CAST("created_at" AS TIMESTAMPTZ)'
+
+    check_cols_multiple_expr = ModelConfig(
+        materialized=Materialization.SNAPSHOT,
+        unique_key=["id"],
+        strategy="check",
+        check_cols=["created_at::TIMESTAMPTZ", "COALESCE(status, 'active')"],
+    ).model_kind(context)
+    assert isinstance(check_cols_multiple_expr, SCDType2ByColumnKind)
+    assert len(check_cols_multiple_expr.columns) == 2
+    assert isinstance(check_cols_multiple_expr.columns[0], exp.Cast)
+    assert isinstance(check_cols_multiple_expr.columns[1], exp.Coalesce)
+
+    assert check_cols_multiple_expr.columns[0].sql() == 'CAST("created_at" AS TIMESTAMPTZ)'
+    assert check_cols_multiple_expr.columns[1].sql() == "COALESCE(\"status\", 'active')"
 
     assert ModelConfig(materialized=Materialization.INCREMENTAL, time_column="foo").model_kind(
         context
@@ -841,6 +867,28 @@ def test_seed_column_types():
     sqlmesh_seed = seed.to_sqlmesh(context)
     assert sqlmesh_seed.columns_to_types == expected_column_types
 
+    seed = SeedConfig(
+        name="foo",
+        package="package",
+        path=Path("examples/sushi_dbt/seeds/waiter_names.csv"),
+        column_types={
+            "id": "TEXT",
+            "name": "TEXT NOT NULL",
+        },
+        quote_columns=True,
+    )
+
+    expected_column_types = {
+        "id": exp.DataType.build("text"),
+        "name": exp.DataType.build("text"),
+    }
+
+    logger = logging.getLogger("sqlmesh.dbt.column")
+    with patch.object(logger, "warning") as mock_logger:
+        sqlmesh_seed = seed.to_sqlmesh(context)
+    assert "Ignoring unsupported constraints" in mock_logger.call_args[0][0]
+    assert sqlmesh_seed.columns_to_types == expected_column_types
+
 
 def test_seed_column_inference(tmp_path):
     seed_csv = tmp_path / "seed.csv"
@@ -1192,13 +1240,13 @@ def test_target_jinja(sushi_test_project: Project):
     context = DbtContext()
     context._target = BigQueryConfig(
         name="target",
-        schema="test",
-        database="test",
-        project="project",
-        dataset="dataset",
+        schema="test_value",
+        database="test_project",
     )
-    assert context.render("{{ target.project }}") == "project"
-    assert context.render("{{ target.dataset }}") == "dataset"
+    assert context.render("{{ target.project }}") == "test_project"
+    assert context.render("{{ target.database }}") == "test_project"
+    assert context.render("{{ target.schema }}") == "test_value"
+    assert context.render("{{ target.dataset }}") == "test_value"
 
 
 @pytest.mark.xdist_group("dbt_manifest")
@@ -1593,6 +1641,29 @@ def test_exceptions(sushi_test_project: Project):
 
 
 @pytest.mark.xdist_group("dbt_manifest")
+def test_try_or_compiler_error(sushi_test_project: Project):
+    context = sushi_test_project.context
+
+    result = context.render(
+        '{{ try_or_compiler_error("Error message", modules.datetime.datetime.strptime, "2023-01-15", "%Y-%m-%d") }}'
+    )
+    assert "2023-01-15" in result
+
+    with pytest.raises(CompilationError, match="Invalid date format"):
+        context.render(
+            '{{ try_or_compiler_error("Invalid date format", modules.datetime.datetime.strptime, "invalid", "%Y-%m-%d") }}'
+        )
+
+    # built-in macro calling try_or_compiler_error works
+    result = context.render(
+        '{{ dbt.dates_in_range("2023-01-01", "2023-01-03", "%Y-%m-%d", "%Y-%m-%d") }}'
+    )
+    assert "2023-01-01" in result
+    assert "2023-01-02" in result
+    assert "2023-01-03" in result
+
+
+@pytest.mark.xdist_group("dbt_manifest")
 def test_modules(sushi_test_project: Project):
     context = sushi_test_project.context
 
@@ -1680,12 +1751,10 @@ def test_as_filters(sushi_test_project: Project):
     context = sushi_test_project.context
 
     assert context.render("{{ True | as_bool }}") == "True"
-    with pytest.raises(MacroEvalError, match="Failed to convert 'invalid' into boolean."):
-        context.render("{{ 'invalid' | as_bool }}")
+    assert context.render("{{ 'valid' | as_bool }}") == "valid"
 
     assert context.render("{{ 123 | as_number }}") == "123"
-    with pytest.raises(MacroEvalError, match="Failed to convert 'invalid' into number."):
-        context.render("{{ 'invalid' | as_number }}")
+    assert context.render("{{ 'valid' | as_number }}") == "valid"
 
     assert context.render("{{ None | as_text }}") == ""
 
@@ -1814,7 +1883,7 @@ def test_parsetime_adapter_call(
 
 
 @pytest.mark.xdist_group("dbt_manifest")
-def test_partition_by(sushi_test_project: Project):
+def test_partition_by(sushi_test_project: Project, caplog):
     context = sushi_test_project.context
     context.target = BigQueryConfig(name="production", database="main", schema="sushi")
     model_config = ModelConfig(
@@ -1857,6 +1926,15 @@ def test_partition_by(sushi_test_project: Project):
     context.target = DuckDbConfig(name="target", schema="foo")
     assert model_config.to_sqlmesh(context).partitioned_by == []
 
+    context.target = SnowflakeConfig(
+        name="target", schema="test", database="test", account="foo", user="bar", password="baz"
+    )
+    assert model_config.to_sqlmesh(context).partitioned_by == []
+    assert (
+        "Ignoring partition_by config for model 'model' targeting snowflake. The partition_by config is not supported for Snowflake."
+        in caplog.text
+    )
+
     model_config = ModelConfig(
         name="model",
         alias="model",
@@ -1880,6 +1958,17 @@ def test_partition_by(sushi_test_project: Project):
         sql="""SELECT 1 AS one, ds FROM foo""",
     )
     assert model_config.to_sqlmesh(context).partitioned_by == []
+
+    with pytest.raises(ConfigError, match="Unexpected data_type 'string' in partition_by"):
+        ModelConfig(
+            name="model",
+            alias="model",
+            schema="test",
+            package_name="package",
+            materialized="table",
+            partition_by={"field": "ds", "data_type": "string"},
+            sql="""SELECT 1 AS one, ds FROM foo""",
+        )
 
 
 @pytest.mark.xdist_group("dbt_manifest")
@@ -2124,7 +2213,7 @@ def test_clickhouse_properties(mocker: MockerFixture):
     ]
 
     assert [e.sql("clickhouse") for e in model_to_sqlmesh.partitioned_by] == [
-        'toMonday("ds")',
+        "dateTrunc('WEEK', \"ds\")",
         '"partition_col"',
     ]
     assert model_to_sqlmesh.storage_format == "MergeTree()"
@@ -2271,6 +2360,60 @@ def test_model_cluster_by():
         materialized=Materialization.EPHEMERAL.value,
     )
     assert model.to_sqlmesh(context).clustered_by == []
+
+    model = ModelConfig(
+        name="model",
+        alias="model",
+        package_name="package",
+        target_schema="test",
+        cluster_by="Bar, qux",
+        sql="SELECT * FROM baz",
+        materialized=Materialization.TABLE.value,
+    )
+    assert model.to_sqlmesh(context).clustered_by == [
+        exp.to_column('"BAR"'),
+        exp.to_column('"QUX"'),
+    ]
+
+    model = ModelConfig(
+        name="model",
+        alias="model",
+        package_name="package",
+        target_schema="test",
+        cluster_by=['"Bar,qux"'],
+        sql="SELECT * FROM baz",
+        materialized=Materialization.TABLE.value,
+    )
+    assert model.to_sqlmesh(context).clustered_by == [
+        exp.to_column('"Bar,qux"'),
+    ]
+
+    model = ModelConfig(
+        name="model",
+        alias="model",
+        package_name="package",
+        target_schema="test",
+        cluster_by='"Bar,qux"',
+        sql="SELECT * FROM baz",
+        materialized=Materialization.TABLE.value,
+    )
+    assert model.to_sqlmesh(context).clustered_by == [
+        exp.to_column('"Bar,qux"'),
+    ]
+
+    model = ModelConfig(
+        name="model",
+        alias="model",
+        package_name="package",
+        target_schema="test",
+        cluster_by=["to_date(Bar),qux"],
+        sql="SELECT * FROM baz",
+        materialized=Materialization.TABLE.value,
+    )
+    assert model.to_sqlmesh(context).clustered_by == [
+        exp.TsOrDsToDate(this=exp.to_column('"BAR"')),
+        exp.to_column('"QUX"'),
+    ]
 
 
 def test_snowflake_dynamic_table():

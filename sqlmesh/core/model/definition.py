@@ -34,6 +34,7 @@ from sqlmesh.core.model.common import (
 )
 from sqlmesh.core.model.meta import ModelMeta
 from sqlmesh.core.model.kind import (
+    ExternalKind,
     ModelKindName,
     SeedKind,
     ModelKind,
@@ -851,7 +852,7 @@ class _Model(ModelMeta, frozen=True):
         query = self.render_query_or_raise(**render_kwarg).limit(0)
 
         for select_or_set_op in query.find_all(exp.Select, exp.SetOperation):
-            if isinstance(select_or_set_op, exp.Select) and select_or_set_op.args.get("from"):
+            if isinstance(select_or_set_op, exp.Select) and select_or_set_op.args.get("from_"):
                 select_or_set_op.where(exp.false(), copy=False)
 
         if self.managed_columns:
@@ -1148,6 +1149,13 @@ class _Model(ModelMeta, frozen=True):
 
             # Will raise if the custom materialization points to an invalid class
             get_custom_materialization_type_or_raise(self.kind.materialization)
+
+        # Embedded model kind shouldn't have audits
+        if self.kind.name == ModelKindName.EMBEDDED and self.audits:
+            raise_config_error(
+                "Audits are not supported for embedded models",
+                self._path,
+            )
 
     def is_breaking_change(self, previous: Model) -> t.Optional[bool]:
         """Determines whether this model is a breaking change in relation to the `previous` model.
@@ -2105,6 +2113,7 @@ class ExternalModel(_Model):
     """The model definition which represents an external source/table.
     外部ソース/テーブルを表すモデル定義。"""
 
+    kind: ModelKind = ExternalKind()
     source_type: t.Literal["external"] = "external"
 
     def is_breaking_change(self, previous: Model) -> t.Optional[bool]:

@@ -62,6 +62,7 @@ from sqlmesh.utils.errors import (
     NoChangesPlanError,
 )
 from sqlmesh.utils.metaprogramming import Executable
+from sqlmesh.utils.windows import IS_WINDOWS, fix_windows_path
 from tests.utils.test_helpers import use_terminal_console
 from tests.utils.test_filesystem import create_temp_file
 
@@ -700,6 +701,45 @@ def test_clear_caches(tmp_path: pathlib.Path):
     assert not cache_dir.exists()
 
 
+def test_clear_caches_with_long_base_path(tmp_path: pathlib.Path):
+    base_path = tmp_path / ("abcde" * 50)
+    assert (
+        len(str(base_path.absolute())) > 260
+    )  # Paths longer than 260 chars trigger problems on Windows
+
+    default_cache_dir = base_path / c.CACHE
+    custom_cache_dir = base_path / ".test_cache"
+
+    # note: we create the Context here so it doesnt get passed any "fixed" paths
+    ctx = Context(config=Config(cache_dir=str(custom_cache_dir)), paths=base_path)
+
+    if IS_WINDOWS:
+        # fix these so we can use them in this test
+        default_cache_dir = fix_windows_path(default_cache_dir)
+        custom_cache_dir = fix_windows_path(custom_cache_dir)
+
+    default_cache_dir.mkdir(parents=True)
+    custom_cache_dir.mkdir(parents=True)
+
+    default_cache_file = default_cache_dir / "cache.txt"
+    custom_cache_file = custom_cache_dir / "cache.txt"
+
+    default_cache_file.write_text("test")
+    custom_cache_file.write_text("test")
+
+    assert default_cache_file.exists()
+    assert custom_cache_file.exists()
+    assert default_cache_dir.exists()
+    assert custom_cache_dir.exists()
+
+    ctx.clear_caches()
+
+    assert not default_cache_file.exists()
+    assert not custom_cache_file.exists()
+    assert not default_cache_dir.exists()
+    assert not custom_cache_dir.exists()
+
+
 def test_cache_path_configurations(tmp_path: pathlib.Path):
     project_dir = tmp_path / "project"
     project_dir.mkdir(parents=True)
@@ -1030,7 +1070,7 @@ def test_janitor(sushi_context, mocker: MockerFixture) -> None:
     sushi_context._engine_adapter = adapter_mock
     sushi_context.engine_adapters = {sushi_context.config.default_gateway: adapter_mock}
     sushi_context._state_sync = state_sync_mock
-    state_sync_mock.get_expired_snapshots.return_value = []
+    state_sync_mock.get_expired_snapshots.return_value = None
 
     sushi_context._run_janitor()
     # Assert that the schemas are dropped just twice for the schema based environment
@@ -1466,6 +1506,8 @@ def test_requirements(copy_to_temp_path: t.Callable):
         "dev", no_prompts=True, skip_tests=True, skip_backfill=True, auto_apply=True
     ).environment
     requirements = {"ipywidgets", "numpy", "pandas", "test_package"}
+    if IS_WINDOWS:
+        requirements.add("pendulum")
     assert environment.requirements["pandas"] == "2.2.2"
     assert set(environment.requirements) == requirements
 
@@ -1473,7 +1515,10 @@ def test_requirements(copy_to_temp_path: t.Callable):
     context._excluded_requirements = {"ipywidgets", "ruamel.yaml", "ruamel.yaml.clib"}
     diff = context.plan_builder("dev", skip_tests=True, skip_backfill=True).build().context_diff
     assert set(diff.previous_requirements) == requirements
-    assert set(diff.requirements) == {"numpy", "pandas"}
+    reqs = {"numpy", "pandas"}
+    if IS_WINDOWS:
+        reqs.add("pendulum")
+    assert set(diff.requirements) == reqs
 
 
 def test_deactivate_automatic_requirement_inference(copy_to_temp_path: t.Callable):
@@ -1945,7 +1990,7 @@ def access_adapter(evaluator):
 
     assert (
         model.pre_statements[0].sql()
-        == "@IF(@runtime_stage IN ('evaluating', 'creating'), SET VARIABLE stats_model_start = NOW())"
+        == "@IF(@runtime_stage IN ('evaluating', 'creating'), SET stats_model_start = NOW())"
     )
     assert (
         model.post_statements[0].sql()
@@ -2297,13 +2342,13 @@ def test_plan_audit_intervals(tmp_path: pathlib.Path, caplog):
 
     # Case 1: The timestamp audit should be in the inclusive range ['2025-02-01 00:00:00', '2025-02-01 23:59:59.999999']
     assert (
-        f"""SELECT COUNT(*) FROM (SELECT "timestamp_id" AS "timestamp_id" FROM (SELECT * FROM "sqlmesh__sqlmesh_audit"."sqlmesh_audit__timestamp_example__{timestamp_snapshot.version}" AS "sqlmesh_audit__timestamp_example__{timestamp_snapshot.version}" WHERE "timestamp_id" BETWEEN CAST('2025-02-01 00:00:00' AS TIMESTAMP) AND CAST('2025-02-01 23:59:59.999999' AS TIMESTAMP)) AS "_q_0" WHERE TRUE GROUP BY "timestamp_id" HAVING COUNT(*) > 1) AS "audit\""""
+        f"""SELECT COUNT(*) FROM (SELECT "timestamp_id" AS "timestamp_id" FROM (SELECT * FROM "sqlmesh__sqlmesh_audit"."sqlmesh_audit__timestamp_example__{timestamp_snapshot.version}" AS "sqlmesh_audit__timestamp_example__{timestamp_snapshot.version}" WHERE "timestamp_id" BETWEEN CAST('2025-02-01 00:00:00' AS TIMESTAMP) AND CAST('2025-02-01 23:59:59.999999' AS TIMESTAMP)) AS "_0" WHERE TRUE GROUP BY "timestamp_id" HAVING COUNT(*) > 1) AS "audit\""""
         in caplog.text
     )
 
     # Case 2: The date audit should be in the inclusive range ['2025-02-01', '2025-02-01']
     assert (
-        f"""SELECT COUNT(*) FROM (SELECT "date_id" AS "date_id" FROM (SELECT * FROM "sqlmesh__sqlmesh_audit"."sqlmesh_audit__date_example__{date_snapshot.version}" AS "sqlmesh_audit__date_example__{date_snapshot.version}" WHERE "date_id" BETWEEN CAST('2025-02-01' AS DATE) AND CAST('2025-02-01' AS DATE)) AS "_q_0" WHERE TRUE GROUP BY "date_id" HAVING COUNT(*) > 1) AS "audit\""""
+        f"""SELECT COUNT(*) FROM (SELECT "date_id" AS "date_id" FROM (SELECT * FROM "sqlmesh__sqlmesh_audit"."sqlmesh_audit__date_example__{date_snapshot.version}" AS "sqlmesh_audit__date_example__{date_snapshot.version}" WHERE "date_id" BETWEEN CAST('2025-02-01' AS DATE) AND CAST('2025-02-01' AS DATE)) AS "_0" WHERE TRUE GROUP BY "date_id" HAVING COUNT(*) > 1) AS "audit\""""
         in caplog.text
     )
 

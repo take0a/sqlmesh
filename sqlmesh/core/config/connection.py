@@ -17,6 +17,7 @@ from pydantic_core import from_json
 from packaging import version
 from sqlglot import exp
 from sqlglot.helper import subclasses
+from sqlglot.errors import ParseError
 
 from sqlmesh.core import engine_adapter
 from sqlmesh.core.config.base import BaseConfig
@@ -58,6 +59,7 @@ FORBIDDEN_STATE_SYNC_ENGINES = {
     "clickhouse",
 }
 MOTHERDUCK_TOKEN_REGEX = re.compile(r"(\?|\&)(motherduck_token=)(\S*)")
+PASSWORD_REGEX = re.compile(r"(password=)(\S+)")
 
 
 def _get_engine_import_validator(
@@ -258,6 +260,7 @@ class DuckDBAttachOptions(BaseConfig):
     data_path: t.Optional[str] = None
     encrypted: bool = False
     data_inlining_row_limit: t.Optional[int] = None
+    metadata_schema: t.Optional[str] = None
 
     def to_sql(self, alias: str) -> str:
         options = []
@@ -279,6 +282,8 @@ class DuckDBAttachOptions(BaseConfig):
                 options.append("ENCRYPTED")
             if self.data_inlining_row_limit is not None:
                 options.append(f"DATA_INLINING_ROW_LIMIT {self.data_inlining_row_limit}")
+            if self.metadata_schema is not None:
+                options.append(f"METADATA_SCHEMA '{self.metadata_schema}'")
 
         options_sql = f" ({', '.join(options)})" if options else ""
         alias_sql = ""
@@ -500,13 +505,13 @@ class BaseDuckDBConnectionConfig(ConnectionConfig):
             adapter = BaseDuckDBConnectionConfig._data_file_to_adapter.get(key)
             if adapter is not None:
                 logger.info(
-                    f"Using existing DuckDB adapter due to overlapping data file: {self._mask_motherduck_token(key)}"
+                    f"Using existing DuckDB adapter due to overlapping data file: {self._mask_sensitive_data(key)}"
                 )
                 return adapter
 
         if data_files:
             masked_files = {
-                self._mask_motherduck_token(file if isinstance(file, str) else file.path)
+                self._mask_sensitive_data(file if isinstance(file, str) else file.path)
                 for file in data_files
             }
             logger.info(f"Creating new DuckDB adapter for data files: {masked_files}")
@@ -528,10 +533,14 @@ class BaseDuckDBConnectionConfig(ConnectionConfig):
             return list(self.catalogs)[0]
         return None
 
-    def _mask_motherduck_token(self, string: str) -> str:
-        return MOTHERDUCK_TOKEN_REGEX.sub(
-            lambda m: f"{m.group(1)}{m.group(2)}{'*' * len(m.group(3))}", string
+    def _mask_sensitive_data(self, string: str) -> str:
+        # Mask MotherDuck tokens with fixed number of asterisks
+        result = MOTHERDUCK_TOKEN_REGEX.sub(
+            lambda m: f"{m.group(1)}{m.group(2)}{'*' * 8 if m.group(3) else ''}", string
         )
+        # Mask PostgreSQL/MySQL passwords with fixed number of asterisks
+        result = PASSWORD_REGEX.sub(lambda m: f"{m.group(1)}{'*' * 8}", result)
+        return result
 
 
 class MotherDuckConnectionConfig(BaseDuckDBConnectionConfig):
@@ -1900,9 +1909,11 @@ class TrinoConnectionConfig(ConnectionConfig):
     client_certificate: t.Optional[str] = None
     client_private_key: t.Optional[str] = None
     cert: t.Optional[str] = None
+    source: str = "sqlmesh"
 
     # SQLMesh options
     schema_location_mapping: t.Optional[dict[re.Pattern, str]] = None
+    timestamp_mapping: t.Optional[dict[exp.DataType, exp.DataType]] = None
     concurrent_tasks: int = 4
     register_comments: bool = True
     pre_ping: t.Literal[False] = False
@@ -1926,6 +1937,34 @@ class TrinoConnectionConfig(ConnectionConfig):
                     "schema_location_mapping needs to include the '@{schema_name}' placeholder in the value so SQLMesh knows where to substitute the schema name"
                 )
         return compiled
+
+    @field_validator("timestamp_mapping", mode="before")
+    @classmethod
+    def _validate_timestamp_mapping(
+        cls, value: t.Optional[dict[str, str]]
+    ) -> t.Optional[dict[exp.DataType, exp.DataType]]:
+        if value is None:
+            return value
+
+        result: dict[exp.DataType, exp.DataType] = {}
+        for source_type, target_type in value.items():
+            try:
+                source_datatype = exp.DataType.build(source_type)
+            except ParseError:
+                raise ConfigError(
+                    f"Invalid SQL type string in timestamp_mapping: "
+                    f"'{source_type}' is not a valid SQL data type."
+                )
+            try:
+                target_datatype = exp.DataType.build(target_type)
+            except ParseError:
+                raise ConfigError(
+                    f"Invalid SQL type string in timestamp_mapping: "
+                    f"'{target_type}' is not a valid SQL data type."
+                )
+            result[source_datatype] = target_datatype
+
+        return result
 
     @model_validator(mode="after")
     def _root_validator(self) -> Self:
@@ -1967,6 +2006,7 @@ class TrinoConnectionConfig(ConnectionConfig):
             "port",
             "catalog",
             "roles",
+            "source",
             "http_scheme",
             "http_headers",
             "session_properties",
@@ -2024,12 +2064,15 @@ class TrinoConnectionConfig(ConnectionConfig):
             "user": self.impersonation_user or self.user,
             "max_attempts": self.retries,
             "verify": self.cert if self.cert is not None else self.verify,
-            "source": "sqlmesh",
+            "source": self.source,
         }
 
     @property
     def _extra_engine_config(self) -> t.Dict[str, t.Any]:
-        return {"schema_location_mapping": self.schema_location_mapping}
+        return {
+            "schema_location_mapping": self.schema_location_mapping,
+            "timestamp_mapping": self.timestamp_mapping,
+        }
 
 
 class ClickhouseConnectionConfig(ConnectionConfig):
@@ -2312,7 +2355,7 @@ CONNECTION_CONFIG_TO_TYPE = {
     for tpe in subclasses(
         __name__,
         ConnectionConfig,
-        exclude=(ConnectionConfig, BaseDuckDBConnectionConfig),
+        exclude={ConnectionConfig, BaseDuckDBConnectionConfig},
     )
 }
 
@@ -2321,7 +2364,7 @@ DIALECT_TO_TYPE = {
     for tpe in subclasses(
         __name__,
         ConnectionConfig,
-        exclude=(ConnectionConfig, BaseDuckDBConnectionConfig),
+        exclude={ConnectionConfig, BaseDuckDBConnectionConfig},
     )
 }
 
@@ -2333,7 +2376,7 @@ INIT_DISPLAY_INFO_TO_TYPE = {
     for tpe in subclasses(
         __name__,
         ConnectionConfig,
-        exclude=(ConnectionConfig, BaseDuckDBConnectionConfig),
+        exclude={ConnectionConfig, BaseDuckDBConnectionConfig},
     )
 }
 

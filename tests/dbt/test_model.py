@@ -1,4 +1,6 @@
 import datetime
+import logging
+
 import pytest
 
 from pathlib import Path
@@ -6,8 +8,9 @@ from pathlib import Path
 from sqlglot import exp
 from sqlglot.errors import SchemaError
 from sqlmesh import Context
+from sqlmesh.core.console import NoopConsole, get_console
 from sqlmesh.core.model import TimeColumn, IncrementalByTimeRangeKind
-from sqlmesh.core.model.kind import OnDestructiveChange, OnAdditiveChange
+from sqlmesh.core.model.kind import OnDestructiveChange, OnAdditiveChange, SCDType2ByColumnKind
 from sqlmesh.core.state_sync.db.snapshot import _snapshot_to_json
 from sqlmesh.core.config.common import VirtualEnvironmentMode
 from sqlmesh.core.model.meta import GrantsTargetLayer
@@ -18,6 +21,7 @@ from sqlmesh.dbt.target import BigQueryConfig, DuckDbConfig, PostgresConfig
 from sqlmesh.dbt.test import TestConfig
 from sqlmesh.utils.yaml import YAML
 from sqlmesh.utils.date import to_ds
+import typing as t
 
 pytestmark = pytest.mark.dbt
 
@@ -272,7 +276,9 @@ def test_load_invalid_ref_audit_constraints(
     with open(model_schema_file, "w", encoding="utf-8") as f:
         yaml.dump(model_schema, f)
 
-    context = Context(paths=project_dir)
+    assert isinstance(get_console(), NoopConsole)
+    with caplog.at_level(logging.DEBUG):
+        context = Context(paths=project_dir)
     assert (
         "Skipping audit 'relationships_full_model_cola__cola__ref_not_real_model_' because model 'not_real_model' is not a valid ref"
         in caplog.text
@@ -536,7 +542,9 @@ def test_load_deprecated_incremental_time_column(
         f.write(incremental_time_range_contents)
 
     snapshot_fqn = '"local"."main"."incremental_time_range"'
-    context = Context(paths=project_dir)
+    assert isinstance(get_console(), NoopConsole)
+    with caplog.at_level(logging.DEBUG):
+        context = Context(paths=project_dir)
     model = context.snapshots[snapshot_fqn].model
     # Validate model-level attributes
     assert to_ds(model.start or "") == "2025-01-01"
@@ -618,11 +626,11 @@ def test_load_microbatch_with_ref(
     context = Context(paths=project_dir)
     assert (
         context.render(microbatch_snapshot_fqn, start="2025-01-01", end="2025-01-10").sql()
-        == 'SELECT "cola" AS "cola", "ds_source" AS "ds" FROM (SELECT * FROM "local"."my_source"."my_table" AS "my_table" WHERE "ds_source" >= \'2025-01-01 00:00:00+00:00\' AND "ds_source" < \'2025-01-11 00:00:00+00:00\') AS "_q_0"'
+        == 'SELECT "cola" AS "cola", "ds_source" AS "ds" FROM (SELECT * FROM "local"."my_source"."my_table" AS "my_table" WHERE "ds_source" >= \'2025-01-01 00:00:00+00:00\' AND "ds_source" < \'2025-01-11 00:00:00+00:00\') AS "_0"'
     )
     assert (
         context.render(microbatch_two_snapshot_fqn, start="2025-01-01", end="2025-01-10").sql()
-        == 'SELECT "_q_0"."cola" AS "cola", "_q_0"."ds" AS "ds" FROM (SELECT "microbatch"."cola" AS "cola", "microbatch"."ds" AS "ds" FROM "local"."main"."microbatch" AS "microbatch" WHERE "microbatch"."ds" < \'2025-01-11 00:00:00+00:00\' AND "microbatch"."ds" >= \'2025-01-01 00:00:00+00:00\') AS "_q_0"'
+        == 'SELECT "_0"."cola" AS "cola", "_0"."ds" AS "ds" FROM (SELECT "microbatch"."cola" AS "cola", "microbatch"."ds" AS "ds" FROM "local"."main"."microbatch" AS "microbatch" WHERE "microbatch"."ds" < \'2025-01-11 00:00:00+00:00\' AND "microbatch"."ds" >= \'2025-01-01 00:00:00+00:00\') AS "_0"'
     )
 
 
@@ -702,6 +710,29 @@ def test_load_multiple_snapshots_defined_in_same_file(sushi_test_dbt_context: Co
     context.load()
     assert context.get_model("snapshots.items_snapshot")
     assert context.get_model("snapshots.items_check_snapshot")
+
+
+@pytest.mark.slow
+def test_dbt_snapshot_with_check_cols_expressions(sushi_test_dbt_context: Context) -> None:
+    context = sushi_test_dbt_context
+    model = context.get_model("snapshots.items_check_with_cast_snapshot")
+    assert model is not None
+    assert isinstance(model.kind, SCDType2ByColumnKind)
+
+    columns = model.kind.columns
+    assert isinstance(columns, list)
+    assert len(columns) == 1
+
+    # expression in check_cols is: ds::DATE
+    assert isinstance(columns[0], exp.Cast)
+    assert columns[0].sql() == 'CAST("ds" AS DATE)'
+
+    context.load()
+    cached_model = context.get_model("snapshots.items_check_with_cast_snapshot")
+    assert cached_model is not None
+    assert isinstance(cached_model.kind, SCDType2ByColumnKind)
+    assert isinstance(cached_model.kind.columns, list)
+    assert len(cached_model.kind.columns) == 1
 
 
 @pytest.mark.slow
@@ -1028,3 +1059,58 @@ def test_ephemeral_model_ignores_grants() -> None:
 
     assert sqlmesh_model.kind.is_embedded
     assert sqlmesh_model.grants is None  # grants config is skipped for ephemeral / embedded models
+
+
+def test_conditional_ref_in_unexecuted_branch(copy_to_temp_path: t.Callable):
+    path = copy_to_temp_path("tests/fixtures/dbt/sushi_test")
+    temp_project = path[0]
+
+    models_dir = temp_project / "models"
+    models_dir.mkdir(parents=True, exist_ok=True)
+
+    test_model_content = """
+{{ config(
+    materialized='table',
+) }}
+
+{% if true %}
+    WITH source AS (
+        SELECT *
+        FROM {{ ref('simple_model_a') }}
+    )
+{% else %}
+    WITH source AS (
+        SELECT *
+        FROM {{ ref('nonexistent_model') }} -- this doesn't exist but is in unexecuted branch
+    )
+{% endif %}
+
+SELECT * FROM source
+""".strip()
+
+    (models_dir / "conditional_ref_model.sql").write_text(test_model_content)
+    sushi_context = Context(paths=[str(temp_project)])
+
+    # the model should load successfully without raising MissingModelError
+    model = sushi_context.get_model("sushi.conditional_ref_model")
+    assert model is not None
+
+    # Verify only the executed ref is in the dependencies
+    assert len(model.depends_on) == 1
+    assert '"memory"."sushi"."simple_model_a"' in model.depends_on
+
+    # Also the model can be rendered successfully with the executed ref
+    rendered = model.render_query()
+    assert rendered is not None
+    assert (
+        rendered.sql()
+        == 'WITH "source" AS (SELECT "simple_model_a"."a" AS "a" FROM "memory"."sushi"."simple_model_a" AS "simple_model_a") SELECT "source"."a" AS "a" FROM "source" AS "source"'
+    )
+
+    # And run plan with this conditional model for good measure
+    plan = sushi_context.plan(select_models=["sushi.conditional_ref_model", "sushi.simple_model_a"])
+    sushi_context.apply(plan)
+    upstream_ref = sushi_context.engine_adapter.fetchone("SELECT * FROM sushi.simple_model_a")
+    assert upstream_ref == (1,)
+    result = sushi_context.engine_adapter.fetchone("SELECT * FROM sushi.conditional_ref_model")
+    assert result == (1,)

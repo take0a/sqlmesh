@@ -115,14 +115,15 @@ from sqlmesh.core.state_sync import (
     CachingStateSync,
     StateReader,
     StateSync,
-    cleanup_expired_views,
 )
+from sqlmesh.core.janitor import cleanup_expired_views, delete_expired_snapshots
 from sqlmesh.core.table_diff import TableDiff
 from sqlmesh.core.test import (
     ModelTextTestResult,
     ModelTestMetadata,
     generate_test,
     run_tests,
+    filter_tests_by_patterns,
 )
 from sqlmesh.core.user import User
 from sqlmesh.utils import UniqueKeyDict, Verbosity
@@ -147,6 +148,7 @@ from sqlmesh.utils.errors import (
 )
 from sqlmesh.utils.config import print_config
 from sqlmesh.utils.jinja import JinjaMacroRegistry
+from sqlmesh.utils.windows import IS_WINDOWS, fix_windows_path
 
 if t.TYPE_CHECKING:
     import pandas as pd
@@ -160,6 +162,8 @@ if t.TYPE_CHECKING:
         SnowparkSession,
     )
     from sqlmesh.core.snapshot import Node
+
+    from sqlmesh.core.snapshot.definition import Intervals
 
     ModelOrSnapshot = t.Union[str, Model, Snapshot]
     NodeOrSnapshot = t.Union[str, Model, StandaloneAudit, Snapshot]
@@ -296,6 +300,7 @@ class ExecutionContext(BaseContext):
         default_dialect: t.Optional[str] = None,
         default_catalog: t.Optional[str] = None,
         is_restatement: t.Optional[bool] = None,
+        parent_intervals: t.Optional[Intervals] = None,
         variables: t.Optional[t.Dict[str, t.Any]] = None,
         blueprint_variables: t.Optional[t.Dict[str, t.Any]] = None,
     ):
@@ -307,6 +312,7 @@ class ExecutionContext(BaseContext):
         self._variables = variables or {}
         self._blueprint_variables = blueprint_variables or {}
         self._is_restatement = is_restatement
+        self._parent_intervals = parent_intervals
 
     @property
     def default_dialect(self) -> t.Optional[str]:
@@ -337,6 +343,10 @@ class ExecutionContext(BaseContext):
     @property
     def is_restatement(self) -> t.Optional[bool]:
         return self._is_restatement
+
+    @property
+    def parent_intervals(self) -> t.Optional[Intervals]:
+        return self._parent_intervals
 
     def var(self, var_name: str, default: t.Optional[t.Any] = None) -> t.Optional[t.Any]:
         """Returns a variable value.
@@ -428,6 +438,11 @@ class GenericContext(BaseContext, t.Generic[C]):
         self._standalone_audits: UniqueKeyDict[str, StandaloneAudit] = UniqueKeyDict(
             "standaloneaudits"
         )
+        self._model_test_metadata: t.List[ModelTestMetadata] = []
+        self._model_test_metadata_path_index: t.Dict[Path, t.List[ModelTestMetadata]] = {}
+        self._model_test_metadata_fully_qualified_name_index: t.Dict[str, ModelTestMetadata] = {}
+        self._models_with_tests: t.Set[str] = set()
+
         self._macros: UniqueKeyDict[str, ExecutableOrMacro] = UniqueKeyDict("macros")
         self._metrics: UniqueKeyDict[str, Metric] = UniqueKeyDict("metrics")
         self._jinja_macros = JinjaMacroRegistry()
@@ -683,6 +698,10 @@ class GenericContext(BaseContext, t.Generic[C]):
         self._excluded_requirements.clear()
         self._linters.clear()
         self._environment_statements = []
+        self._model_test_metadata.clear()
+        self._model_test_metadata_path_index.clear()
+        self._model_test_metadata_fully_qualified_name_index.clear()
+        self._models_with_tests.clear()
 
         for loader, project in zip(self._loaders, loaded_projects):
             self._jinja_macros = self._jinja_macros.merge(project.jinja_macros)
@@ -694,6 +713,16 @@ class GenericContext(BaseContext, t.Generic[C]):
             self._requirements.update(project.requirements)
             self._excluded_requirements.update(project.excluded_requirements)
             self._environment_statements.extend(project.environment_statements)
+
+            self._model_test_metadata.extend(project.model_test_metadata)
+            for metadata in project.model_test_metadata:
+                if metadata.path not in self._model_test_metadata_path_index:
+                    self._model_test_metadata_path_index[metadata.path] = []
+                self._model_test_metadata_path_index[metadata.path].append(metadata)
+                self._model_test_metadata_fully_qualified_name_index[
+                    metadata.fully_qualified_test_name
+                ] = metadata
+                self._models_with_tests.add(metadata.model_name)
 
             config = loader.config
             self._linters[config.project] = Linter.from_rules(
@@ -1124,6 +1153,11 @@ class GenericContext(BaseContext, t.Generic[C]):
         """Returns all registered standalone audits in this context.
         このコンテキストに登録されているすべてのスタンドアロン監査を返します。"""
         return MappingProxyType(self._standalone_audits)
+
+    @property
+    def models_with_tests(self) -> t.Set[str]:
+        """Returns all models with tests in this context."""
+        return self._models_with_tests
 
     @property
     def snapshots(self) -> t.Dict[str, Snapshot]:
@@ -2453,7 +2487,7 @@ class GenericContext(BaseContext, t.Generic[C]):
 
             pd.set_option("display.max_columns", None)
 
-        test_meta = self.load_model_tests(tests=tests, patterns=match_patterns)
+        test_meta = self.select_tests(tests=tests, patterns=match_patterns)
 
         result = run_tests(
             model_test_metadata=test_meta,
@@ -2517,6 +2551,7 @@ class GenericContext(BaseContext, t.Generic[C]):
                 snapshot=snapshot,
                 start=start,
                 end=end,
+                execution_time=execution_time,
                 snapshots=self.snapshots,
             ):
                 audit_id = f"{audit_result.audit.name}"
@@ -2865,12 +2900,15 @@ class GenericContext(BaseContext, t.Generic[C]):
         )
 
     def clear_caches(self) -> None:
-        for path in self.configs:
-            cache_path = path / c.CACHE
-            if cache_path.exists():
-                rmtree(cache_path)
-        if self.cache_dir.exists():
-            rmtree(self.cache_dir)
+        paths_to_remove = [path / c.CACHE for path in self.configs]
+        paths_to_remove.append(self.cache_dir)
+
+        if IS_WINDOWS:
+            paths_to_remove = [fix_windows_path(path) for path in paths_to_remove]
+
+        for path in paths_to_remove:
+            if path.exists():
+                rmtree(path)
 
         if isinstance(self._state_sync, CachingStateSync):
             self._state_sync.clear_cache()
@@ -3139,21 +3177,14 @@ class GenericContext(BaseContext, t.Generic[C]):
         # ビューとスキーマを削除して期限切れの環境をクリーンアップします
         self._cleanup_environments(current_ts=current_ts)
 
-        cleanup_targets = self.state_sync.get_expired_snapshots(
-            ignore_ttl=ignore_ttl, current_ts=current_ts
+        delete_expired_snapshots(
+            self.state_sync,
+            self.snapshot_evaluator,
+            current_ts=current_ts,
+            ignore_ttl=ignore_ttl,
+            console=self.console,
+            batch_size=self.config.janitor.expired_snapshots_batch_size,
         )
-
-        # Remove the expired snapshots tables
-        # 期限切れのスナップショットテーブルを削除する
-        self.snapshot_evaluator.cleanup(
-            target_snapshots=cleanup_targets,
-            on_complete=self.console.update_cleanup_progress,
-        )
-
-        # Delete the expired snapshot records from the state sync
-        # 状態同期から期限切れのスナップショットレコードを削除します
-        self.state_sync.delete_expired_snapshots(ignore_ttl=ignore_ttl, current_ts=current_ts)
-
         self.state_sync.compact_intervals()
 
     def _cleanup_environments(self, current_ts: t.Optional[int] = None) -> None:
@@ -3495,20 +3526,34 @@ class GenericContext(BaseContext, t.Generic[C]):
 
         return all_violations
 
-    def load_model_tests(
-        self, tests: t.Optional[t.List[str]] = None, patterns: list[str] | None = None
+    def select_tests(
+        self,
+        tests: t.Optional[t.List[str]] = None,
+        patterns: t.Optional[t.List[str]] = None,
     ) -> t.List[ModelTestMetadata]:
-        # If a set of specific test path(s) are provided, we can use a single loader
-        # since it's not required to walk every tests/ folder in each repo
-        # 特定のテストパスのセットが提供されている場合、
-        # 各リポジトリのすべてのtests/フォルダを調べる必要がないため、単一のローダーを使用できます。
-        loaders = [self._loaders[0]] if tests else self._loaders
+        """Filter pre-loaded test metadata based on tests and patterns."""
 
-        model_tests = []
-        for loader in loaders:
-            model_tests.extend(loader.load_model_tests(tests=tests, patterns=patterns))
+        test_meta = self._model_test_metadata
 
-        return model_tests
+        if tests:
+            filtered_tests = []
+            for test in tests:
+                if "::" in test:
+                    if test in self._model_test_metadata_fully_qualified_name_index:
+                        filtered_tests.append(
+                            self._model_test_metadata_fully_qualified_name_index[test]
+                        )
+                else:
+                    test_path = Path(test)
+                    if test_path in self._model_test_metadata_path_index:
+                        filtered_tests.extend(self._model_test_metadata_path_index[test_path])
+
+            test_meta = filtered_tests
+
+        if patterns:
+            test_meta = filter_tests_by_patterns(test_meta, patterns)
+
+        return test_meta
 
 
 class Context(GenericContext[Config]):
